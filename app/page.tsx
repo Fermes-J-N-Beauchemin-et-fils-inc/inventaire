@@ -1,65 +1,53 @@
-import Image from "next/image";
 
-export default function Home() {
+'use client';
+
+import { signIn } from "next-auth/react";
+import logo from '../public/images/logo.png';
+
+
+export default function LoginPage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAF8F5] px-4">
+      {/* Main Login Container */}
+      <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-sm border border-zinc-200/60 text-center">
+
+        {/* Placeholder Container for the Logo */}
+        <div className="w-full h-70 flex items-center justify-center mb-8  text-zinc-400 text-sm font-medium">
+          <img src={logo.src} alt="Logo Fermes J.N. Beauchemin"></img>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+
+        {/* Title */}
+        <h1 className="text-2xl font-bold text-[#1A1A1A] mb-2 tracking-tight">
+          Se connecter
+        </h1>
+        <p className="text-sm text-zinc-500 mb-8">
+          Accédez à votre plateforme de gestion agricole
+        </p>
+
+        {/* Microsoft Sign-In Button */}
+        <button
+          onClick={() => signIn("microsoft-entra-id", { redirectTo: "/dashboard" })}
+          className="w-full flex items-center justify-center gap-3 px-5 py-3 border border-zinc-200 bg-white text-zinc-700 font-semibold rounded-lg shadow-sm hover:bg-zinc-50 hover:border-zinc-300 active:bg-zinc-100 transition-all duration-200 text-sm"
+        >
+          {/* Native Microsoft Grid Icon Colors */}
+          <svg className="h-5 w-5 shrink-0" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0 0H11V11H0V0Z" fill="#F25022" />
+            <path d="M12 0H23V11H12V0Z" fill="#7FBA00" />
+            <path d="M0 12H11V23H0V12Z" fill="#00A4EF" />
+            <path d="M12 12H23V23H12V12Z" fill="#FFB900" />
+          </svg>
+          Se connecter avec Microsoft
+        </button>
+
+      </div>
+
+      <div className="mt-8 flex items-center gap-2 text-xs text-zinc-400 font-medium tracking-wide uppercase">
+        <span>Production Laitière</span>
+        <span className="h-1 w-1 rounded-full bg-[#15803D]"></span>
+        <span>Céréalière</span>
+        <span className="h-1 w-1 rounded-full bg-[#15803D]"></span>
+        <span>Acéricole</span>
+      </div>
     </div>
   );
 }
