@@ -50,7 +50,10 @@ export default function RationPage() {
             <Image src={logo} alt="Logo" fill className="object-contain" priority />
           </div>
           
-          <h1 className="text-2xl sm:text-3xl font-black text-center text-black mb-8">Configuration de la ration</h1>
+          <div className="flex flex-col items-center gap-2 mb-8">
+            <h1 className="text-2xl sm:text-3xl font-black text-center text-black">Configuration de la ration</h1>
+            <div className="text-xl sm:text-3xl font-black text-black underline">Normal</div>
+          </div>
           
           <div className="space-y-8">
             
