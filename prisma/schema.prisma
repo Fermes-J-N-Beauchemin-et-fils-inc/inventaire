@@ -18,10 +18,12 @@ model User {
   email         String
   emailVerified Boolean   @default(false)
   image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  sessions      Session[]
-  accounts      Account[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  failedAttempts Int       @default(0)
+  lockoutUntil   DateTime?
+  sessions       Session[]
+  accounts       Account[]
 
   @@unique([email])
   @@map("user")

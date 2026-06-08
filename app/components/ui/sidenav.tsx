@@ -23,22 +23,22 @@ function NavItem({ href, icon, label, badge, onClick }: NavItemProps) {
             <Link
                 href={href}
                 onClick={onClick}
-                className={`flex items-center px-3 py-2.5 rounded-lg transition-colors group ${
+                className={`flex items-center px-4 py-3.5 rounded-xl transition-all group ${
                     isActive 
-                        ? "bg-green-100 text-green-900 font-black" 
-                        : "text-zinc-700 hover:bg-green-50 hover:text-green-700"
+                        ? "bg-green-100 text-green-900 shadow-sm" 
+                        : "text-zinc-700 hover:bg-green-50 hover:text-green-800"
                 }`}
             >
-                <div className={`w-5 h-5 transition duration-75 ${
-                    isActive ? "text-green-800" : "text-zinc-500 group-hover:text-green-700"
+                <div className={`w-6 h-6 transition-transform duration-200 ${
+                    isActive ? "text-green-800 scale-110" : "text-zinc-500 group-hover:text-green-700 group-hover:scale-110"
                 }`}>
                     {icon}
                 </div>
-                <span className={`flex-1 ms-3 whitespace-nowrap text-[15px] ${isActive ? "font-black" : "font-bold"}`}>
+                <span className={`flex-1 ms-4 whitespace-nowrap text-lg tracking-tight ${isActive ? "font-black" : "font-bold"}`}>
                     {label}
                 </span>
                 {badge && (
-                    <span className="inline-flex items-center justify-center px-2 py-0.5 ms-3 text-xs font-black text-green-800 bg-green-100 rounded-full border border-green-200">
+                    <span className="inline-flex items-center justify-center px-2 py-0.5 ms-3 text-sm font-black text-green-800 bg-green-100 rounded-full border border-green-200 shadow-sm">
                         {badge}
                     </span>
                 )}
@@ -47,8 +47,12 @@ function NavItem({ href, icon, label, badge, onClick }: NavItemProps) {
     );
 }
 
+interface SidenavProps {
+    children?: React.ReactNode;
+    initials?: string;
+}
 
-export default function Sidenav({ children }: { children?: React.ReactNode }) {
+export default function Sidenav({ children, initials = "JN" }: SidenavProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const toggleSidebar = () => {
@@ -72,30 +76,31 @@ export default function Sidenav({ children }: { children?: React.ReactNode }) {
                                 className="inline-flex items-center p-2 text-sm text-zinc-500 rounded-lg sm:hidden hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-200"
                             >
                                 <span className="sr-only">Ouvrir le menu</span>
-                                <FontAwesomeIcon icon={isSidebarOpen ? faXmark : faBars} className="w-6 h-6" />
+                                <FontAwesomeIcon icon={isSidebarOpen ? faXmark : faBars} className="w-7 h-7" />
                             </button>
-                            <Link href="/dashboard" className="flex items-center ms-2 md:me-24">
+                            <Link href="/dashboard" className="flex items-center ms-2 md:me-24 group">
                                 <img
                                     src="/images/logo.png"
-                                    className="h-10 w-auto me-3 object-contain"
+                                    className="h-12 w-auto me-3 object-contain group-hover:scale-105 transition-transform"
                                     alt="Fermes JN Beauchemin Logo"
                                 />
-                                <span className="self-center text-xl font-black whitespace-nowrap text-zinc-900 tracking-tight hidden md:block">
+                                <span className="self-center text-2xl font-black whitespace-nowrap text-zinc-900 tracking-tight hidden md:block group-hover:text-green-800 transition-colors">
                                     Fermes JN Beauchemin
                                 </span>
                             </Link>
                         </div>
                         <div className="flex items-center">
                             <div className="flex items-center ms-3">
-                                <button
-                                    type="button"
-                                    className="flex text-sm bg-green-700 rounded-full focus:ring-4 focus:ring-green-300"
+                                <Link
+                                    href="/compte"
+                                    className="flex text-sm bg-green-700 rounded-full focus:ring-4 focus:ring-green-300 hover:ring-4 hover:ring-green-100 transition-all hover:scale-105"
+                                    title="Paramètres du compte"
                                 >
-                                    <span className="sr-only">Ouvrir le menu utilisateur</span>
-                                    <div className="w-10 h-10 rounded-full bg-[#15803D] flex items-center justify-center text-white font-bold border-2 border-green-800 shadow-sm">
-                                        JN
+                                    <span className="sr-only">Accéder aux paramètres du compte</span>
+                                    <div className="w-12 h-12 rounded-full bg-[#15803D] flex items-center justify-center text-white text-lg font-black border-[3px] border-green-800 shadow-md tracking-widest">
+                                        {initials}
                                     </div>
-                                </button>
+                                </Link>
                             </div>
                         </div>
                     </div>
@@ -112,13 +117,13 @@ export default function Sidenav({ children }: { children?: React.ReactNode }) {
 
             {/* Sidebar latérale */}
             <aside
-                className={`fixed top-0 left-0 z-40 w-64 h-full pt-20 transition-transform bg-white border-r border-zinc-200 shadow-sm ${
+                className={`fixed top-0 left-0 z-40 w-80 h-full pt-24 transition-transform bg-white border-r border-zinc-200 shadow-sm ${
                     isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
                 } sm:translate-x-0`}
                 aria-label="Sidebar"
             >
-                <div className="h-full px-4 pb-4 overflow-y-auto bg-white pt-6">
-                    <ul className="space-y-1.5 font-medium">
+                <div className="h-full px-5 pb-4 overflow-y-auto bg-white pt-6">
+                    <ul className="space-y-2 font-medium">
                         <NavItem
                             href="/dashboard"
                             label="Tableau de bord"
@@ -155,13 +160,13 @@ export default function Sidenav({ children }: { children?: React.ReactNode }) {
             </aside>
 
             {/* Contenu principal de la page */}
-            <div className="p-4 sm:ml-64 pt-24 pb-8 min-h-screen flex flex-col justify-between">
+            <div className="p-6 sm:ml-80 pt-28 pb-8 min-h-screen flex flex-col justify-between">
                 <div>
                     {children}
                 </div>
                 
                 {/* Petit footer */}
-                <footer className="mt-auto pt-8 pb-4 text-center text-zinc-500 text-sm font-medium">
+                <footer className="mt-auto pt-10 pb-4 text-center text-zinc-500 text-sm font-medium">
                     &copy; {new Date().getFullYear()} Fermes JN Beauchemin. Tous droits réservés.
                 </footer>
             </div>
