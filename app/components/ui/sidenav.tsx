@@ -67,7 +67,7 @@ export default function Sidenav({ children, initials = "JN" }: SidenavProps) {
         <div className="min-h-screen bg-[#FAF8F5]">
             {/* Navbar supérieure */}
             <nav className="fixed top-0 z-50 w-full bg-white border-b border-zinc-200 shadow-sm">
-                <div className="px-6 py-4 lg:px-5 lg:pl-3">
+                <div className="px-6 py-6 lg:px-5 lg:pl-3">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center justify-start rtl:justify-end">
                             <button
@@ -81,10 +81,10 @@ export default function Sidenav({ children, initials = "JN" }: SidenavProps) {
                             <Link href="/dashboard" className="flex items-center ms-2 md:me-24 group">
                                 <img
                                     src="/images/logo.png"
-                                    className="h-12 w-auto me-3 object-contain group-hover:scale-105 transition-transform"
+                                    className="h-20 w-auto me-4 object-contain group-hover:scale-105 transition-transform"
                                     alt="Fermes JN Beauchemin Logo"
                                 />
-                                <span className="self-center text-2xl font-black whitespace-nowrap text-zinc-900 tracking-tight hidden md:block group-hover:text-green-800 transition-colors">
+                                <span className="self-center text-3xl font-black whitespace-nowrap text-zinc-900 tracking-tight hidden md:block group-hover:text-green-800 transition-colors">
                                     Fermes JN Beauchemin
                                 </span>
                             </Link>
@@ -97,7 +97,7 @@ export default function Sidenav({ children, initials = "JN" }: SidenavProps) {
                                     title="Paramètres du compte"
                                 >
                                     <span className="sr-only">Accéder aux paramètres du compte</span>
-                                    <div className="w-12 h-12 rounded-full bg-[#15803D] flex items-center justify-center text-white text-lg font-black border-[3px] border-green-800 shadow-md tracking-widest">
+                                    <div className="w-14 h-14 rounded-full bg-[#15803D] flex items-center justify-center text-white text-xl font-black border-[3px] border-green-800 shadow-md tracking-widest">
                                         {initials}
                                     </div>
                                 </Link>
@@ -117,7 +117,7 @@ export default function Sidenav({ children, initials = "JN" }: SidenavProps) {
 
             {/* Sidebar latérale */}
             <aside
-                className={`fixed top-0 left-0 z-40 w-80 h-full pt-24 transition-transform bg-white border-r border-zinc-200 shadow-sm ${
+                className={`fixed top-0 left-0 z-40 w-80 h-full pt-[7.5rem] transition-transform bg-white border-r border-zinc-200 shadow-sm ${
                     isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
                 } sm:translate-x-0`}
                 aria-label="Sidebar"
@@ -160,7 +160,7 @@ export default function Sidenav({ children, initials = "JN" }: SidenavProps) {
             </aside>
 
             {/* Contenu principal de la page */}
-            <div className="p-6 sm:ml-80 pt-28 pb-8 min-h-screen flex flex-col justify-between">
+            <div className="p-6 sm:ml-80 pt-[8.5rem] pb-8 min-h-screen flex flex-col justify-between">
                 <div>
                     {children}
                 </div>

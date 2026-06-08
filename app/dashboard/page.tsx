@@ -6,12 +6,17 @@ import { DashboardRedirectCard } from "@/app/components/dashboard/DashboardRedir
 import { AlertCard, MessageCard } from "@/app/components/dashboard/NotificationCards";
 import { auth } from "@/app/lib/auth";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 export default async function DashboardPage() {
     // 1. Fetching the session server-side securely
     const session = await auth.api.getSession({
         headers: await headers()
     });
+
+    if (!session?.user) {
+        redirect("/api/auth/clear-local");
+    }
 
     // Getting the user's name, fallback to 'Utilisateur' if something fails
     const userName = session?.user?.name || "Utilisateur";

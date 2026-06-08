@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react";
 import { authClient } from "@/app/lib/client-auth";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPen, faLaptop, faArrowRightFromBracket, faSpinner, faTrash, faEye, faEyeSlash, faExclamationTriangle, faShieldHalved } from "@fortawesome/free-solid-svg-icons";
+import { faPen, faLaptop, faArrowRightFromBracket, faSpinner, faTrash, faEye, faEyeSlash, faExclamationTriangle, faShieldHalved, faGlobe } from "@fortawesome/free-solid-svg-icons";
+import { faChrome, faSafari, faFirefox, faEdge, faOpera } from "@fortawesome/free-brands-svg-icons";
 import { UAParser } from "ua-parser-js";
 
 interface User {
@@ -143,13 +144,11 @@ export default function AccountSettings({ user, currentSessionId }: { user: User
     };
 
     const handleLogout = async () => {
-        await authClient.signOut({
-            fetchOptions: {
-                onSuccess: () => {
-                    router.push("/");
-                },
-            },
-        });
+        try {
+            await authClient.signOut();
+        } finally {
+            router.push("/");
+        }
     };
 
     const handleRevokeSession = async (sessionToken: string) => {
@@ -329,19 +328,35 @@ export default function AccountSettings({ user, currentSessionId }: { user: User
                     <div className="space-y-4">
                         {sessions.map((session, index) => {
                             const isCurrent = session.id === currentSessionId;
+                            
+                            const getBrowserIcon = (browserName: string) => {
+                                const name = (browserName || "").toLowerCase();
+                                if (name.includes("chrome")) return faChrome;
+                                if (name.includes("safari")) return faSafari;
+                                if (name.includes("firefox")) return faFirefox;
+                                if (name.includes("edge")) return faEdge;
+                                if (name.includes("opera")) return faOpera;
+                                return faGlobe;
+                            };
+                            
                             return (
                                 <div key={index} className={`flex items-center justify-between p-5 rounded-2xl border ${isCurrent ? "border-green-300 bg-green-50/50" : "border-zinc-200 bg-zinc-50"} transition-all`}>
-                                    <div>
-                                        <div className="flex items-center gap-3 mb-1">
-                                            <p className="font-black text-zinc-900 text-lg">{session.os}</p>
-                                            {isCurrent && (
-                                                <span className="px-2.5 py-1 text-xs font-black text-green-800 bg-green-100 rounded-lg">Votre session</span>
-                                            )}
+                                    <div className="flex items-center gap-5">
+                                        <div className={`w-14 h-14 rounded-full flex items-center justify-center text-3xl shadow-sm ${isCurrent ? "bg-white text-green-600 border border-green-200" : "bg-white text-zinc-500 border border-zinc-200"}`}>
+                                            <FontAwesomeIcon icon={getBrowserIcon(session.browser)} />
                                         </div>
-                                        <div className="text-sm font-medium text-zinc-500 space-y-0.5">
-                                            <p>Navigateur : {session.browser}</p>
-                                            <p>Lieu : {session.location}</p>
-                                            <p>Créée le : {new Date(session.createdAt).toLocaleDateString()} à {new Date(session.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                                        <div>
+                                            <div className="flex items-center gap-3 mb-1">
+                                                <p className="font-black text-zinc-900 text-lg">{session.os}</p>
+                                                {isCurrent && (
+                                                    <span className="px-2.5 py-1 text-xs font-black text-green-800 bg-green-100 rounded-lg">Votre session</span>
+                                                )}
+                                            </div>
+                                            <div className="text-sm font-medium text-zinc-500 space-y-0.5">
+                                                <p>Navigateur : {session.browser}</p>
+                                                <p>Lieu : {session.location}</p>
+                                                <p>Créée le : {new Date(session.createdAt).toLocaleDateString()} à {new Date(session.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                                            </div>
                                         </div>
                                     </div>
                                     {!isCurrent && (

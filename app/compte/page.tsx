@@ -1,6 +1,7 @@
 import Sidenav from "@/app/components/ui/sidenav";
 import { auth } from "@/app/lib/auth";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import AccountSettings from "./components/AccountSettings";
 
 export default async function ComptePage() {
@@ -9,7 +10,9 @@ export default async function ComptePage() {
     });
     
     const user = session?.user;
-    if (!user) return null; // Middleware will handle redirect if not authenticated
+    if (!user) {
+        redirect("/api/auth/clear-local");
+    }
     
     const initials = user.name ? user.name.substring(0, 2).toUpperCase() : "JN";
 
