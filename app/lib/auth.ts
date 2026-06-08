@@ -13,16 +13,16 @@ export const auth = betterAuth({
     onAPIError: {
         throw: true,
         onError: async (error, ctx) => {
-            if (ctx.path === "/sign-in/email" || ctx.path === "/change-password") {
-                if (error.status === 401 || error.status === 400 || error.status === 500) {
-                    const body = ctx.body as any;
+            if ((ctx as any).path === "/sign-in/email" || (ctx as any).path === "/change-password") {
+                if ((error as any).status === 401 || (error as any).status === 400 || (error as any).status === 500) {
+                    const body = (ctx as any).body;
                     const email = body?.email;
                     
                     let user = null;
                     if (email) {
                         user = await prisma.user.findUnique({ where: { email } });
-                    } else if (ctx.context?.session?.user?.id) {
-                        user = await prisma.user.findUnique({ where: { id: ctx.context.session.user.id } });
+                    } else if ((ctx as any).context?.session?.user?.id) {
+                        user = await prisma.user.findUnique({ where: { id: (ctx as any).context.session.user.id } });
                     }
 
                     if (user) {
@@ -50,16 +50,16 @@ export const auth = betterAuth({
             id: "brute-force-protection",
             hooks: {
                 before: [{
-                    matcher: (context) => context.path === "/sign-in/email" || context.path === "/change-password",
+                    matcher: (context) => (context as any).path === "/sign-in/email" || (context as any).path === "/change-password",
                     handler: async (context) => {
-                        const body = context.body as any;
+                        const body = (context as any).body;
                         const email = body?.email;
                         
                         let user = null;
                         if (email) {
                             user = await prisma.user.findUnique({ where: { email } });
-                        } else if (context.context?.session?.user?.id) {
-                            user = await prisma.user.findUnique({ where: { id: context.context.session.user.id } });
+                        } else if ((context as any).context?.session?.user?.id) {
+                            user = await prisma.user.findUnique({ where: { id: (context as any).context.session.user.id } });
                         }
 
                         if (user && user.lockoutUntil) {
@@ -81,17 +81,17 @@ export const auth = betterAuth({
                     }
                 }],
                 after: [{
-                    matcher: (context) => context.path === "/sign-in/email" || context.path === "/change-password",
+                    matcher: (context) => (context as any).path === "/sign-in/email" || (context as any).path === "/change-password",
                     handler: async (context) => {
                         // Resets failed attempts on successful login/password change
-                        const body = context.body as any;
+                        const body = (context as any).body;
                         const email = body?.email;
                         let user = null;
                         
                         if (email) {
                             user = await prisma.user.findUnique({ where: { email } });
-                        } else if (context.context?.session?.user?.id) {
-                            user = await prisma.user.findUnique({ where: { id: context.context.session.user.id } });
+                        } else if ((context as any).context?.session?.user?.id) {
+                            user = await prisma.user.findUnique({ where: { id: (context as any).context.session.user.id } });
                         }
 
                         if (user && user.failedAttempts > 0) {
