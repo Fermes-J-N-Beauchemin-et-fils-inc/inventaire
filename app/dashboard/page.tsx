@@ -1,98 +1,110 @@
 import Sidenav from "@/app/components/ui/sidenav";
-import Link from "next/link";
 import React from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faBoxOpen, faCarrot, faBuildingColumns, faWheatAwn, faSeedling, faChartLine } from "@fortawesome/free-solid-svg-icons";
+import { DashboardRedirectCard } from "@/app/components/dashboard/DashboardRedirectCard";
+import { AlertCard, MessageCard } from "@/app/components/dashboard/NotificationCards";
 
-export type CardColor = "green" | "yellow" | "blue" | "red";
-
-
-const colorStyles: Record<CardColor, { container: string; title: string; desc: string; hover: string }> = {
-    green: {
-        container: "bg-green-50 border-green-200",
-        title: "text-green-900",
-        desc: "text-green-700",
-        hover: "hover:bg-green-100 hover:border-green-300 hover:-translate-y-1",
-    },
-    yellow: {
-        container: "bg-yellow-50 border-yellow-200",
-        title: "text-yellow-900",
-        desc: "text-yellow-700",
-        hover: "hover:bg-yellow-100 hover:border-yellow-300 hover:-translate-y-1",
-    },
-    blue: {
-        container: "bg-blue-50 border-blue-200",
-        title: "text-blue-900",
-        desc: "text-blue-700",
-        hover: "hover:bg-blue-100 hover:border-blue-300 hover:-translate-y-1",
-    },
-    red: {
-        container: "bg-red-50 border-red-200",
-        title: "text-red-900",
-        desc: "text-red-700",
-        hover: "hover:bg-red-100 hover:border-red-300 hover:-translate-y-1",
-    },
-};
-
-// 3. Add the 'color' prop to your interface
-interface DashboardRedirectProps {
-    href: string;
-    icon: React.ReactNode;
-    label: string;
-    description: string;
-    color: CardColor; // Ensure it only accepts our defined colors
-}
-
-// 4. The Reusable Component
-function DashboardRedirectCard({ href, icon, label, description, color }: DashboardRedirectProps) {
-    // Lookup the correct styles based on the passed color
-    const styles = colorStyles[color];
-
-    return (
-        <Link
-            href={href}
-            className={`p-6 rounded-xl border-2 shadow-sm flex flex-col items-center justify-center min-h-[160px] transition-all duration-200 ${styles.container} ${styles.hover}`}
-        >
-            <span className="text-4xl mb-3">{icon}</span>
-            <h3 className={`font-bold text-lg ${styles.title}`}>{label}</h3>
-            <p className={`text-sm text-center mt-1 ${styles.desc}`}>{description}</p>
-        </Link>
-    );
-}
-
-// 5. The Main Page
 export default function DashboardPage() {
     return (
         <Sidenav>
-            <div className="bg-white p-8 rounded-2xl shadow-xl border border-zinc-200">
-                <h1 className="text-3xl font-black text-zinc-900 mb-2">Tableau de bord</h1>
-                <p className="text-zinc-600 font-medium mb-6">
-                    Bienvenue sur l'application de gestion des Fermes JN Beauchemin.
-                </p>
+            <div className="max-w-6xl mx-auto space-y-8">
+                {/* Header Section */}
+                <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-zinc-200/60 overflow-hidden relative">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+                    <div className="relative z-10">
+                        <h1 className="text-4xl font-black text-zinc-900 mb-3 tracking-tight">Tableau de bord</h1>
+                        <p className="text-lg text-zinc-500 font-medium max-w-2xl">
+                            Bienvenue sur l'application de gestion des <strong className="text-green-700">Fermes JN Beauchemin</strong>.
+                        </p>
+                    </div>
+                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-                    {/* Using the component with different colors! */}
-                    <DashboardRedirectCard
-                        href="/inventaire"
-                        icon="📦"
-                        label="Inventaire"
-                        description="Gérez vos stocks et commandes"
-                        color="green"
-                    />
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Left Column: Main Navigation Cards */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <h2 className="text-xl font-bold text-zinc-800 flex items-center gap-2 px-1">
+                            Modules principaux
+                        </h2>
 
-                    <DashboardRedirectCard
-                        href="/ration"
-                        icon="🐄"
-                        label="Rations"
-                        description="Calculez les rations alimentaires"
-                        color="yellow"
-                    />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <DashboardRedirectCard
+                                href="/inventaire"
+                                icon={<FontAwesomeIcon icon={faBoxOpen} className="w-6 h-6" />}
+                                label="Inventaire"
+                                description="Gérez vos stocks, commandes et livraisons"
+                                color="green"
+                            />
 
-                    <DashboardRedirectCard
-                        href="/ration"
-                        icon="🏛️"
-                        label="Comptabilité"
-                        description="Gérez les dépenses et revenus"
-                        color="blue"
-                    />
+                            <DashboardRedirectCard
+                                href="/ration"
+                                icon={<FontAwesomeIcon icon={faCarrot} className="w-6 h-6" />}
+                                label="Rations"
+                                description="Calculez et optimisez les rations alimentaires"
+                                color="orange"
+                            />
+
+                            <DashboardRedirectCard
+                                href="/comptabilite"
+                                icon={<FontAwesomeIcon icon={faBuildingColumns} className="w-6 h-6" />}
+                                label="Comptabilité"
+                                description="Gérez les dépenses, revenus et factures"
+                                color="indigo"
+                            />
+
+                            <DashboardRedirectCard
+                                href="/aliments"
+                                icon={<FontAwesomeIcon icon={faWheatAwn} className="w-6 h-6" />}
+                                label="Aliments"
+                                description="Manipulez les détails de chaque aliment"
+                                color="blue"
+                            />
+
+                            <DashboardRedirectCard
+                                href="/cultures"
+                                icon={<FontAwesomeIcon icon={faSeedling} className="w-6 h-6" />}
+                                label="Cultures"
+                                description="Suivi des champs et rendements"
+                                color="teal"
+                            />
+
+                            <DashboardRedirectCard
+                                href="/rapports"
+                                icon={<FontAwesomeIcon icon={faChartLine} className="w-6 h-6" />}
+                                label="Rapports"
+                                description="Analyses et statistiques globales"
+                                color="purple"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Right Column: Notifications & Alerts */}
+                    <div className="space-y-6">
+                        <h2 className="text-xl font-bold text-zinc-800 flex items-center gap-2 px-1">
+                            Alertes & Messages
+                        </h2>
+
+                        <div className="bg-white rounded-[2rem] border border-zinc-200/60 shadow-sm p-6 space-y-4">
+                            {/* You could conditionally render these based on data */}
+                            <AlertCard
+                                href="/inventaire"
+                                title="Stock de maïs bas !"
+                                description="Il reste moins de 500kg de maïs grain. Veuillez planifier une commande."
+                            />
+
+                            <MessageCard
+                                href="/ration"
+                                title="Mise à jour des prix"
+                                description="Les prix des suppléments protéiques ont été mis à jour ce matin."
+                            />
+
+                            {/* Empty state example (can be hidden if there are alerts) */}
+                            {/* <div className="text-center py-8">
+                                <span className="text-4xl block mb-2 opacity-50">📭</span>
+                                <p className="text-sm font-medium text-zinc-500">Aucune nouvelle alerte.</p>
+                            </div> */}
+                        </div>
+                    </div>
                 </div>
             </div>
         </Sidenav>
