@@ -27,7 +27,7 @@ export default function LoginPage() {
       setIsLoading(false);
     } else {
       // Redirection après succès
-      router.push("/ration");
+      router.push("/dashboard");
     }
   };
 
