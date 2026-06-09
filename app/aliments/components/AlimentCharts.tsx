@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { 
+import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area
 } from 'recharts';
@@ -31,6 +31,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
+
 export function SingleLineChart({ data, dataKey, color, label, unit, isArea = false }: ChartProps) {
   const chartData = data.map(d => ({ ...d, unit }));
 
@@ -41,8 +42,8 @@ export function SingleLineChart({ data, dataKey, color, label, unit, isArea = fa
           <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id={`color-${dataKey}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
-                <stop offset="95%" stopColor={color} stopOpacity={0}/>
+                <stop offset="5%" stopColor={color} stopOpacity={0.3} />
+                <stop offset="95%" stopColor={color} stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E4E4E7" />

@@ -7,7 +7,7 @@ import { AlertCard, MessageCard } from "@/app/components/dashboard/NotificationC
 import { auth } from "@/app/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import DashboardCharts from "./components/DashboardCharts";
+
 
 export default async function DashboardPage() {
     // 1. Fetching the session server-side securely
@@ -126,7 +126,7 @@ export default async function DashboardPage() {
                 </div>
 
                 {/* Charts Section */}
-                <DashboardCharts />
+
 
             </div>
         </Sidenav>
