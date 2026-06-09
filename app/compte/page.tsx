@@ -20,14 +20,16 @@ export default async function ComptePage() {
         <Sidenav initials={initials}>
             <div className="max-w-4xl mx-auto space-y-8">
                 {/* Header Profile */}
-                <div className="bg-white p-8 rounded-[2rem] border border-zinc-200 shadow-sm flex items-center gap-6">
-                    <div className="w-24 h-24 rounded-full bg-green-700 text-white flex items-center justify-center text-4xl font-black shadow-lg">
-                        {initials}
-                    </div>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
                     <div>
-                        <h1 className="text-4xl font-black text-zinc-900 mb-1">{user.name}</h1>
-                        <p className="text-lg text-zinc-500 font-medium bg-zinc-100 px-3 py-1 rounded-lg inline-block">
-                            {user.email}
+                        <h1 className="text-4xl sm:text-5xl font-black text-zinc-900 tracking-tight flex items-center gap-4">
+                            <div className="w-16 h-16 bg-blue-600 text-white rounded-[1.5rem] flex items-center justify-center shadow-lg shadow-blue-600/30 text-2xl font-black">
+                                {initials}
+                            </div>
+                            {user.name}
+                        </h1>
+                        <p className="text-xl text-zinc-500 font-medium mt-4 max-w-3xl">
+                            Paramètres du compte • <span className="text-blue-600 font-bold underline">{user.email}</span>
                         </p>
                     </div>
                 </div>

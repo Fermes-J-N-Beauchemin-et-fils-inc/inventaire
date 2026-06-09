@@ -26,11 +26,15 @@ export default async function DashboardPage() {
         <Sidenav initials={userInitials}>
             <div className="max-w-[1400px] mx-auto space-y-10">
                 {/* Header Section */}
-                <div className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-zinc-200/60 overflow-hidden relative">
-                    <div className="absolute top-0 right-0 w-80 h-80 bg-green-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
-                    <div className="relative z-10">
-                        <h1 className="text-5xl md:text-6xl font-black text-zinc-900 mb-4 tracking-tight">Bonjour, {userName} </h1>
-                        <p className="text-xl text-zinc-500 font-medium max-w-3xl leading-relaxed">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+                    <div>
+                        <h1 className="text-4xl sm:text-5xl font-black text-zinc-900 tracking-tight flex items-center gap-4">
+                            <div className="w-16 h-16 bg-blue-600 text-white rounded-[1.5rem] flex items-center justify-center shadow-lg shadow-blue-600/30">
+                                <FontAwesomeIcon icon={faChartLine} />
+                            </div>
+                            Bonjour, {userName}
+                        </h1>
+                        <p className="text-xl text-zinc-500 font-medium mt-4 max-w-3xl">
                             Bienvenue sur votre tableau de bord.
                         </p>
                     </div>

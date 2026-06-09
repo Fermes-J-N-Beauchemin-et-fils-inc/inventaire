@@ -1,6 +1,7 @@
 import React from 'react';
 import Image from "next/image";
-import logo from '../../../public/images/logo.png';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCarrot } from '@fortawesome/free-solid-svg-icons';
 import { GroupKey, GroupsState } from '../types';
 
 interface RationFormProps {
@@ -29,13 +30,20 @@ export default function RationForm({
   return (
     <div className="min-h-screen bg-[#FAF8F5] py-10 px-4 text-black">
       <div className="max-w-4xl mx-auto bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-zinc-300">
-        <div className="flex items-center justify-center mb-8 h-24 relative w-full max-w-[200px] mx-auto">
-          <Image src={logo} alt="Logo" fill className="object-contain" priority />
-        </div>
-
-        <div className="flex flex-col items-center gap-2 mb-8">
-          <h1 className="text-2xl sm:text-3xl font-black text-center text-black">Configuration de la ration</h1>
-          <div className="text-xl sm:text-3xl font-black text-black underline">Normal</div>
+        
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+          <div>
+            <h1 className="text-4xl sm:text-5xl font-black text-zinc-900 tracking-tight flex items-center gap-4">
+              <div className="w-16 h-16 bg-blue-600 text-white rounded-[1.5rem] flex items-center justify-center shadow-lg shadow-blue-600/30">
+                <FontAwesomeIcon icon={faCarrot} />
+              </div>
+              Configuration de la ration
+            </h1>
+            <p className="text-xl text-zinc-500 font-medium mt-4 max-w-3xl">
+              Type de ration : <span className="text-blue-600 font-bold underline">Normal</span>
+            </p>
+          </div>
         </div>
 
         <div className="space-y-8">

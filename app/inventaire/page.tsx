@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Sidenav from "@/app/components/ui/sidenav";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faBoxOpen } from "@fortawesome/free-solid-svg-icons";
 import { InventoryItem, DeliveryItem } from "./types";
 import InventaireTable from "./components/InventaireTable";
 import LivraisonsView from "./components/LivraisonsView";
@@ -59,12 +61,10 @@ export default function InventairePage() {
   const [selectedDeliveryId, setSelectedDeliveryId] = useState<number | "">("");
   const [receiptQuantity, setReceiptQuantity] = useState<string>("");
 
-  const todayDate = new Intl.DateTimeFormat('fr-CA', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(new Date());
+  // Date
+  const todayDate = new Date().toLocaleDateString('fr-CA', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+  });
 
   const handleAddOrder = (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,12 +115,17 @@ export default function InventairePage() {
       <div className="min-h-screen bg-[#FAF8F5] py-8 px-4 sm:px-8 text-black font-sans">
         <div className="">
           {/* Header Section */}
-          <div className="bg-white px-8 pt-8 pb-6 border-b-2 border-zinc-200 flex flex-col xl:flex-row items-center justify-between gap-6 rounded-t-xl">
-            <div className="flex items-center gap-6">
-              <div>
-                <h1 className="text-3xl sm:text-4xl font-black text-black tracking-tight">Inventaire des consommables</h1>
-                <div className="text-zinc-800 font-bold mt-1 text-lg capitalize">{todayDate}</div>
-              </div>
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-10">
+            <div>
+              <h1 className="text-4xl sm:text-5xl font-black text-zinc-900 tracking-tight flex items-center gap-4">
+                <div className="w-16 h-16 bg-blue-600 text-white rounded-[1.5rem] flex items-center justify-center shadow-lg shadow-blue-600/30">
+                  <FontAwesomeIcon icon={faBoxOpen} />
+                </div>
+                Inventaire des consommables
+              </h1>
+              <p className="text-xl text-zinc-500 font-medium mt-4 max-w-3xl capitalize">
+                {todayDate}
+              </p>
             </div>
 
             {/* View Toggles */}
