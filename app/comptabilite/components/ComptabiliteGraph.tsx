@@ -35,10 +35,40 @@ export default function ComptabiliteGraph({ data }: ComptabiliteGraphProps) {
             <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#71717A', fontWeight: 600 }} dy={10} />
             <YAxis tickFormatter={formatMoney} axisLine={false} tickLine={false} tick={{ fill: '#71717A', fontWeight: 600 }} dx={-10} />
             <Tooltip 
-              formatter={(value: any) => new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 }).format(Number(value))}
-              contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-              itemStyle={{ fontWeight: 800 }}
-              labelStyle={{ fontWeight: 800, color: '#18181B', marginBottom: '0.5rem' }}
+              content={({ active, payload, label }) => {
+                if (active && payload && payload.length) {
+                  const dataPoint = payload[0].payload as GraphDataPoint;
+                  return (
+                    <div className="bg-white p-4 rounded-2xl shadow-xl border border-zinc-100 min-w-[200px]">
+                      <p className="font-black text-zinc-900 mb-3 border-b border-zinc-100 pb-2">{label}</p>
+                      
+                      <div className="space-y-2">
+                        {dataPoint.monthlyReal !== undefined && (
+                          <div className="flex justify-between items-center gap-4">
+                            <span className="font-bold text-zinc-500 flex items-center gap-2">
+                              <span className="w-3 h-3 rounded-full bg-blue-600"></span>
+                              Dépense
+                            </span>
+                            <span className="font-black text-blue-600">
+                              {new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 }).format(dataPoint.monthlyReal)}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex justify-between items-center gap-4">
+                          <span className="font-bold text-zinc-500 flex items-center gap-2">
+                            <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
+                            Budget
+                          </span>
+                          <span className="font-black text-emerald-600">
+                            {new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 }).format(dataPoint.monthlyExpected)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              }}
             />
             <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontWeight: 700 }} />
             <Area 

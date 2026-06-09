@@ -35,8 +35,10 @@ export interface AnnualBilan {
 
 export interface GraphDataPoint {
   month: string;
-  realCost: number;
+  realCost?: number;
   expectedCost: number;
+  monthlyExpected: number;
+  monthlyReal?: number;
 }
 
 export interface ComptabiliteData {
@@ -56,7 +58,7 @@ const BASE_ALIMENTS = [
   { id: '5', name: 'Paille silo bleu #7', ms: 86, hum: 14, pMs: 256, pTqs: 220 },
   { id: '6', name: 'Foin sec commodité', ms: 86, hum: 14, pMs: 310, pTqs: 267 },
   { id: '7', name: 'Ens. Silo #8', ms: 38, hum: 62, pMs: 300, pTqs: 114 },
-  { id: '8', name: 'Foin sec', ms: 88, hum: 12, pMs: 300, pTqs: 264 },
+  { id: '8', name: 'Foin sec', ms: 88, hum: 12, pMs: 227, pTqs: 200 },
   { id: '9', name: 'Crème DLP', ms: 26, hum: 74, pMs: 151, pTqs: 39 },
   { id: '10', name: 'Silo #6 -Maïs sec', ms: 86, hum: 14, pMs: 320, pTqs: 275 },
   { id: '11', name: 'Silo #4 Fraîche', ms: 93, hum: 7, pMs: 1176, pTqs: 1094 },
@@ -183,22 +185,43 @@ export const getComptabiliteDataForDate = (dateString: string): ComptabiliteData
     totalCostYear: Number(groups.reduce((sum, g) => sum + g.totalCostYear, 0).toFixed(2)),
   };
 
-  // Generate Annual graph data
+  // Generate Annual graph data (Cumulative)
   const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+  
+  // Note: expectedCost is cumulative (adds avg cost every month).
+  // realCost is cumulative based on actual fed ration and stops at June
+  const currentMonthIndex = 5; // June is index 5
+  
+  // We use the daily global cost * 30.4 as an average monthly baseline for the mock
+  const baseExpectedMonthlyCost = globalCostToday * 30.4; 
+
+  let cumulativeExpected = 0;
+  let cumulativeReal = 0;
+
   const graphData: GraphDataPoint[] = months.map((month, index) => {
-    // Expected is a baseline
-    const expectedCost = 28000 + (Math.sin(index) * 2000); 
-    // Real oscillates around expected
-    const realCost = expectedCost + ((seededRandom(`${dateString}-m${index}`) - 0.5) * 5000);
+    cumulativeExpected += baseExpectedMonthlyCost;
+    
+    // realCost stops at current month
+    let monthlyRealFluctuation = 0;
+    if (index <= currentMonthIndex) {
+      // Add this month's cost, with MORE random fluctuation (+/- 30%)
+      monthlyRealFluctuation = baseExpectedMonthlyCost + ((seededRandom(`m${index}`) - 0.5) * (baseExpectedMonthlyCost * 0.6));
+      cumulativeReal += monthlyRealFluctuation;
+    }
     
     return {
       month,
-      expectedCost: Number(expectedCost.toFixed(0)),
-      realCost: Number(realCost.toFixed(0))
+      expectedCost: Number(cumulativeExpected.toFixed(0)),
+      monthlyExpected: Number(baseExpectedMonthlyCost.toFixed(0)),
+      // Only return realCost and monthlyReal if it's computed
+      ...(index <= currentMonthIndex && { 
+        realCost: Number(cumulativeReal.toFixed(0)),
+        monthlyReal: Number(monthlyRealFluctuation.toFixed(0))
+      })
     };
-  });
+  }) as GraphDataPoint[];
 
-  const totalCostYear = graphData.reduce((sum, m) => sum + m.realCost, 0);
+  const totalCostYear = graphData.reduce((sum, m) => sum + (m.realCost || 0), 0);
   const expectedCostYear = graphData.reduce((sum, m) => sum + m.expectedCost, 0);
 
   return {

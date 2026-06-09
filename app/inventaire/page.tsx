@@ -123,8 +123,8 @@ export default function InventairePage() {
                 </div>
                 Inventaire des consommables
               </h1>
-              <p className="text-xl text-zinc-500 font-medium mt-4 max-w-3xl capitalize">
-                {todayDate}
+              <p className="text-xl text-zinc-500 font-medium mt-4 max-w-3xl">
+                Gérez vos stocks, commandes et réceptions d'aliments au quotidien. <span className="capitalize">{todayDate}</span>
               </p>
             </div>
 

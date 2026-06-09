@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { GroupData } from '../data/mockComptabilite';
 import ComptabiliteOverview from './ComptabiliteOverview';
 
@@ -83,8 +84,12 @@ export default function GroupsDataView({ groups, totalGroup }: GroupsDataViewPro
                 </thead>
                 <tbody className="divide-y divide-zinc-200">
                   {activeGroup.aliments.filter(a => a.kgTqs > 0 || activeTab === 'total').map(aliment => (
-                    <tr key={aliment.id} className="hover:bg-zinc-50 transition-colors">
-                      <td className="p-4 font-bold text-zinc-900 whitespace-nowrap">{aliment.name}</td>
+                    <tr key={aliment.id} className="hover:bg-zinc-50 transition-colors group">
+                      <td className="p-4 font-bold text-zinc-900 whitespace-nowrap border-r border-zinc-100">
+                        <Link href={`/aliments/${aliment.id}`} className="group-hover:text-blue-600 transition-colors underline decoration-blue-200 underline-offset-4">
+                          {aliment.name}
+                        </Link>
+                      </td>
                       <td className="p-4 font-medium text-zinc-600">{aliment.msPercentage}%</td>
                       <td className="p-4 font-medium text-zinc-600">{aliment.humPercentage}%</td>
                       <td className="p-4 font-medium text-zinc-600">{formatMoney(aliment.priceMs)}</td>

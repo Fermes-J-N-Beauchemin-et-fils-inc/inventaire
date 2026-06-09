@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import Image from "next/image";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
 import logo from '../../../public/images/logo.png';
 import { GroupsState } from '../types';
 import ReportRow from './ReportRow';
@@ -11,11 +13,89 @@ interface RationReportProps {
   handlePrint: () => void;
 }
 
+type FloatingNote = {
+  id: string;
+  x: number;
+  y: number;
+  text: string;
+};
+
 export default function RationReport({ groups, notes, onModify, handlePrint }: RationReportProps) {
+  const [floatingNotes, setFloatingNotes] = useState<FloatingNote[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+
+  const addFloatingNote = () => {
+    setFloatingNotes(prev => [
+      ...prev,
+      { id: Math.random().toString(36).substring(7), x: 50, y: 50, text: "Nouvelle note..." }
+    ]);
+  };
+
+  const removeFloatingNote = (id: string) => {
+    setFloatingNotes(prev => prev.filter(n => n.id !== id));
+  };
+
+  const handlePointerDown = (e: React.PointerEvent, id: string) => {
+    // Ne pas démarrer le drag si on clique dans le texte (pour permettre la sélection)
+    if ((e.target as HTMLElement).tagName.toLowerCase() === 'div' && (e.target as HTMLElement).isContentEditable) {
+       return;
+    }
+    setDraggingId(id);
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!draggingId || !containerRef.current) return;
+    const containerRect = containerRef.current.getBoundingClientRect();
+    setFloatingNotes(prev => prev.map(note => {
+      if (note.id === draggingId) {
+        return {
+          ...note,
+          x: Math.max(0, Math.min(containerRect.width - 200, note.x + e.movementX)),
+          y: Math.max(0, Math.min(containerRect.height - 50, note.y + e.movementY))
+        };
+      }
+      return note;
+    }));
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    setDraggingId(null);
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  };
+
   return (
-    <div className="min-h-screen bg-zinc-100 py-4 sm:py-8 px-2 sm:px-8 text-black">
-      <div className="max-w-[1200px] mx-auto bg-white text-black shadow-2xl border border-zinc-400 p-4 sm:p-12 lg:px-20 print:shadow-none print:border-none print:p-0 print:max-w-none">
+    <div className="min-h-screen bg-zinc-100 py-4 sm:py-8 px-2 sm:px-8 text-black"
+         onPointerMove={handlePointerMove}
+         onPointerUp={handlePointerUp}>
+      <div ref={containerRef} className="max-w-[1200px] relative mx-auto bg-white text-black shadow-2xl border border-zinc-400 p-4 sm:p-12 lg:px-20 print:shadow-none print:border-none print:p-0 print:max-w-none">
         
+        {/* Floating Notes Render */}
+        {floatingNotes.map(note => (
+          <div 
+            key={note.id}
+            onPointerDown={(e) => handlePointerDown(e, note.id)}
+            style={{ left: note.x, top: note.y, position: 'absolute' }}
+            className="group print:!border-none print:!bg-transparent print:!shadow-none z-50 min-w-[200px] border-2 border-dashed border-blue-400 bg-blue-50/80 shadow-md p-2 rounded cursor-move"
+          >
+            <button 
+              onClick={() => removeFloatingNote(note.id)}
+              className="absolute -top-3 -right-3 w-6 h-6 bg-red-500 text-white rounded-full hidden group-hover:flex items-center justify-center text-xs print:hidden"
+            >
+              <FontAwesomeIcon icon={faTrash} />
+            </button>
+            <div 
+              contentEditable 
+              suppressContentEditableWarning 
+              className="outline-none min-h-[1.5rem] font-bold text-blue-900 print:text-black cursor-text"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              {note.text}
+            </div>
+          </div>
+        ))}
+
         {/* Actions (Hidden on print) */}
         <div className="flex flex-col sm:flex-row justify-between items-center mb-8 print:hidden border-b-2 border-zinc-300 pb-6 gap-4">
           <button
@@ -29,13 +109,14 @@ export default function RationReport({ groups, notes, onModify, handlePrint }: R
             &larr; Modifier
           </button>
 
-          <div className="flex gap-4 w-full sm:w-auto">
+          <div className="flex gap-4 w-full sm:w-auto flex-wrap justify-end">
             <button
               type="button"
-              onClick={() => alert("Fonction d'exportation non configurée dans la maquette.")}
-              className="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold rounded-lg transition-colors text-center cursor-pointer"
+              onClick={addFloatingNote}
+              className="w-full sm:w-auto px-4 py-3 bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold rounded-lg transition-colors text-center cursor-pointer flex items-center justify-center gap-2 border border-blue-300"
             >
-              Exporter
+              <FontAwesomeIcon icon={faPlus} />
+              Note flottante
             </button>
             <button
               type="button"
@@ -48,17 +129,17 @@ export default function RationReport({ groups, notes, onModify, handlePrint }: R
         </div>
 
         {/* Report Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 text-black border-b-[3px] border-black pb-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 text-black border-b-[3px] border-black pb-4">
           <div className="w-32 sm:w-40 h-16 sm:h-20 relative">
             <Image src={logo} alt="Logo" fill className="object-contain grayscale opacity-90" />
           </div>
           <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-            <div className="text-lg sm:text-2xl font-black text-black">4 juin 2026</div>
-            <div className="text-xl sm:text-3xl font-black text-black underline">Normal</div>
+            <div contentEditable suppressContentEditableWarning className="text-lg sm:text-2xl font-black text-black outline-none border-b border-transparent focus:border-zinc-300">4 juin 2026</div>
+            <div contentEditable suppressContentEditableWarning className="text-xl sm:text-3xl font-black text-black underline outline-none">Normal</div>
           </div>
           <div className="text-left sm:text-right w-full sm:w-auto">
-            <div className="text-red-600 font-black italic text-xl sm:text-3xl">BRASSER</div>
-            <div className="text-red-600 font-black italic text-lg sm:text-2xl">(1800 rpm)</div>
+            <div contentEditable suppressContentEditableWarning className="text-red-600 font-black italic text-xl sm:text-3xl outline-none">BRASSER</div>
+            <div contentEditable suppressContentEditableWarning className="text-red-600 font-black italic text-lg sm:text-2xl outline-none">(1800 rpm)</div>
           </div>
         </div>
 
@@ -69,37 +150,36 @@ export default function RationReport({ groups, notes, onModify, handlePrint }: R
           <div className="border-[3px] border-black text-black relative">
             <div className="flex flex-col sm:flex-row justify-between items-center font-black text-base sm:text-xl border-b-[3px] border-black px-2 py-1 bg-zinc-200">
               <div className="flex items-center gap-3">
-                <span className="italic">{groups.g1.name}</span>
-                <span className="bg-yellow-400 border-[2px] border-black px-2 text-sm sm:text-base leading-tight shadow-sm">{groups.g1.indice}</span>
+                <span className="italic" contentEditable suppressContentEditableWarning>{groups.g1.name}</span>
+                <span className="bg-yellow-400 border-[2px] border-black px-2 text-sm sm:text-base leading-tight shadow-sm" contentEditable suppressContentEditableWarning>{groups.g1.indice}</span>
               </div>
-              <span>{groups.g1.time}</span>
+              <span contentEditable suppressContentEditableWarning>{groups.g1.time}</span>
             </div>
             <div className="grid grid-cols-[1fr_60px_60px] sm:grid-cols-[1fr_80px_80px] print:grid-cols-[1fr_60px_60px] text-center border-b-[3px] border-black text-xs sm:text-sm">
               <div className="border-r-[3px] border-black flex flex-col justify-end p-1">
-                <span className="text-left font-bold text-black">Thursday, June 4, 2026</span>
+                <span className="text-left font-bold text-black outline-none" contentEditable suppressContentEditableWarning>Thursday, June 4, 2026</span>
               </div>
               <div className="border-r-[3px] border-black font-black flex flex-col justify-end pb-1 border-b">
-                <div className="text-base sm:text-xl text-blue-700">{groups.g1.fed}</div>
-                <div className="border-t-[3px] border-black bg-zinc-200">Aliment</div>
+                <div className="text-base sm:text-xl text-blue-700 outline-none" contentEditable suppressContentEditableWarning>{groups.g1.fed}</div>
+                <div className="border-t-[3px] border-black bg-zinc-200" contentEditable suppressContentEditableWarning>Aliment</div>
               </div>
               <div className="font-black flex flex-col justify-end pb-1 border-b text-zinc-600">
-                <div className="text-base sm:text-xl text-black">{groups.g1.real}</div>
-                <div className="border-t-[3px] border-black bg-zinc-200 text-black">RTM</div>
+                <div className="text-base sm:text-xl text-black outline-none" contentEditable suppressContentEditableWarning>{groups.g1.real}</div>
+                <div className="border-t-[3px] border-black bg-zinc-200 text-black" contentEditable suppressContentEditableWarning>RTM</div>
               </div>
             </div>
             <div className="text-xs sm:text-[15px] print:text-xs font-semibold">
-              <ReportRow name="Ens. Foin #2" v1="424" v2="424" />
-              <ReportRow name="Ens. Maïs #7" v1="1734" v2="2158" />
-              <ReportRow name="Tourteau canola" v1="154" v2="2312" />
-              <ReportRow name="Écaille de soya" v1="107" v2="2419" highlight="text-orange-600 font-black" extra="brasser" extraColor="text-red-600 font-black text-sm" />
-              <ReportRow name="Drèche sèche" v1="0" v2="2419" extra="ici" extraColor="text-red-600 font-black text-sm" />
-              <ReportRow name="Gras Nurisol" v1="10" v2="2429" highlight="font-black bg-orange-100" />
-              <ReportRow name="Silo #6 -Maïs sec" v1="140" v2="2568" />
-              <ReportRow name="Silo #4 Fraîche" v1="129" v2="2697" />
-              <ReportRow name="Silo #3 -Amino+" v1="76" v2="2773" />
-              <ReportRow name="Paille silo bleu #7" v1="17" v2="2790" />
-              <ReportRow name="Crème DLP" v1="203" v2="2993" />
-              <ReportRow name="Eau" v1="169" v2="3161" />
+              {groups.g1.aliments.map(aliment => (
+                <ReportRow 
+                  key={aliment.id} 
+                  name={aliment.name} 
+                  v1={aliment.v1} 
+                  v2={aliment.v2} 
+                  highlight={aliment.highlight} 
+                  extra={aliment.extra} 
+                  extraColor={aliment.extraColor} 
+                />
+              ))}
             </div>
           </div>
 
@@ -107,36 +187,36 @@ export default function RationReport({ groups, notes, onModify, handlePrint }: R
           <div className="border-[3px] border-black text-black relative">
             <div className="flex flex-col sm:flex-row justify-between items-center font-black text-base sm:text-xl border-b-[3px] border-black px-2 py-1 bg-zinc-200">
               <div className="flex items-center gap-3">
-                <span className="italic">{groups.g2.name}</span>
-                <span className="bg-yellow-400 border-[2px] border-black px-2 text-sm sm:text-base leading-tight shadow-sm">{groups.g2.indice}</span>
+                <span className="italic" contentEditable suppressContentEditableWarning>{groups.g2.name}</span>
+                <span className="bg-yellow-400 border-[2px] border-black px-2 text-sm sm:text-base leading-tight shadow-sm" contentEditable suppressContentEditableWarning>{groups.g2.indice}</span>
               </div>
-              <span>{groups.g2.time}</span>
+              <span contentEditable suppressContentEditableWarning>{groups.g2.time}</span>
             </div>
             <div className="grid grid-cols-[1fr_60px_60px] sm:grid-cols-[1fr_80px_80px] print:grid-cols-[1fr_60px_60px] text-center border-b-[3px] border-black text-xs sm:text-sm">
               <div className="border-r-[3px] border-black flex flex-col justify-end p-1">
-                <span className="text-left font-bold text-black">Thursday, June 4, 2026</span>
+                <span className="text-left font-bold text-black outline-none" contentEditable suppressContentEditableWarning>Thursday, June 4, 2026</span>
               </div>
               <div className="border-r-[3px] border-black font-black flex flex-col justify-end pb-1 border-b">
-                <div className="text-base sm:text-xl text-blue-700">{groups.g2.fed}</div>
-                <div className="border-t-[3px] border-black bg-zinc-200">Aliment</div>
+                <div className="text-base sm:text-xl text-blue-700 outline-none" contentEditable suppressContentEditableWarning>{groups.g2.fed}</div>
+                <div className="border-t-[3px] border-black bg-zinc-200" contentEditable suppressContentEditableWarning>Aliment</div>
               </div>
               <div className="font-black flex flex-col justify-end pb-1 border-b text-zinc-600">
-                <div className="text-base sm:text-xl text-black">{groups.g2.real}</div>
-                <div className="border-t-[3px] border-black bg-zinc-200 text-black">RTM</div>
+                <div className="text-base sm:text-xl text-black outline-none" contentEditable suppressContentEditableWarning>{groups.g2.real}</div>
+                <div className="border-t-[3px] border-black bg-zinc-200 text-black" contentEditable suppressContentEditableWarning>RTM</div>
               </div>
             </div>
             <div className="text-xs sm:text-[15px] print:text-xs font-semibold">
-              <ReportRow name="Ens. Foin #2" v1="1353" v2="1353" />
-              <ReportRow name="Ens. Maïs #7" v1="4839" v2="6192" />
-              <ReportRow name="Tourteau canola" v1="437" v2="6628" />
-              <ReportRow name="Écaille de soya" v1="133" v2="6762" highlight="text-orange-600 font-black" extra="brasser" extraColor="text-red-600 font-black text-sm" />
-              <ReportRow name="Drèche sèche" v1="180" v2="6942" extra="ici" extraColor="text-red-600 font-black text-sm" />
-              <ReportRow name="Gras Nurisol" v1="15" v2="6957" highlight="font-black bg-orange-100" />
-              <ReportRow name="Silo #6 -Maïs sec" v1="372" v2="7329" />
-              <ReportRow name="Silo #1 -Prémix" v1="214" v2="7543" />
-              <ReportRow name="Silo #3 -Amino+" v1="112" v2="7655" />
-              <ReportRow name="Crème DLP" v1="577" v2="8232" highlight="font-black" />
-              <ReportRow name="Eau" v1="499" v2="8731" />
+              {groups.g2.aliments.map(aliment => (
+                <ReportRow 
+                  key={aliment.id} 
+                  name={aliment.name} 
+                  v1={aliment.v1} 
+                  v2={aliment.v2} 
+                  highlight={aliment.highlight} 
+                  extra={aliment.extra} 
+                  extraColor={aliment.extraColor} 
+                />
+              ))}
             </div>
           </div>
 
@@ -158,35 +238,36 @@ export default function RationReport({ groups, notes, onModify, handlePrint }: R
           <div className="border-[3px] border-black text-black relative">
             <div className="flex flex-col sm:flex-row justify-between items-center font-black text-base sm:text-xl border-b-[3px] border-black px-2 py-1 bg-zinc-200">
               <div className="flex items-center gap-3">
-                <span className="italic">{groups.g3.name}</span>
-                <span className="bg-yellow-400 border-[2px] border-black px-2 text-sm sm:text-base leading-tight shadow-sm">{groups.g3.indice}</span>
+                <span className="italic" contentEditable suppressContentEditableWarning>{groups.g3.name}</span>
+                <span className="bg-yellow-400 border-[2px] border-black px-2 text-sm sm:text-base leading-tight shadow-sm" contentEditable suppressContentEditableWarning>{groups.g3.indice}</span>
               </div>
-              <span>{groups.g3.time}</span>
+              <span contentEditable suppressContentEditableWarning>{groups.g3.time}</span>
             </div>
             <div className="grid grid-cols-[1fr_60px_60px] sm:grid-cols-[1fr_80px_80px] print:grid-cols-[1fr_60px_60px] text-center border-b-[3px] border-black text-xs sm:text-sm">
               <div className="border-r-[3px] border-black flex flex-col justify-end p-1">
-                <span className="text-left font-bold text-black">Thursday, June 4, 2026</span>
+                <span className="text-left font-bold text-black outline-none" contentEditable suppressContentEditableWarning>Thursday, June 4, 2026</span>
               </div>
               <div className="border-r-[3px] border-black font-black flex flex-col justify-end pb-1 border-b">
-                <div className="text-base sm:text-xl text-blue-700">{groups.g3.fed}</div>
-                <div className="border-t-[3px] border-black bg-zinc-200">Aliment</div>
+                <div className="text-base sm:text-xl text-blue-700 outline-none" contentEditable suppressContentEditableWarning>{groups.g3.fed}</div>
+                <div className="border-t-[3px] border-black bg-zinc-200" contentEditable suppressContentEditableWarning>Aliment</div>
               </div>
               <div className="font-black flex flex-col justify-end pb-1 border-b text-zinc-600">
-                <div className="text-base sm:text-xl text-black">{groups.g3.real}</div>
-                <div className="border-t-[3px] border-black bg-zinc-200 text-black">RTM</div>
+                <div className="text-base sm:text-xl text-black outline-none" contentEditable suppressContentEditableWarning>{groups.g3.real}</div>
+                <div className="border-t-[3px] border-black bg-zinc-200 text-black" contentEditable suppressContentEditableWarning>RTM</div>
               </div>
             </div>
             <div className="text-xs sm:text-[15px] print:text-xs font-semibold">
-              <ReportRow name="Ens. Foin #2" v1="793" v2="793" />
-              <ReportRow name="Ens. Maïs #7" v1="3105" v2="3897" />
-              <ReportRow name="Tourteau canola" v1="248" v2="4145" />
-              <ReportRow name="Écaille de soya" v1="43" v2="4188" highlight="text-orange-600 font-black" extra="brasser" extraColor="text-red-600 font-black text-sm" />
-              <ReportRow name="Drèche sèche" v1="156" v2="4344" extra="ici" extraColor="text-red-600 font-black text-sm" />
-              <ReportRow name="Silo #6 -Maïs sec" v1="233" v2="4577" />
-              <ReportRow name="Silo #1 -Prémix" v1="132" v2="4709" />
-              <ReportRow name="Silo #3 -Amino+" v1="69" v2="4778" />
-              <ReportRow name="Crème DLP" v1="355" v2="5133" highlight="font-black" />
-              <ReportRow name="Eau" v1="257" v2="5390" />
+              {groups.g3.aliments.map(aliment => (
+                <ReportRow 
+                  key={aliment.id} 
+                  name={aliment.name} 
+                  v1={aliment.v1} 
+                  v2={aliment.v2} 
+                  highlight={aliment.highlight} 
+                  extra={aliment.extra} 
+                  extraColor={aliment.extraColor} 
+                />
+              ))}
             </div>
           </div>
 
@@ -194,35 +275,36 @@ export default function RationReport({ groups, notes, onModify, handlePrint }: R
           <div className="border-[3px] border-black text-black relative">
             <div className="flex flex-col sm:flex-row justify-between items-center font-black text-base sm:text-xl border-b-[3px] border-black px-2 py-1 bg-zinc-200">
               <div className="flex items-center gap-3">
-                <span className="italic">{groups.g4.name}</span>
-                <span className="bg-yellow-400 border-[2px] border-black px-2 text-sm sm:text-base leading-tight shadow-sm">{groups.g4.indice}</span>
+                <span className="italic" contentEditable suppressContentEditableWarning>{groups.g4.name}</span>
+                <span className="bg-yellow-400 border-[2px] border-black px-2 text-sm sm:text-base leading-tight shadow-sm" contentEditable suppressContentEditableWarning>{groups.g4.indice}</span>
               </div>
-              <span>{groups.g4.time}</span>
+              <span contentEditable suppressContentEditableWarning>{groups.g4.time}</span>
             </div>
             <div className="grid grid-cols-[1fr_60px_60px] sm:grid-cols-[1fr_80px_80px] print:grid-cols-[1fr_60px_60px] text-center border-b-[3px] border-black text-xs sm:text-sm">
               <div className="border-r-[3px] border-black flex flex-col justify-end p-1">
-                <span className="text-left font-bold text-black">Thursday, June 4, 2026</span>
+                <span className="text-left font-bold text-black outline-none" contentEditable suppressContentEditableWarning>Thursday, June 4, 2026</span>
               </div>
               <div className="border-r-[3px] border-black font-black flex flex-col justify-end pb-1 border-b">
-                <div className="text-base sm:text-xl text-blue-700">{groups.g4.fed}</div>
-                <div className="border-t-[3px] border-black bg-zinc-200">Aliment</div>
+                <div className="text-base sm:text-xl text-blue-700 outline-none" contentEditable suppressContentEditableWarning>{groups.g4.fed}</div>
+                <div className="border-t-[3px] border-black bg-zinc-200" contentEditable suppressContentEditableWarning>Aliment</div>
               </div>
               <div className="font-black flex flex-col justify-end pb-1 border-b text-zinc-600">
-                <div className="text-base sm:text-xl text-black">{groups.g4.real}</div>
-                <div className="border-t-[3px] border-black bg-zinc-200 text-black">RTM</div>
+                <div className="text-base sm:text-xl text-black outline-none" contentEditable suppressContentEditableWarning>{groups.g4.real}</div>
+                <div className="border-t-[3px] border-black bg-zinc-200 text-black" contentEditable suppressContentEditableWarning>RTM</div>
               </div>
             </div>
             <div className="text-xs sm:text-[15px] print:text-xs font-semibold">
-              <ReportRow name="Ens. Foin #2" v1="1076" v2="1076" />
-              <ReportRow name="Ens. Maïs #7" v1="2479" v2="3556" />
-              <ReportRow name="Tourteau canola" v1="189" v2="3745" />
-              <ReportRow name="Écaille de soya" v1="34" v2="3779" highlight="text-orange-600 font-black" extra="brasser" extraColor="text-red-600 font-black text-sm" />
-              <ReportRow name="Drèche sèche" v1="192" v2="3971" extra="ici" extraColor="text-red-600 font-black text-sm" />
-              <ReportRow name="Silo #6 -Maïs sec" v1="234" v2="4205" />
-              <ReportRow name="Silo #2 -Low group" v1="79" v2="4284" />
-              <ReportRow name="Silo #3 -Amino+" v1="34" v2="4318" />
-              <ReportRow name="Crème DLP" v1="328" v2="4646" highlight="font-black" />
-              <ReportRow name="Eau" v1="202" v2="4849" />
+              {groups.g4.aliments.map(aliment => (
+                <ReportRow 
+                  key={aliment.id} 
+                  name={aliment.name} 
+                  v1={aliment.v1} 
+                  v2={aliment.v2} 
+                  highlight={aliment.highlight} 
+                  extra={aliment.extra} 
+                  extraColor={aliment.extraColor} 
+                />
+              ))}
             </div>
           </div>
         </div>
@@ -235,12 +317,12 @@ export default function RationReport({ groups, notes, onModify, handlePrint }: R
               <Image src={logo} alt="Logo" fill className="object-contain grayscale opacity-90" />
             </div>
             <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-              <div className="text-lg sm:text-2xl font-black text-black">4 juin 2026</div>
-              <div className="text-xl sm:text-3xl font-black text-black underline">Normal</div>
+              <div contentEditable suppressContentEditableWarning className="text-lg sm:text-2xl font-black text-black outline-none border-b border-transparent focus:border-zinc-300">4 juin 2026</div>
+              <div contentEditable suppressContentEditableWarning className="text-xl sm:text-3xl font-black text-black underline outline-none">Normal</div>
             </div>
             <div className="text-left sm:text-center w-full sm:w-auto">
-              <div className="text-red-600 font-black italic text-xl sm:text-3xl">BRASSER BEAUCOUP!!!</div>
-              <div className="text-red-600 font-black italic text-lg sm:text-2xl">(2000rpm)</div>
+              <div contentEditable suppressContentEditableWarning className="text-red-600 font-black italic text-xl sm:text-3xl outline-none">BRASSER BEAUCOUP!!!</div>
+              <div contentEditable suppressContentEditableWarning className="text-red-600 font-black italic text-lg sm:text-2xl outline-none">(2000rpm)</div>
             </div>
           </div>
 
@@ -250,99 +332,106 @@ export default function RationReport({ groups, notes, onModify, handlePrint }: R
             <div className="border-[3px] border-black h-fit text-black relative">
               <div className="flex flex-col sm:flex-row justify-between items-center font-black text-base sm:text-xl border-b-[3px] border-black px-2 py-1 bg-zinc-200">
                 <div className="flex items-center gap-3">
-                  <span className="italic">(Côté piston)</span>
-                  <span className="bg-yellow-400 border-[2px] border-black px-2 text-sm sm:text-base leading-tight shadow-sm">{groups.taries.indice}</span>
+                  <span className="italic" contentEditable suppressContentEditableWarning>(Côté piston)</span>
+                  <span className="bg-yellow-400 border-[2px] border-black px-2 text-sm sm:text-base leading-tight shadow-sm" contentEditable suppressContentEditableWarning>{groups.taries.indice}</span>
                 </div>
-                <span>{groups.taries.time}</span>
+                <span contentEditable suppressContentEditableWarning>{groups.taries.time}</span>
               </div>
-              <div className="font-black text-base sm:text-xl border-b-[3px] border-black px-2 py-2 italic text-center">
+              <div className="font-black text-base sm:text-xl border-b-[3px] border-black px-2 py-2 italic text-center outline-none" contentEditable suppressContentEditableWarning>
                 RTM de base Taries normales
               </div>
               <div className="grid grid-cols-[1fr_60px_60px] sm:grid-cols-[1fr_80px_80px] print:grid-cols-[1fr_60px_60px] text-center border-b-[3px] border-black text-xs sm:text-sm">
                 <div className="border-r-[3px] border-black flex flex-col justify-end p-1">
-                  <span className="text-left font-bold text-black">Thursday, June 4, 2026</span>
+                  <span className="text-left font-bold text-black outline-none" contentEditable suppressContentEditableWarning>Thursday, June 4, 2026</span>
                 </div>
                 <div className="border-r-[3px] border-black font-black flex flex-col justify-end pb-1 border-b">
-                  <div className="text-base sm:text-xl text-blue-700">{groups.taries.fed}</div>
-                  <div className="border-t-[3px] border-black bg-zinc-200">Aliment</div>
+                  <div className="text-base sm:text-xl text-blue-700 outline-none" contentEditable suppressContentEditableWarning>{groups.taries.fed}</div>
+                  <div className="border-t-[3px] border-black bg-zinc-200" contentEditable suppressContentEditableWarning>Aliment</div>
                 </div>
                 <div className="font-black flex flex-col justify-end pb-1 border-b text-blue-700">
-                  <div className="text-base sm:text-xl text-black">{groups.taries.real}</div>
-                  <div className="border-t-[3px] border-black bg-zinc-200 text-black">RTM</div>
+                  <div className="text-base sm:text-xl text-black outline-none" contentEditable suppressContentEditableWarning>{groups.taries.real}</div>
+                  <div className="border-t-[3px] border-black bg-zinc-200 text-black" contentEditable suppressContentEditableWarning>RTM</div>
                 </div>
               </div>
               <div className="text-xs sm:text-[15px] print:text-xs font-semibold">
-                <ReportRow name="Ens. Maïs #7" v1="1620" v2="1620" />
-                <div className="text-red-800 font-black italic pl-4 py-2 text-center text-sm sm:text-base border-b border-zinc-300">(Brasser 1500 rpm)</div>
-                <ReportRow name="Paille silo bleu #7" v1="389" v2="2010" highlight="font-black" />
-                <ReportRow name="Silo #3 -Amino+" v1="116" v2="2126" />
-                <ReportRow name="Silo #5 -Taries" v1="76" v2="2202" />
-                <div className="text-red-800 font-black italic pl-4 py-2 text-center text-sm sm:text-base border-b border-zinc-300">(Brasser 2000rpm)</div>
-                <ReportRow name="Eau" v1="1169" v2="3370" />
+                {groups.taries.aliments.slice(0, 1).map(aliment => (
+                  <ReportRow key={aliment.id} {...aliment} />
+                ))}
+                <div className="text-red-800 font-black italic pl-4 py-2 text-center text-sm sm:text-base border-b border-zinc-300 outline-none" contentEditable suppressContentEditableWarning>(Brasser 1500 rpm)</div>
+                {groups.taries.aliments.slice(1, 4).map(aliment => (
+                  <ReportRow key={aliment.id} {...aliment} />
+                ))}
+                <div className="text-red-800 font-black italic pl-4 py-2 text-center text-sm sm:text-base border-b border-zinc-300 outline-none" contentEditable suppressContentEditableWarning>(Brasser 2000rpm)</div>
+                {groups.taries.aliments.slice(4).map(aliment => (
+                  <ReportRow key={aliment.id} {...aliment} />
+                ))}
               </div>
               <div className="grid grid-cols-[1fr_60px_60px] sm:grid-cols-[1fr_80px_80px] print:grid-cols-[1fr_60px_60px] text-center border-t-[3px] border-black font-black text-sm sm:text-lg">
-                <div className="border-r-[3px] border-black text-right pr-2 py-1">Total</div>
-                <div className="border-r-[3px] border-black py-1 bg-zinc-200">3370</div>
+                <div className="border-r-[3px] border-black text-right pr-2 py-1 outline-none" contentEditable suppressContentEditableWarning>Total</div>
+                <div className="border-r-[3px] border-black py-1 bg-zinc-200 outline-none" contentEditable suppressContentEditableWarning>3370</div>
                 <div className="py-1 bg-zinc-200"></div>
               </div>
               <div className="flex justify-between items-center p-4 border-t-[3px] border-black font-black text-red-600 bg-red-50">
-                <div className="text-base sm:text-xl leading-tight">Dropper aux taries<br />normales jusqu'à &rarr;</div>
-                <div className="text-2xl sm:text-4xl underline">1643</div>
+                <div className="text-base sm:text-xl leading-tight outline-none" contentEditable suppressContentEditableWarning>Dropper aux taries<br />normales jusqu'à &rarr;</div>
+                <div className="text-2xl sm:text-4xl underline outline-none" contentEditable suppressContentEditableWarning>1643</div>
               </div>
             </div>
 
             {/* Taures */}
             <div className="border-[3px] border-black h-fit text-black relative">
               <div className="flex justify-between items-center font-black text-base sm:text-xl border-b-[3px] border-black px-2 py-1 bg-zinc-200">
-                <span className="italic">(Côté box de vêlage)</span>
-                <span className="bg-yellow-400 border-[2px] border-black px-2 text-sm sm:text-base leading-tight shadow-sm">{groups.taures.indice}</span>
+                <span className="italic outline-none" contentEditable suppressContentEditableWarning>(Côté box de vêlage)</span>
+                <span className="bg-yellow-400 border-[2px] border-black px-2 text-sm sm:text-base leading-tight shadow-sm outline-none" contentEditable suppressContentEditableWarning>{groups.taures.indice}</span>
               </div>
-              <div className="font-black text-base sm:text-xl border-b-[3px] border-black px-2 py-2 text-center">
+              <div className="font-black text-base sm:text-xl border-b-[3px] border-black px-2 py-2 text-center outline-none" contentEditable suppressContentEditableWarning>
                 <span className="text-red-600 italic font-black">Taures</span> ... Ensuite Pré-vêlage
               </div>
               <div className="grid grid-cols-[1fr_60px_60px] sm:grid-cols-[1fr_80px_80px] print:grid-cols-[1fr_60px_60px] text-center border-b-[3px] border-black text-xs sm:text-sm">
                 <div className="border-r-[3px] border-black p-1 flex flex-col justify-center">
-                  <div className="text-right text-blue-700 font-black text-sm sm:text-base">{groups.taures.fed} PV</div>
-                  <div className="text-right text-blue-700 font-black text-sm sm:text-base">{groups.taures.real} taures</div>
+                  <div className="text-right text-blue-700 font-black text-sm sm:text-base outline-none" contentEditable suppressContentEditableWarning>{groups.taures.fed} PV</div>
+                  <div className="text-right text-blue-700 font-black text-sm sm:text-base outline-none" contentEditable suppressContentEditableWarning>{groups.taures.real} taures</div>
                 </div>
                 <div className="border-r-[3px] border-black font-black flex flex-col justify-end pb-1 border-b">
-                  <div className="border-t-[3px] border-black bg-zinc-200">Aliment</div>
+                  <div className="border-t-[3px] border-black bg-zinc-200 outline-none" contentEditable suppressContentEditableWarning>Aliment</div>
                 </div>
                 <div className="font-black flex flex-col justify-end pb-1 border-b">
-                  <div className="border-t-[3px] border-black bg-zinc-200 text-black">RTM</div>
+                  <div className="border-t-[3px] border-black bg-zinc-200 text-black outline-none" contentEditable suppressContentEditableWarning>RTM</div>
                 </div>
               </div>
               <div className="text-xs sm:text-[15px] print:text-xs font-semibold">
-                <ReportRow name="Restant RTM Taries" v1="1643" v2="1643" />
-                <ReportRow name="Silo #3 -Amino+" v1="29" v2="1673" />
-                <ReportRow name="Silo #5 -Taries" v1="28" v2="1700" />
-                <ReportRow name="Silo #6 -Maïs sec" v1="26" v2="1726" />
+                {groups.taures.aliments.slice(0, 4).map(aliment => (
+                  <ReportRow key={aliment.id} {...aliment} />
+                ))}
                 <div className="border-t-[3px] border-dashed border-black"></div>
-                <ReportRow name="Écaille de soya" v1="25" v2="1751" highlight="text-orange-600 font-black italic" />
+                {groups.taures.aliments.slice(4, 5).map(aliment => (
+                  <ReportRow key={aliment.id} {...aliment} />
+                ))}
                 <div className="border-t-[3px] border-dashed border-black"></div>
 
-                <div className="text-center font-black py-3 border-b-[3px] border-black text-sm sm:text-lg">
+                <div className="text-center font-black py-3 border-b-[3px] border-black text-sm sm:text-lg outline-none" contentEditable suppressContentEditableWarning>
                   BRASSER @ 2000RPM <span className="underline italic">3 minutes !!!</span>
                 </div>
 
                 <div className="flex justify-between items-center p-4 text-red-600 font-black text-base sm:text-xl border-b-[3px] border-black bg-red-50">
-                  <div className="text-center leading-tight">Dropper aux <span className="underline">TAURES</span><br />jusqu'à &rarr;</div>
-                  <div className="text-2xl sm:text-3xl">1159</div>
+                  <div className="text-center leading-tight outline-none" contentEditable suppressContentEditableWarning>Dropper aux <span className="underline">TAURES</span><br />jusqu'à &rarr;</div>
+                  <div className="text-2xl sm:text-3xl outline-none" contentEditable suppressContentEditableWarning>1159</div>
                 </div>
 
-                <div className="bg-zinc-300 text-black text-center font-black border-b-[3px] border-black py-3 text-sm sm:text-base">
+                <div className="bg-zinc-300 text-black text-center font-black border-b-[3px] border-black py-3 text-sm sm:text-base outline-none" contentEditable suppressContentEditableWarning>
                   Ajouter ensuite X-Zélit et brasser 3 minutes!!
                 </div>
 
-                <ReportRow name="X-Zélit" v1="12.6" v2="1171" highlight="text-purple-700 font-black" />
+                {groups.taures.aliments.slice(5).map(aliment => (
+                  <ReportRow key={aliment.id} {...aliment} />
+                ))}
 
                 <div className="grid grid-cols-[1fr_60px_60px] sm:grid-cols-[1fr_80px_80px] print:grid-cols-[1fr_60px_60px] text-center border-t-[3px] border-black font-black text-sm sm:text-lg text-purple-700">
-                  <div className="border-r-[3px] border-black text-left pl-2 py-1 leading-tight">Total Pré-vêlage</div>
-                  <div className="border-r-[3px] border-black py-1 bg-zinc-200"></div>
-                  <div className="py-1 bg-zinc-200 text-black">1171</div>
+                  <div className="border-r-[3px] border-black text-left pl-2 py-1 leading-tight outline-none" contentEditable suppressContentEditableWarning>Total Pré-vêlage</div>
+                  <div className="border-r-[3px] border-black py-1 bg-zinc-200 outline-none" contentEditable suppressContentEditableWarning></div>
+                  <div className="py-1 bg-zinc-200 text-black outline-none" contentEditable suppressContentEditableWarning>1171</div>
                 </div>
 
-                <div className="text-center font-bold text-[11px] sm:text-sm py-3 border-t-[3px] border-black bg-zinc-100">
+                <div className="text-center font-bold text-[11px] sm:text-sm py-3 border-t-[3px] border-black bg-zinc-100 outline-none" contentEditable suppressContentEditableWarning>
                   **Brasser le bedpack Lundi-Mercredi-Vendredi
                 </div>
               </div>
@@ -353,8 +442,8 @@ export default function RationReport({ groups, notes, onModify, handlePrint }: R
         {/* Section Notes */}
         {notes && (
           <div className="mt-12 border-4 border-black p-6 bg-white shadow-sm print:break-inside-avoid">
-            <h2 className="text-2xl font-black underline mb-4 text-black">Notes additionnelles :</h2>
-            <div className="text-lg font-semibold text-zinc-800 whitespace-pre-wrap">{notes}</div>
+            <h2 className="text-2xl font-black underline mb-4 text-black outline-none" contentEditable suppressContentEditableWarning>Notes additionnelles :</h2>
+            <div className="text-lg font-semibold text-zinc-800 whitespace-pre-wrap outline-none" contentEditable suppressContentEditableWarning>{notes}</div>
           </div>
         )}
 

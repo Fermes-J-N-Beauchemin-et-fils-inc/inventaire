@@ -10,6 +10,7 @@ export interface AlimentDetail {
   consumptionRate: number; // Consumption per day in primary unit
   hasActiveOrder: boolean;
   expectedDeliveryDays?: number; // Days until delivery
+  storageLocation: string; // Ex: Silo #3, Bunker 3
   notes: string;
   pricePerMs: number; // Prix par tm MS
   pricePerTqs: number; // Prix par tm TQS
@@ -85,6 +86,7 @@ export const mockAlimentsDetails: AlimentDetail[] = [
     consumptionRate: 0.16,
     hasActiveOrder: true,
     expectedDeliveryDays: 4,
+    storageLocation: "Silo #2",
     notes: "Attention, niveau bas. Livraison prévue la semaine prochaine. Vérifier la vanne 9.8.",
     pricePerMs: 450.50,
     pricePerTqs: 396.44,
@@ -103,6 +105,7 @@ export const mockAlimentsDetails: AlimentDetail[] = [
     unit: "tm",
     consumptionRate: 2.24,
     hasActiveOrder: false,
+    storageLocation: "Bunker 3",
     notes: "Prix instable en ce moment, commander en plus petites quantités.",
     pricePerMs: 520.00,
     pricePerTqs: 462.80,
@@ -122,6 +125,7 @@ export const mockAlimentsDetails: AlimentDetail[] = [
     consumptionRate: 0.69,
     hasActiveOrder: true,
     expectedDeliveryDays: 2,
+    storageLocation: "Silo #1",
     notes: "Ajouté dans la RTM le matin.",
     pricePerMs: 850.00,
     pricePerTqs: 765.00,
@@ -141,6 +145,7 @@ export const mockAlimentsDetails: AlimentDetail[] = [
     kgPerBag: 25,
     consumptionRate: 2,
     hasActiveOrder: false,
+    storageLocation: "Entrepôt sec (Palette 2)",
     notes: "Stocker au sec absolu.",
     pricePerMs: 1200.00,
     pricePerTqs: 1140.00,
@@ -159,6 +164,7 @@ export const mockAlimentsDetails: AlimentDetail[] = [
     unit: "tm",
     consumptionRate: 1.96,
     hasActiveOrder: false,
+    storageLocation: "Bunker 1",
     notes: "Humidité à surveiller de près.",
     pricePerMs: 280.00,
     pricePerTqs: 196.00,

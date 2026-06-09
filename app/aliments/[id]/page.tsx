@@ -121,6 +121,13 @@ export default function AlimentDetailPage({ params }: { params: Promise<{ id: st
                 <span className="text-3xl font-black text-zinc-900">{aliment.humidityPercentage}%</span>
                 <span className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Humidité</span>
               </div>
+              {aliment.storageLocation && (
+                <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-5 flex flex-col justify-center items-center min-w-[120px]">
+                  <FontAwesomeIcon icon={faBoxesStacked} className="text-2xl text-indigo-500 mb-2" />
+                  <span className="text-xl font-black text-zinc-900 text-center">{aliment.storageLocation}</span>
+                  <span className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Stockage</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
