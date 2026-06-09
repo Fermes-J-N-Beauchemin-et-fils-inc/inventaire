@@ -98,12 +98,12 @@ export default function RationPage() {
     },
   });
 
-  const handleGroupChange = (key: GroupKey, field: 'fed' | 'indice', value: string) => {
+  const handleGroupChange = (key: GroupKey, field: 'fed' | 'indice' | 'real', value: string | number) => {
     setGroups(prev => ({
       ...prev,
       [key]: {
         ...prev[key],
-        [field]: field === 'fed' ? (parseInt(value, 10) || 0) : value
+        [field]: (field === 'fed' || field === 'real') ? parseFloat(String(value)) || 0 : String(value)
       }
     }));
   };
@@ -158,7 +158,7 @@ export default function RationPage() {
           handleUpdateAliment={handleUpdateAliment}
           notes={notes}
           setNotes={setNotes}
-          onGenerateReport={() => setView('report')}
+          onGenerate={() => setView('report')}
         />
       </Sidenav>
     );

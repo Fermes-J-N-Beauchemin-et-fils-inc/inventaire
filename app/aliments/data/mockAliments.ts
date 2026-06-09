@@ -28,6 +28,7 @@ export interface AlimentDetail {
   // Historique pour les graphiques
   consumptionHistory: { date: string; value: number }[];
   priceHistory: { date: string; priceMs: number; priceTqs: number }[];
+  msHistory: { date: string; value: number }[];
 }
 
 export const generateHistory = (baseValue: number, volatility: number, trend: number, days: number = 30) => {
@@ -92,7 +93,7 @@ export const mockAlimentsDetails: AlimentDetail[] = [
     pricePerTqs: 396.44,
     nutritionalValues: { NDF: 24.5, ADF: 14.2, PDI: 105, PDR: 110, MAT: 18.5, ENC: 1.15, ENL: 1.72 },
     consumptionHistory: generateHistory(0.15, 0.02, 0),
-    priceHistory: generatePriceHistory(450.50, 396.44)
+    priceHistory: generatePriceHistory(450.50, 396.44), msHistory: generateHistory(85, 1.5, 0)
   },
   {
     id: "2",
@@ -111,7 +112,7 @@ export const mockAlimentsDetails: AlimentDetail[] = [
     pricePerTqs: 462.80,
     nutritionalValues: { NDF: 28.0, ADF: 18.5, PDI: 140, PDR: 155, MAT: 38.0, ENC: 1.05, ENL: 1.65 },
     consumptionHistory: generateHistory(2.1, 0.3, 0.01),
-    priceHistory: generatePriceHistory(520.00, 462.80)
+    priceHistory: generatePriceHistory(520.00, 462.80), msHistory: generateHistory(85, 1.5, 0)
   },
   {
     id: "3",
@@ -131,7 +132,7 @@ export const mockAlimentsDetails: AlimentDetail[] = [
     pricePerTqs: 765.00,
     nutritionalValues: { NDF: 15.0, ADF: 8.0, PDI: 95, PDR: 100, MAT: 16.0, ENC: 1.20, ENL: 1.80 },
     consumptionHistory: generateHistory(0.7, 0.05, 0),
-    priceHistory: generatePriceHistory(850.00, 765.00)
+    priceHistory: generatePriceHistory(850.00, 765.00), msHistory: generateHistory(85, 1.5, 0)
   },
   {
     id: "4",
@@ -151,7 +152,7 @@ export const mockAlimentsDetails: AlimentDetail[] = [
     pricePerTqs: 1140.00,
     nutritionalValues: { NDF: 0.0, ADF: 0.0, PDI: 0, PDR: 0, MAT: 0.0, ENC: 0.0, ENL: 0.0 },
     consumptionHistory: generateHistory(2, 0.5, 0),
-    priceHistory: generatePriceHistory(1200.00, 1140.00)
+    priceHistory: generatePriceHistory(1200.00, 1140.00), msHistory: generateHistory(85, 1.5, 0)
   },
   {
     id: "5",
@@ -170,6 +171,6 @@ export const mockAlimentsDetails: AlimentDetail[] = [
     pricePerTqs: 196.00,
     nutritionalValues: { NDF: 10.0, ADF: 3.5, PDI: 85, PDR: 60, MAT: 9.0, ENC: 1.45, ENL: 2.05 },
     consumptionHistory: generateHistory(1.9, 0.2, -0.01),
-    priceHistory: generatePriceHistory(280.00, 196.00)
+    priceHistory: generatePriceHistory(280.00, 196.00), msHistory: generateHistory(85, 1.5, 0)
   }
 ];

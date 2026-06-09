@@ -66,7 +66,7 @@ export default function Sidenav({ children, initials = "JN" }: SidenavProps) {
     return (
         <div className="min-h-screen bg-[#FAF8F5]">
             {/* Navbar supérieure */}
-            <nav className="fixed top-0 z-50 w-full bg-white border-b border-zinc-200 shadow-sm">
+            <nav className="fixed top-0 z-50 w-full bg-white border-b border-zinc-200 shadow-sm print:hidden">
                 <div className="px-6 py-6 lg:px-5 lg:pl-3">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center justify-start rtl:justify-end">
@@ -110,14 +110,14 @@ export default function Sidenav({ children, initials = "JN" }: SidenavProps) {
             {/* Overlay pour fermer le menu sur mobile */}
             {isSidebarOpen && (
                 <div 
-                    className="fixed inset-0 z-30 bg-zinc-900/50 backdrop-blur-sm sm:hidden transition-opacity"
+                    className="fixed inset-0 z-30 bg-zinc-900/50 backdrop-blur-sm sm:hidden transition-opacity print:hidden"
                     onClick={closeSidebar}
                 />
             )}
 
             {/* Sidebar latérale */}
             <aside
-                className={`fixed top-0 left-0 z-40 w-80 h-full pt-[7.5rem] transition-transform bg-white border-r border-zinc-200 shadow-sm ${
+                className={`fixed top-0 left-0 z-40 w-80 h-full pt-[7.5rem] transition-transform bg-white border-r border-zinc-200 shadow-sm print:hidden ${
                     isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
                 } sm:translate-x-0`}
                 aria-label="Sidebar"
@@ -160,13 +160,13 @@ export default function Sidenav({ children, initials = "JN" }: SidenavProps) {
             </aside>
 
             {/* Contenu principal de la page */}
-            <div className="p-6 sm:ml-80 pt-[8.5rem] pb-8 min-h-screen flex flex-col justify-between">
+            <div className="p-6 sm:ml-80 pt-[8.5rem] pb-8 min-h-screen flex flex-col justify-between print:p-0 print:m-0 print:min-h-0 print:w-full">
                 <div>
                     {children}
                 </div>
                 
                 {/* Petit footer */}
-                <footer className="mt-auto pt-10 pb-4 text-center text-zinc-500 text-sm font-medium">
+                <footer className="mt-auto pt-10 pb-4 text-center text-zinc-500 text-sm font-medium print:hidden">
                     &copy; {new Date().getFullYear()} Fermes JN Beauchemin. Tous droits réservés.
                 </footer>
             </div>

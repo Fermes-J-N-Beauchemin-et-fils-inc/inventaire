@@ -7,6 +7,7 @@ import { AlertCard, MessageCard } from "@/app/components/dashboard/NotificationC
 import { auth } from "@/app/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import DashboardCharts from "./components/DashboardCharts";
 
 export default async function DashboardPage() {
     // 1. Fetching the session server-side securely
@@ -28,14 +29,17 @@ export default async function DashboardPage() {
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
                     <div>
-                        <h1 className="text-4xl sm:text-5xl font-black text-zinc-900 tracking-tight flex items-center gap-4">
-                            <div className="w-16 h-16 bg-blue-600 text-white rounded-[1.5rem] flex items-center justify-center shadow-lg shadow-blue-600/30">
+                        <div className="mb-2 inline-block px-4 py-1.5 bg-blue-100 text-blue-800 rounded-full text-sm font-black tracking-widest uppercase">
+                            {new Date().toLocaleDateString('fr-CA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                        </div>
+                        <h1 className="text-4xl sm:text-5xl font-black text-zinc-900 tracking-tight flex items-center gap-4 mt-2">
+                            <div className="w-16 h-16 bg-blue-600 text-white rounded-[1.5rem] flex items-center justify-center shadow-lg shadow-blue-600/30 shrink-0">
                                 <FontAwesomeIcon icon={faChartLine} />
                             </div>
                             Bonjour, {userName}
                         </h1>
                         <p className="text-xl text-zinc-500 font-medium mt-4 max-w-3xl">
-                            Bienvenue sur votre tableau de bord.
+                            Bienvenue sur votre tableau de bord. Voici un aperçu de vos activités.
                         </p>
                     </div>
                 </div>
@@ -120,6 +124,10 @@ export default async function DashboardPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* Charts Section */}
+                <DashboardCharts />
+
             </div>
         </Sidenav>
     );

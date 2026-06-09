@@ -80,7 +80,7 @@ export default function ReceptionView({
                             <span className="text-2xl font-black leading-none">{dateObj.getDate()}</span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className={`font-black text-xl truncate ${isSelected ? 'text-white' : (isPast ? 'text-zinc-600 line-through' : 'text-zinc-900')}`}>
+                            <h4 className={`font-black text-xl break-words ${isSelected ? 'text-white' : (isPast ? 'text-zinc-600 line-through' : 'text-zinc-900')}`}>
                               {d.feed}
                             </h4>
                             <p className={`text-base font-medium truncate mt-1 ${isSelected ? 'text-blue-100' : 'text-zinc-500'}`}>

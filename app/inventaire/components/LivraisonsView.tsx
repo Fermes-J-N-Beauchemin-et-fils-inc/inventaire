@@ -21,87 +21,120 @@ export default function LivraisonsView({
   handleAddOrder
 }: LivraisonsViewProps) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-10 mt-4 mb-10">
       {/* Chronological Deliveries List */}
-      <div className="lg:col-span-2">
-        <h2 className="text-2xl font-black text-black mb-4 flex items-center gap-3">
-          <span className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-xl border border-blue-300 shadow-sm">📅</span>
-          Prochaines Livraisons (Planifiées)
-        </h2>
-        <div className="bg-white rounded-xl border-2 border-zinc-800 overflow-hidden shadow-sm">
-          <ul className="divide-y-2 divide-zinc-200">
-            {deliveries.length === 0 ? (
-              <li className="p-8 text-center text-zinc-800 font-bold text-lg">Aucune livraison prévue.</li>
-            ) : (
-              deliveries.map((delivery) => {
-                const dateObj = new Date(delivery.date + 'T00:00:00');
-                const isPast = dateObj < new Date(new Date().setHours(0, 0, 0, 0));
+      <div className="xl:col-span-2">
+        <div className="bg-white p-6 sm:p-10 rounded-[2.5rem] border border-blue-200/60 shadow-xl relative overflow-hidden h-full">
+          {/* Decorative background elements */}
+          <div className="absolute top-0 right-0 w-[40rem] h-[40rem] bg-blue-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+          
+          <div className="relative z-10">
+            <div className="mb-10">
+              <h2 className="text-3xl sm:text-4xl font-black text-zinc-900 mb-3 tracking-tight flex items-center gap-4">
+                <span className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 text-blue-700 text-2xl shadow-sm">
+                  📅
+                </span>
+                Prochaines Livraisons
+              </h2>
+              <p className="text-lg text-zinc-500 font-medium max-w-2xl">
+                Suivi chronologique des livraisons planifiées et à venir.
+              </p>
+            </div>
 
-                return (
-                  <li key={delivery.id} className="p-4 sm:p-5 flex items-center justify-between hover:bg-blue-50 transition-colors">
-                    <div className="flex items-center gap-5">
-                      <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center border-2 shadow-sm ${isPast ? 'bg-zinc-200 border-zinc-400 text-zinc-600' : 'bg-white border-zinc-300 text-black'
-                        }`}>
-                        <span className="text-xs font-black uppercase">{dateObj.toLocaleDateString('fr-CA', { month: 'short' }).replace('.', '')}</span>
-                        <span className="text-xl font-black leading-none">{dateObj.getDate()}</span>
-                      </div>
-                      <div>
-                        <h3 className={`font-black text-xl ${isPast ? 'text-zinc-600 line-through' : 'text-black'}`}>{delivery.feed}</h3>
-                        <p className="text-base text-zinc-800 font-bold capitalize">{dateObj.toLocaleDateString('fr-CA', { weekday: 'long', year: 'numeric' })}</p>
-                      </div>
-                    </div>
-                    {!isPast && (
-                      <div className="px-4 py-1.5 bg-blue-100 text-blue-800 rounded-lg text-sm font-black border-2 border-blue-300 shadow-sm">
-                        Prévue
-                      </div>
-                    )}
+            <div className="bg-zinc-50/50 rounded-3xl border border-zinc-200/60 overflow-hidden">
+              <ul className="divide-y divide-zinc-200/60">
+                {deliveries.length === 0 ? (
+                  <li className="p-10 text-center">
+                    <span className="text-5xl mb-4 block">📦</span>
+                    <h3 className="text-zinc-500 font-bold text-xl">Aucune livraison prévue.</h3>
                   </li>
-                );
-              })
-            )}
-          </ul>
+                ) : (
+                  deliveries.map((delivery) => {
+                    const dateObj = new Date(delivery.date + 'T00:00:00');
+                    const isPast = dateObj < new Date(new Date().setHours(0, 0, 0, 0));
+
+                    return (
+                      <li key={delivery.id} className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-white transition-colors gap-4">
+                        <div className="flex items-center gap-5">
+                          <div className={`w-16 h-16 rounded-2xl flex flex-col items-center justify-center border shrink-0 transition-colors ${isPast ? 'bg-zinc-100 border-zinc-200 text-zinc-400' : 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm'}`}>
+                            <span className="text-xs font-black uppercase tracking-wider">{dateObj.toLocaleDateString('fr-CA', { month: 'short' }).replace('.', '')}</span>
+                            <span className="text-2xl font-black leading-none mt-0.5">{dateObj.getDate()}</span>
+                          </div>
+                          <div>
+                            <h3 className={`font-black text-xl sm:text-2xl ${isPast ? 'text-zinc-400 line-through' : 'text-zinc-900'}`}>{delivery.feed}</h3>
+                            <p className="text-base text-zinc-500 font-medium capitalize mt-1 flex items-center gap-2">
+                              {dateObj.toLocaleDateString('fr-CA', { weekday: 'long', year: 'numeric' })}
+                            </p>
+                          </div>
+                        </div>
+                        {!isPast && (
+                          <div className="px-4 py-2 bg-emerald-100/50 text-emerald-700 rounded-xl text-sm font-black border border-emerald-200 self-start sm:self-auto flex items-center gap-2 shrink-0">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            Planifiée
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })
+                )}
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Add Order Form */}
       <div>
-        <h2 className="text-2xl font-black text-black mb-4 flex items-center gap-3">
-          <span className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 text-xl border border-green-300 shadow-sm">➕</span>
-          Planifier
-        </h2>
-        <div className="bg-zinc-100 p-6 rounded-xl border-2 border-zinc-800 shadow-sm sticky top-8">
-          <form onSubmit={handleAddOrder} className="space-y-6">
-            <div>
-              <label className="block text-base font-black text-black mb-2">Aliment à commander</label>
-              <select
-                value={newOrderFeedId}
-                onChange={(e) => setNewOrderFeedId(Number(e.target.value))}
-                className="w-full px-4 py-3 bg-white border-2 border-zinc-400 rounded-lg text-black font-bold text-lg focus:ring-4 focus:ring-[#15803D] focus:border-[#15803D] outline-none shadow-sm"
+        <div className="bg-white p-6 sm:p-10 rounded-[2.5rem] border border-green-200/60 shadow-xl relative overflow-hidden sticky top-8">
+          {/* Decorative background elements */}
+          <div className="absolute top-0 right-0 w-[30rem] h-[30rem] bg-green-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+          
+          <div className="relative z-10">
+            <h2 className="text-3xl font-black text-zinc-900 mb-8 flex items-center gap-4 tracking-tight">
+              <span className="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 text-green-700 text-xl shadow-sm">
+                ➕
+              </span>
+              Planifier
+            </h2>
+
+            <form onSubmit={handleAddOrder} className="space-y-6">
+              <div>
+                <label className="block text-sm font-bold text-zinc-600 mb-2 uppercase tracking-widest">Aliment à commander</label>
+                <div className="relative">
+                  <select
+                    value={newOrderFeedId}
+                    onChange={(e) => setNewOrderFeedId(Number(e.target.value))}
+                    className="w-full pl-5 pr-10 py-4 bg-zinc-50 border-2 border-zinc-200 rounded-2xl text-zinc-900 font-bold text-lg focus:ring-0 focus:bg-white focus:border-green-500 transition-colors appearance-none cursor-pointer"
+                  >
+                    {inventory.map(item => (
+                      <option key={item.id} value={item.id}>{item.name}</option>
+                    ))}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
+                    ▼
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-zinc-600 mb-2 uppercase tracking-widest">Date prévue</label>
+                <input
+                  type="date"
+                  required
+                  value={newOrderDate}
+                  onChange={(e) => setNewOrderDate(e.target.value)}
+                  className="w-full px-5 py-4 bg-zinc-50 border-2 border-zinc-200 rounded-2xl text-zinc-900 font-bold text-lg focus:ring-0 focus:bg-white focus:border-green-500 transition-colors"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full mt-4 py-4 px-6 bg-green-600 hover:bg-green-700 text-white font-black text-xl rounded-2xl shadow-lg shadow-green-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3"
               >
-                {inventory.map(item => (
-                  <option key={item.id} value={item.id}>{item.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-base font-black text-black mb-2">Date de livraison prévue</label>
-              <input
-                type="date"
-                required
-                value={newOrderDate}
-                onChange={(e) => setNewOrderDate(e.target.value)}
-                className="w-full px-4 py-3 bg-white border-2 border-zinc-400 rounded-lg text-black font-bold text-lg focus:ring-4 focus:ring-[#15803D] focus:border-[#15803D] outline-none shadow-sm"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full mt-4 py-4 bg-[#15803D] hover:bg-green-700 active:bg-green-800 text-white font-black text-xl rounded-lg shadow-md border-b-4 border-green-900 active:border-b-0 active:translate-y-1 transition-all"
-            >
-              Ajouter à la liste
-            </button>
-          </form>
+                Confirmer l'ajout
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>

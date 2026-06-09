@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Image from "next/image";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
@@ -28,7 +28,7 @@ export default function RationReport({ groups, notes, onModify, handlePrint }: R
   const addFloatingNote = () => {
     setFloatingNotes(prev => [
       ...prev,
-      { id: Math.random().toString(36).substring(7), x: 50, y: 50, text: "Nouvelle note..." }
+      { id: Math.random().toString(36).substring(7), x: 400, y: 100, text: "Nouvelle note..." }
     ]);
   };
 
@@ -36,18 +36,17 @@ export default function RationReport({ groups, notes, onModify, handlePrint }: R
     setFloatingNotes(prev => prev.filter(n => n.id !== id));
   };
 
-  const handlePointerDown = (e: React.PointerEvent, id: string) => {
-    // Ne pas démarrer le drag si on clique dans le texte (pour permettre la sélection)
+  const handleMouseDown = (e: React.MouseEvent, id: string) => {
     if ((e.target as HTMLElement).tagName.toLowerCase() === 'div' && (e.target as HTMLElement).isContentEditable) {
        return;
     }
     setDraggingId(id);
-    e.currentTarget.setPointerCapture(e.pointerId);
   };
 
-  const handlePointerMove = (e: React.PointerEvent) => {
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!draggingId || !containerRef.current) return;
     const containerRect = containerRef.current.getBoundingClientRect();
+    
     setFloatingNotes(prev => prev.map(note => {
       if (note.id === draggingId) {
         return {
@@ -58,38 +57,59 @@ export default function RationReport({ groups, notes, onModify, handlePrint }: R
       }
       return note;
     }));
-  };
+  }, [draggingId]);
 
-  const handlePointerUp = (e: React.PointerEvent) => {
+  const handleMouseUp = useCallback(() => {
     setDraggingId(null);
-    e.currentTarget.releasePointerCapture(e.pointerId);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (draggingId) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    } else {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [draggingId, handleMouseMove, handleMouseUp]);
 
   return (
-    <div className="min-h-screen bg-zinc-100 py-4 sm:py-8 px-2 sm:px-8 text-black"
-         onPointerMove={handlePointerMove}
-         onPointerUp={handlePointerUp}>
-      <div ref={containerRef} className="max-w-[1200px] relative mx-auto bg-white text-black shadow-2xl border border-zinc-400 p-4 sm:p-12 lg:px-20 print:shadow-none print:border-none print:p-0 print:max-w-none">
+    <div className="min-h-screen bg-zinc-100 py-4 sm:py-8 px-2 sm:px-8 text-black">
+      <div ref={containerRef} className="max-w-[1200px] w-full relative mx-auto bg-white text-black shadow-2xl border border-zinc-400 p-4 sm:p-12 lg:px-20 print:shadow-none print:border-none print:max-w-none print:p-0">
         
         {/* Floating Notes Render */}
         {floatingNotes.map(note => (
           <div 
             key={note.id}
-            onPointerDown={(e) => handlePointerDown(e, note.id)}
             style={{ left: note.x, top: note.y, position: 'absolute' }}
-            className="group print:!border-none print:!bg-transparent print:!shadow-none z-50 min-w-[200px] border-2 border-dashed border-blue-400 bg-blue-50/80 shadow-md p-2 rounded cursor-move"
+            className="group z-50 min-w-[200px] min-h-[80px] border-2 border-dashed border-blue-400 bg-blue-50 shadow-md rounded resize overflow-auto flex flex-col print:!border-none print:!bg-transparent print:!shadow-none"
           >
+            {/* Drag Handle */}
+            <div 
+              onMouseDown={(e) => handleMouseDown(e, note.id)}
+              className="w-full h-4 cursor-move bg-blue-200/50 flex justify-center items-center print:hidden hover:bg-blue-300 transition-colors"
+            >
+              <div className="w-8 h-1 rounded-full bg-blue-400/80"></div>
+            </div>
+
+            {/* Trash button */}
             <button 
               onClick={() => removeFloatingNote(note.id)}
-              className="absolute -top-3 -right-3 w-6 h-6 bg-red-500 text-white rounded-full hidden group-hover:flex items-center justify-center text-xs print:hidden"
+              className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full hidden group-hover:flex items-center justify-center text-xs print:hidden z-10"
             >
               <FontAwesomeIcon icon={faTrash} />
             </button>
+
+            {/* Content */}
             <div 
               contentEditable 
               suppressContentEditableWarning 
-              className="outline-none min-h-[1.5rem] font-bold text-blue-900 print:text-black cursor-text"
-              onPointerDown={(e) => e.stopPropagation()}
+              className="outline-none flex-1 p-2 font-bold text-blue-900 cursor-text"
+              onMouseDown={(e) => e.stopPropagation()}
             >
               {note.text}
             </div>
@@ -134,8 +154,8 @@ export default function RationReport({ groups, notes, onModify, handlePrint }: R
             <Image src={logo} alt="Logo" fill className="object-contain grayscale opacity-90" />
           </div>
           <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-            <div contentEditable suppressContentEditableWarning className="text-lg sm:text-2xl font-black text-black outline-none border-b border-transparent focus:border-zinc-300">4 juin 2026</div>
-            <div contentEditable suppressContentEditableWarning className="text-xl sm:text-3xl font-black text-black underline outline-none">Normal</div>
+            <div className="text-lg sm:text-2xl font-black text-black outline-none border-b border-transparent focus:border-zinc-300">4 juin 2026</div>
+            <div className="text-xl sm:text-3xl font-black text-black underline outline-none">Normal</div>
           </div>
           <div className="text-left sm:text-right w-full sm:w-auto">
             <div contentEditable suppressContentEditableWarning className="text-red-600 font-black italic text-xl sm:text-3xl outline-none">BRASSER</div>
@@ -151,7 +171,7 @@ export default function RationReport({ groups, notes, onModify, handlePrint }: R
             <div className="flex flex-col sm:flex-row justify-between items-center font-black text-base sm:text-xl border-b-[3px] border-black px-2 py-1 bg-zinc-200">
               <div className="flex items-center gap-3">
                 <span className="italic" contentEditable suppressContentEditableWarning>{groups.g1.name}</span>
-                <span className="bg-yellow-400 border-[2px] border-black px-2 text-sm sm:text-base leading-tight shadow-sm" contentEditable suppressContentEditableWarning>{groups.g1.indice}</span>
+                <span className="bg-yellow-400 border-[2px] border-black px-2 text-sm sm:text-base leading-tight shadow-sm">{groups.g1.indice}</span>
               </div>
               <span contentEditable suppressContentEditableWarning>{groups.g1.time}</span>
             </div>
@@ -188,7 +208,7 @@ export default function RationReport({ groups, notes, onModify, handlePrint }: R
             <div className="flex flex-col sm:flex-row justify-between items-center font-black text-base sm:text-xl border-b-[3px] border-black px-2 py-1 bg-zinc-200">
               <div className="flex items-center gap-3">
                 <span className="italic" contentEditable suppressContentEditableWarning>{groups.g2.name}</span>
-                <span className="bg-yellow-400 border-[2px] border-black px-2 text-sm sm:text-base leading-tight shadow-sm" contentEditable suppressContentEditableWarning>{groups.g2.indice}</span>
+                <span className="bg-yellow-400 border-[2px] border-black px-2 text-sm sm:text-base leading-tight shadow-sm">{groups.g2.indice}</span>
               </div>
               <span contentEditable suppressContentEditableWarning>{groups.g2.time}</span>
             </div>
@@ -224,13 +244,13 @@ export default function RationReport({ groups, notes, onModify, handlePrint }: R
           <div className="col-span-1 lg:col-span-2 print:col-span-2 flex flex-col sm:flex-row justify-around items-center text-xs sm:text-[15px] font-black text-zinc-600 py-1 border-y border-zinc-400">
             <div className="flex gap-4 sm:gap-8">
               <span>Avancement Bunker #2</span>
-              <span>14 pouce/jr</span>
-              <span>3.5 pi/3jr</span>
+              <span contentEditable suppressContentEditableWarning className="outline-none hover:bg-zinc-100 cursor-text px-1">14 pouce/jr</span>
+              <span contentEditable suppressContentEditableWarning className="outline-none hover:bg-zinc-100 cursor-text px-1">3.5 pi/3jr</span>
             </div>
             <div className="flex gap-4 sm:gap-8 mt-1 sm:mt-0">
               <span>Avancement Bunker #7</span>
-              <span>16 pouce/jr</span>
-              <span>3.9 pi/3jr</span>
+              <span contentEditable suppressContentEditableWarning className="outline-none hover:bg-zinc-100 cursor-text px-1">16 pouce/jr</span>
+              <span contentEditable suppressContentEditableWarning className="outline-none hover:bg-zinc-100 cursor-text px-1">3.9 pi/3jr</span>
             </div>
           </div>
 
@@ -239,7 +259,7 @@ export default function RationReport({ groups, notes, onModify, handlePrint }: R
             <div className="flex flex-col sm:flex-row justify-between items-center font-black text-base sm:text-xl border-b-[3px] border-black px-2 py-1 bg-zinc-200">
               <div className="flex items-center gap-3">
                 <span className="italic" contentEditable suppressContentEditableWarning>{groups.g3.name}</span>
-                <span className="bg-yellow-400 border-[2px] border-black px-2 text-sm sm:text-base leading-tight shadow-sm" contentEditable suppressContentEditableWarning>{groups.g3.indice}</span>
+                <span className="bg-yellow-400 border-[2px] border-black px-2 text-sm sm:text-base leading-tight shadow-sm">{groups.g3.indice}</span>
               </div>
               <span contentEditable suppressContentEditableWarning>{groups.g3.time}</span>
             </div>
@@ -276,7 +296,7 @@ export default function RationReport({ groups, notes, onModify, handlePrint }: R
             <div className="flex flex-col sm:flex-row justify-between items-center font-black text-base sm:text-xl border-b-[3px] border-black px-2 py-1 bg-zinc-200">
               <div className="flex items-center gap-3">
                 <span className="italic" contentEditable suppressContentEditableWarning>{groups.g4.name}</span>
-                <span className="bg-yellow-400 border-[2px] border-black px-2 text-sm sm:text-base leading-tight shadow-sm" contentEditable suppressContentEditableWarning>{groups.g4.indice}</span>
+                <span className="bg-yellow-400 border-[2px] border-black px-2 text-sm sm:text-base leading-tight shadow-sm">{groups.g4.indice}</span>
               </div>
               <span contentEditable suppressContentEditableWarning>{groups.g4.time}</span>
             </div>
@@ -333,7 +353,7 @@ export default function RationReport({ groups, notes, onModify, handlePrint }: R
               <div className="flex flex-col sm:flex-row justify-between items-center font-black text-base sm:text-xl border-b-[3px] border-black px-2 py-1 bg-zinc-200">
                 <div className="flex items-center gap-3">
                   <span className="italic" contentEditable suppressContentEditableWarning>(Côté piston)</span>
-                  <span className="bg-yellow-400 border-[2px] border-black px-2 text-sm sm:text-base leading-tight shadow-sm" contentEditable suppressContentEditableWarning>{groups.taries.indice}</span>
+                  <span className="bg-yellow-400 border-[2px] border-black px-2 text-sm sm:text-base leading-tight shadow-sm">{groups.taries.indice}</span>
                 </div>
                 <span contentEditable suppressContentEditableWarning>{groups.taries.time}</span>
               </div>

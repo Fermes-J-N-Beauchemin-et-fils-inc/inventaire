@@ -212,6 +212,31 @@ export default function AlimentDetailPage({ params }: { params: Promise<{ id: st
               />
             </div>
 
+            {/* Historique de Masse Sèche */}
+            <div className="bg-white rounded-[2rem] p-8 border border-zinc-200 shadow-sm">
+              <div className="flex justify-between items-start mb-6">
+                <h2 className="text-2xl font-black text-zinc-900 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center">
+                    <FontAwesomeIcon icon={faChartLine} />
+                  </div>
+                  Historique de Masse Sèche (M.S.)
+                </h2>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Actuel</p>
+                  <p className="text-3xl font-black text-amber-600">{aliment.msPercentage} <span className="text-lg text-zinc-500">%</span></p>
+                </div>
+              </div>
+              
+              <SingleLineChart 
+                data={aliment.msHistory} 
+                dataKey="value" 
+                color="#D97706" 
+                label="Masse Sèche" 
+                unit="%"
+                isArea={true}
+              />
+            </div>
+
             {/* Pricing */}
             <div className="bg-white rounded-[2rem] p-8 border border-zinc-200 shadow-sm">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
