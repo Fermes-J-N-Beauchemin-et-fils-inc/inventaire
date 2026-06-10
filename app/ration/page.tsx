@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Sidenav from "@/app/components/ui/sidenav";
-import { GroupKey, GroupsState, Saison } from "./types";
+import { GroupKey, GroupsState, Saison, PluieMode, GroupPluieMode } from "./types";
 import RationForm from "./components/RationForm";
 import RationReport from "./components/RationReport";
 import TractorUI from "./components/TractorUI";
@@ -10,6 +10,7 @@ import TractorUI from "./components/TractorUI";
 export default function RationPage() {
   const [view, setView] = useState<'form' | 'tractor' | 'report'>('form');
   const [saison, setSaison] = useState<Saison>('hiver');
+  const [globalPluie, setGlobalPluie] = useState<PluieMode>('normal');
 
   // Form State
   const [notes, setNotes] = useState("");
@@ -112,14 +113,22 @@ export default function RationPage() {
     }));
   };
 
-  const handleNoteChange = (key: GroupKey, value: string) => {
+  const handleIndiceChange = (key: GroupKey, tour: 1 | 2, newIndice: string) => {
     setGroups(prev => ({
       ...prev,
       [key]: {
         ...prev[key],
-        note: value
+        [tour === 1 ? 'indice' : 'indiceTour2']: newIndice
       }
     }));
+  };
+
+  const handleNoteChange = (key: GroupKey, value: string) => {
+    setGroups(prev => ({ ...prev, [key]: { ...prev[key], note: value } }));
+  };
+
+  const handleGroupPluieChange = (key: GroupKey, mode: GroupPluieMode) => {
+    setGroups(prev => ({ ...prev, [key]: { ...prev[key], pluieMode: mode } }));
   };
 
   const handleAddAliment = (groupKey: GroupKey) => {
@@ -157,6 +166,43 @@ export default function RationPage() {
     }));
   };
 
+  const handleReorderAliments = (groupKey: GroupKey, startIndex: number, endIndex: number) => {
+    setGroups(prev => {
+      const newAliments = Array.from(prev[groupKey].aliments);
+      const [removed] = newAliments.splice(startIndex, 1);
+      newAliments.splice(endIndex, 0, removed);
+      return {
+        ...prev,
+        [groupKey]: { ...prev[groupKey], aliments: newAliments }
+      };
+    });
+  };
+
+  const handleAdjustAlimentWeight = (groupKey: GroupKey, tour: 1 | 2, alimentId: string, actualScaledV2: number) => {
+    setGroups(prev => {
+      const group = prev[groupKey];
+      const oldIndice = parseFloat(tour === 1 ? group.indice : (group.indiceTour2 || "1.00")) || 1;
+      
+      const targetAliment = group.aliments.find(a => a.id === alimentId);
+      if (!targetAliment) return prev;
+
+      const targetV2Num = parseFloat(targetAliment.v2);
+      if (isNaN(targetV2Num) || targetV2Num === 0) return prev;
+      
+      const originalTargetScaledV2 = targetV2Num * oldIndice;
+      const ratio = actualScaledV2 / originalTargetScaledV2;
+      const newIndice = (oldIndice * ratio).toFixed(3);
+
+      return {
+        ...prev,
+        [groupKey]: {
+          ...group,
+          [tour === 1 ? 'indice' : 'indiceTour2']: newIndice
+        }
+      };
+    });
+  };
+
   const handleToggleGroupCompletion = (key: GroupKey, tour: 1 | 2 = 1) => {
     setGroups(prev => {
       if (tour === 1) {
@@ -185,7 +231,6 @@ export default function RationPage() {
     setSaison(prev => {
       const newSaison = prev === 'hiver' ? 'ete' : 'hiver';
       if (newSaison === 'ete') {
-        // Automatically switch indices to 0.75 for tour 1 and 0.25 for tour 2 for lactating cows
         setGroups(g => {
           const updated = { ...g };
           (['g1', 'g2', 'g3', 'g4'] as GroupKey[]).forEach(k => {
@@ -194,7 +239,6 @@ export default function RationPage() {
           return updated;
         });
       } else {
-        // Revert to 1.00 for winter
         setGroups(g => {
           const updated = { ...g };
           (['g1', 'g2', 'g3', 'g4'] as GroupKey[]).forEach(k => {
@@ -218,11 +262,15 @@ export default function RationPage() {
           groups={groups}
           saison={saison}
           handleSaisonToggle={handleSaisonToggle}
+          globalPluie={globalPluie}
+          setGlobalPluie={setGlobalPluie}
+          handleGroupPluieChange={handleGroupPluieChange}
           handleGroupChange={handleGroupChange}
           handleNoteChange={handleNoteChange}
           handleAddAliment={handleAddAliment}
           handleRemoveAliment={handleRemoveAliment}
           handleUpdateAliment={handleUpdateAliment}
+          handleReorderAliments={handleReorderAliments}
           notes={notes}
           setNotes={setNotes}
           onGenerate={() => setView('tractor')}
@@ -237,8 +285,12 @@ export default function RationPage() {
         <TractorUI 
           groups={groups}
           saison={saison}
+          globalPluie={globalPluie}
           onToggleGroupCompletion={handleToggleGroupCompletion}
           onFinishAll={() => setView('report')}
+          onAdjustAlimentWeight={handleAdjustAlimentWeight}
+          onIndiceChange={handleIndiceChange}
+          onGroupPluieChange={handleGroupPluieChange}
         />
       </Sidenav>
     );

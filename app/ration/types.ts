@@ -10,6 +10,9 @@ export type RationAliment = {
   extraColor?: string;
 };
 
+export type PluieMode = 'normal' | 'semi-pluie' | 'pluie' | 'extra-pluie';
+export type GroupPluieMode = 'global' | PluieMode;
+
 export type GroupData = {
   name: string;
   real: number;
@@ -19,6 +22,7 @@ export type GroupData = {
   time: string;
   note?: string;
   systemNote?: string;
+  pluieMode?: GroupPluieMode;
   aliments: RationAliment[];
   completedAt?: string;
   completedAtTour2?: string;

@@ -73,12 +73,12 @@ export default function Sidenav({ children, initials = "JN" }: SidenavProps) {
                             <button
                                 onClick={toggleSidebar}
                                 type="button"
-                                className="inline-flex items-center p-2 text-sm text-zinc-500 rounded-lg hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-200"
+                                className="inline-flex items-center justify-center p-3 w-12 h-12 text-zinc-600 rounded-xl hover:bg-zinc-100 hover:text-black focus:outline-none focus:ring-4 focus:ring-zinc-200 transition-all"
                             >
                                 <span className="sr-only">Ouvrir le menu</span>
-                                <FontAwesomeIcon icon={isSidebarOpen ? faXmark : faBars} className="w-7 h-7" />
+                                <FontAwesomeIcon icon={isSidebarOpen ? faXmark : faBars} className="w-8 h-8" />
                             </button>
-                            <Link href="/dashboard" className="flex items-center ms-2 md:me-24 group">
+                            <Link href="/dashboard" className="flex items-center ms-4 md:me-24 group">
                                 <img
                                     src="/images/logo.png"
                                     className="h-20 w-auto me-4 object-contain group-hover:scale-105 transition-transform"
