@@ -101,6 +101,29 @@ export default function RationPage() {
         { id: '6', name: "X-Zélit", v1: "12.6", v2: "1171", highlight: "text-purple-700 font-black" },
       ]
     },
+    genisses: {
+      name: "Génisses Gr 1-2-3-4 + 3parcs", real: 69, fed: 54, indice: "1.00", time: "14h45/15h15",
+      systemNote: "Brasser au départ (2000rpm).\nPorte #5 (route) ---> Soigner groupe 4-3-2-1\nCommence gr 4 à 1188, vider jusqu'à 838\nCommence gr 3 à 838, vider jusqu'à 555\nCommence gr 2 à 555, vider jusqu'à 326\nCommence gr 1 à 326, vider jusqu'à 125\nAjouter moulée à veau silo #8 dans la ferme 43\n1/2 Parcs 168 vider jusqu'à 0\n\nNotes:\n1. Le parc de veaux de boucherie (P1) est soigné avec 2kg/veau/jr de moulée -> 40kg/3jrs\n2. Le parc de veaux de boucherie (P2) est soigné avec 2kg/veau/jr de moulée -> 30kg/3jrs + un bucket\n3. Le parc de veaux de boucherie (moyen) est soigné avec rtm -> Environ 2 buckets de bobcat\n4. Le parc de veaux de boucherie (dôme) est soigné avec rtm -> Environ 2 buckets de Loader",
+      aliments: [
+        { id: '1', name: "Foin sec commodité", v1: "95", v2: "95", extra: "0 balle", extraColor: "text-zinc-400 font-bold" },
+        { id: '2', name: "Paille silo bleu #7", v1: "0", v2: "95", extra: "Mettre exact", extraColor: "text-red-500 font-bold text-sm" },
+        { id: '3', name: "Tourteau canola", v1: "94", v2: "188", highlight: "bg-orange-100 font-black" },
+        { id: '4', name: "Ens. Maïs #7", v1: "351", v2: "539" },
+        { id: '5', name: "Ens. Foin #2", v1: "639", v2: "1178", highlight: "border-4 border-green-500 font-black" },
+        { id: '6', name: "Minéral Taures", v1: "10", v2: "1188" },
+      ]
+    },
+    taures_5_6: {
+      name: "Ration Taures Gr 5-6 + Taries longues", real: 64, fed: 64, indice: "1.00", time: "",
+      systemNote: "Brasser au départ (2000rpm).\nPorte #5 (route) ---> Soigner groupe 5-6\nCommence gr 5 à 1579, vider jusqu'à 804\nCommence gr 6 à 804, vider jusqu'à 0\n\nSoigner taries longues (centre étable à vaches)\nCommence Taries longues 0, vider jusqu'à 0",
+      aliments: [
+        { id: '1', name: "Foin sec commodité", v1: "152", v2: "152", highlight: "bg-green-100 font-black", extra: "Mettre exacte", extraColor: "text-red-500 font-bold text-sm" },
+        { id: '2', name: "Ens. Maïs #7", v1: "421", v2: "572", extra: "0 balle", extraColor: "text-zinc-400 font-bold" },
+        { id: '3', name: "Tourteau canola", v1: "37", v2: "610", highlight: "bg-orange-100 font-black" },
+        { id: '4', name: "Minéral Taures", v1: "10", v2: "620", extra: "mettre exacte", extraColor: "text-zinc-400 font-bold text-sm" },
+        { id: '5', name: "Ens. Foin #2", v1: "959", v2: "1579", extra: "toppé à ce chiffre", extraColor: "text-zinc-400 font-bold text-sm" },
+      ]
+    },
   });
 
   const handleGroupChange = (key: GroupKey, field: 'fed' | 'indice' | 'indiceTour2' | 'real', value: string | number) => {
@@ -125,6 +148,10 @@ export default function RationPage() {
 
   const handleNoteChange = (key: GroupKey, value: string) => {
     setGroups(prev => ({ ...prev, [key]: { ...prev[key], note: value } }));
+  };
+
+  const handleSystemNoteChange = (key: GroupKey, value: string) => {
+    setGroups(prev => ({ ...prev, [key]: { ...prev[key], systemNote: value } }));
   };
 
   const handleGroupPluieChange = (key: GroupKey, mode: GroupPluieMode) => {
@@ -267,6 +294,7 @@ export default function RationPage() {
           handleGroupPluieChange={handleGroupPluieChange}
           handleGroupChange={handleGroupChange}
           handleNoteChange={handleNoteChange}
+          handleSystemNoteChange={handleSystemNoteChange}
           handleAddAliment={handleAddAliment}
           handleRemoveAliment={handleRemoveAliment}
           handleUpdateAliment={handleUpdateAliment}

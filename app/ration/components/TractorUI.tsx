@@ -239,22 +239,20 @@ export default function TractorUI({
                 >
                   Indice: {indiceStr} <FontAwesomeIcon icon={faPen} className="text-sm opacity-50" />
                 </button>
-                {tour === 1 && (
-                  <div className="flex items-center bg-blue-50 border-2 border-blue-200 px-4 py-2 rounded-xl text-blue-800 shadow-sm ml-0 sm:ml-2">
-                    <FontAwesomeIcon icon={faCloudShowersHeavy} className="mr-3" />
-                    <select
-                      value={group.pluieMode || 'global'}
-                      onChange={(e) => onGroupPluieChange(key, e.target.value as GroupPluieMode)}
-                      className="bg-transparent font-black outline-none cursor-pointer"
-                    >
-                      <option value="global">Météo: Globale</option>
-                      <option value="normal">Normal</option>
-                      <option value="semi-pluie">Semi-Pluie</option>
-                      <option value="pluie">Pluie</option>
-                      <option value="extra-pluie">Extra-Pluie</option>
-                    </select>
-                  </div>
-                )}
+                <div className="flex items-center bg-blue-50 border-2 border-blue-200 px-4 py-2 rounded-xl text-blue-800 shadow-sm ml-0 sm:ml-2">
+                  <FontAwesomeIcon icon={faCloudShowersHeavy} className="mr-3" />
+                  <select
+                    value={group.pluieMode || 'global'}
+                    onChange={(e) => onGroupPluieChange(key, e.target.value as GroupPluieMode)}
+                    className="bg-transparent font-black outline-none cursor-pointer"
+                  >
+                    <option value="global">Météo: Globale</option>
+                    <option value="normal">Normal</option>
+                    <option value="semi-pluie">Semi-Pluie</option>
+                    <option value="pluie">Pluie</option>
+                    <option value="extra-pluie">Extra-Pluie</option>
+                  </select>
+                </div>
               </div>
             </div>
             {isCompleted && (
@@ -408,6 +406,10 @@ export default function TractorUI({
                     <span>{group.time}</span>
                   </div>
                 )}
+                <div className="flex items-center gap-4 text-2xl font-bold text-blue-800">
+                  <FontAwesomeIcon icon={faCloudShowersHeavy} className="w-8 text-blue-400" />
+                  <span className="capitalize">{group.pluieMode && group.pluieMode !== 'global' ? group.pluieMode.replace('-', ' ') : `Météo globale (${globalPluie})`}</span>
+                </div>
               </div>
 
               {isCompleted ? (

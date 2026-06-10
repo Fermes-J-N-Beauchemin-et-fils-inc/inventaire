@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCarrot, faPlus, faTrash, faSun, faSnowflake, faGripVertical, faCloudShowersHeavy } from '@fortawesome/free-solid-svg-icons';
+import { faCarrot, faPlus, faTrash, faSun, faSnowflake, faGripVertical, faCloudShowersHeavy, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { GroupsState, GroupKey, Saison, PluieMode, GroupPluieMode } from '../types';
 import { mockAlimentsDetails } from '../../aliments/data/mockAliments';
@@ -16,6 +16,7 @@ interface RationFormProps {
   setNotes: (v: string) => void;
   handleGroupChange: (groupKey: GroupKey, field: 'indice' | 'indiceTour2' | 'fed' | 'real', value: string | number) => void;
   handleNoteChange: (groupKey: GroupKey, value: string) => void;
+  handleSystemNoteChange: (groupKey: GroupKey, value: string) => void;
   handleAddAliment: (groupKey: GroupKey) => void;
   handleUpdateAliment: (groupKey: GroupKey, id: string, field: 'name' | 'v1' | 'v2', value: string) => void;
   handleRemoveAliment: (groupKey: GroupKey, id: string) => void;
@@ -25,7 +26,7 @@ interface RationFormProps {
 
 export default function RationForm({ 
   groups, saison, handleSaisonToggle, globalPluie, setGlobalPluie, handleGroupPluieChange,
-  notes, setNotes, handleGroupChange, handleNoteChange,
+  notes, setNotes, handleGroupChange, handleNoteChange, handleSystemNoteChange,
   handleAddAliment, handleUpdateAliment, handleRemoveAliment, handleReorderAliments,
   onGenerate 
 }: RationFormProps) {
@@ -130,7 +131,20 @@ export default function RationForm({
               value={group.note || ""}
               onChange={(e) => handleNoteChange(key, e.target.value)}
               placeholder="Ex: Surveiller la consommation..."
-              className="w-full px-3 py-2 border border-zinc-300 rounded-md text-sm font-medium focus:ring-2 focus:ring-blue-500 bg-white"
+              className="w-full px-3 py-2 border-2 border-zinc-300 rounded-md text-base font-black text-black focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
+            />
+          </div>
+
+          <div className="pt-4 mt-4 border-t-2 border-zinc-200">
+            <label className="block text-sm font-bold text-red-600 mb-1 flex items-center gap-2">
+              <FontAwesomeIcon icon={faExclamationTriangle} /> Instruction importante (Alerte) :
+            </label>
+            <textarea
+              value={group.systemNote || ""}
+              onChange={(e) => handleSystemNoteChange(key, e.target.value)}
+              placeholder="Notes d'instruction importantes (en rouge)..."
+              className="w-full px-3 py-2 border-2 border-red-300 rounded-md text-base font-bold text-red-800 focus:ring-2 focus:ring-red-500 bg-red-50 shadow-sm"
+              rows={3}
             />
           </div>
         </div>
