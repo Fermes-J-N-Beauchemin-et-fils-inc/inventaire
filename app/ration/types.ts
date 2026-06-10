@@ -15,8 +15,15 @@ export type GroupData = {
   real: number;
   fed: number;
   indice: string;
+  indiceTour2?: string;
   time: string;
+  note?: string;
+  systemNote?: string;
   aliments: RationAliment[];
+  completedAt?: string;
+  completedAtTour2?: string;
 };
 
 export type GroupsState = Record<GroupKey, GroupData>;
+
+export type Saison = 'hiver' | 'ete';

@@ -2,18 +2,20 @@
 
 import { useState } from "react";
 import Sidenav from "@/app/components/ui/sidenav";
-import { GroupKey, GroupsState } from "./types";
+import { GroupKey, GroupsState, Saison } from "./types";
 import RationForm from "./components/RationForm";
 import RationReport from "./components/RationReport";
+import TractorUI from "./components/TractorUI";
 
 export default function RationPage() {
-  const [view, setView] = useState<'form' | 'report'>('form');
+  const [view, setView] = useState<'form' | 'tractor' | 'report'>('form');
+  const [saison, setSaison] = useState<Saison>('hiver');
 
   // Form State
   const [notes, setNotes] = useState("");
   const [groups, setGroups] = useState<GroupsState>({
     g1: { 
-      name: "Mix groupe 1", real: 44, fed: 48, indice: "1.00", time: "11h45/12h30",
+      name: "Mix groupe 1", real: 44, fed: 48, indice: "1.00", indiceTour2: "0.25", time: "11h45/12h30",
       aliments: [
         { id: '1', name: "Ens. Foin #2", v1: "424", v2: "424" },
         { id: '2', name: "Ens. Maïs #7", v1: "1734", v2: "2158" },
@@ -30,7 +32,7 @@ export default function RationPage() {
       ]
     },
     g2: { 
-      name: "Mix groupe 2", real: 99, fed: 100, indice: "1.00", time: "12h30/13h00",
+      name: "Mix groupe 2", real: 99, fed: 100, indice: "1.00", indiceTour2: "0.25", time: "12h30/13h00",
       aliments: [
         { id: '1', name: "Ens. Foin #2", v1: "1353", v2: "1353" },
         { id: '2', name: "Ens. Maïs #7", v1: "4839", v2: "6192" },
@@ -46,7 +48,7 @@ export default function RationPage() {
       ]
     },
     g3: { 
-      name: "Mix groupe 3", real: 77, fed: 77, indice: "1.00", time: "13h15/13h45",
+      name: "Mix groupe 3", real: 77, fed: 77, indice: "1.00", indiceTour2: "0.25", time: "13h15/13h45",
       aliments: [
         { id: '1', name: "Ens. Foin #2", v1: "793", v2: "793" },
         { id: '2', name: "Ens. Maïs #7", v1: "3105", v2: "3897" },
@@ -61,7 +63,7 @@ export default function RationPage() {
       ]
     },
     g4: { 
-      name: "Mix groupe 4", real: 61, fed: 61, indice: "1.00", time: "13h45/14h15",
+      name: "Mix groupe 4", real: 61, fed: 61, indice: "1.00", indiceTour2: "0.25", time: "13h45/14h15",
       aliments: [
         { id: '1', name: "Ens. Foin #2", v1: "1076", v2: "1076" },
         { id: '2', name: "Ens. Maïs #7", v1: "2479", v2: "3556" },
@@ -77,6 +79,7 @@ export default function RationPage() {
     },
     taries: { 
       name: "Taries normales", real: 33, fed: 33, indice: "1.00", time: "14h15/14h45",
+      systemNote: "Brasse 2000rpm. Dropper aux taries normales jusqu'à 1643.",
       aliments: [
         { id: '1', name: "Ens. Maïs #7", v1: "1620", v2: "1620" },
         { id: '2', name: "Paille silo bleu #7", v1: "389", v2: "2010", highlight: "font-black" },
@@ -87,6 +90,7 @@ export default function RationPage() {
     },
     taures: { 
       name: "Taures / Pré-vêlage", real: 16, fed: 26, indice: "1.00", time: "",
+      systemNote: "Taures ... Ensuite Pré-vêlage. BRASSER @ 2000RPM 3 minutes !!! Dropper aux TAURES jusqu'à 1159. Ajouter ensuite X-Zélit et brasser 3 minutes!! **Brasser le bedpack Lundi-Mercredi-Vendredi",
       aliments: [
         { id: '1', name: "Restant RTM Taries", v1: "1643", v2: "1643" },
         { id: '2', name: "Silo #3 -Amino+", v1: "29", v2: "1673" },
@@ -98,12 +102,22 @@ export default function RationPage() {
     },
   });
 
-  const handleGroupChange = (key: GroupKey, field: 'fed' | 'indice' | 'real', value: string | number) => {
+  const handleGroupChange = (key: GroupKey, field: 'fed' | 'indice' | 'indiceTour2' | 'real', value: string | number) => {
     setGroups(prev => ({
       ...prev,
       [key]: {
         ...prev[key],
         [field]: (field === 'fed' || field === 'real') ? parseFloat(String(value)) || 0 : String(value)
+      }
+    }));
+  };
+
+  const handleNoteChange = (key: GroupKey, value: string) => {
+    setGroups(prev => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        note: value
       }
     }));
   };
@@ -143,6 +157,56 @@ export default function RationPage() {
     }));
   };
 
+  const handleToggleGroupCompletion = (key: GroupKey, tour: 1 | 2 = 1) => {
+    setGroups(prev => {
+      if (tour === 1) {
+        const isCompleted = !!prev[key].completedAt;
+        return {
+          ...prev,
+          [key]: {
+            ...prev[key],
+            completedAt: isCompleted ? undefined : new Date().toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' })
+          }
+        };
+      } else {
+        const isCompleted = !!prev[key].completedAtTour2;
+        return {
+          ...prev,
+          [key]: {
+            ...prev[key],
+            completedAtTour2: isCompleted ? undefined : new Date().toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' })
+          }
+        };
+      }
+    });
+  };
+
+  const handleSaisonToggle = () => {
+    setSaison(prev => {
+      const newSaison = prev === 'hiver' ? 'ete' : 'hiver';
+      if (newSaison === 'ete') {
+        // Automatically switch indices to 0.75 for tour 1 and 0.25 for tour 2 for lactating cows
+        setGroups(g => {
+          const updated = { ...g };
+          (['g1', 'g2', 'g3', 'g4'] as GroupKey[]).forEach(k => {
+            updated[k] = { ...updated[k], indice: '0.75', indiceTour2: '0.25' };
+          });
+          return updated;
+        });
+      } else {
+        // Revert to 1.00 for winter
+        setGroups(g => {
+          const updated = { ...g };
+          (['g1', 'g2', 'g3', 'g4'] as GroupKey[]).forEach(k => {
+            updated[k] = { ...updated[k], indice: '1.00' };
+          });
+          return updated;
+        });
+      }
+      return newSaison;
+    });
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -152,13 +216,29 @@ export default function RationPage() {
       <Sidenav>
         <RationForm 
           groups={groups}
+          saison={saison}
+          handleSaisonToggle={handleSaisonToggle}
           handleGroupChange={handleGroupChange}
+          handleNoteChange={handleNoteChange}
           handleAddAliment={handleAddAliment}
           handleRemoveAliment={handleRemoveAliment}
           handleUpdateAliment={handleUpdateAliment}
           notes={notes}
           setNotes={setNotes}
-          onGenerate={() => setView('report')}
+          onGenerate={() => setView('tractor')}
+        />
+      </Sidenav>
+    );
+  }
+
+  if (view === 'tractor') {
+    return (
+      <Sidenav>
+        <TractorUI 
+          groups={groups}
+          saison={saison}
+          onToggleGroupCompletion={handleToggleGroupCompletion}
+          onFinishAll={() => setView('report')}
         />
       </Sidenav>
     );
@@ -170,7 +250,7 @@ export default function RationPage() {
       <RationReport 
         groups={groups}
         notes={notes}
-        onModify={() => setView('form')}
+        onModify={() => setView('tractor')}
         handlePrint={handlePrint}
       />
     </Sidenav>

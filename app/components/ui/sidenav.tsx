@@ -53,7 +53,7 @@ interface SidenavProps {
 }
 
 export default function Sidenav({ children, initials = "JN" }: SidenavProps) {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false); // default closed to maximize space as requested
 
     const toggleSidebar = () => {
         setIsSidebarOpen(!isSidebarOpen);
@@ -73,7 +73,7 @@ export default function Sidenav({ children, initials = "JN" }: SidenavProps) {
                             <button
                                 onClick={toggleSidebar}
                                 type="button"
-                                className="inline-flex items-center p-2 text-sm text-zinc-500 rounded-lg sm:hidden hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-200"
+                                className="inline-flex items-center p-2 text-sm text-zinc-500 rounded-lg hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-200"
                             >
                                 <span className="sr-only">Ouvrir le menu</span>
                                 <FontAwesomeIcon icon={isSidebarOpen ? faXmark : faBars} className="w-7 h-7" />
@@ -107,19 +107,19 @@ export default function Sidenav({ children, initials = "JN" }: SidenavProps) {
                 </div>
             </nav>
 
-            {/* Overlay pour fermer le menu sur mobile */}
+            {/* Overlay pour fermer le menu sur mobile (uniquement visible quand ouvert et ecran petit) */}
             {isSidebarOpen && (
                 <div 
-                    className="fixed inset-0 z-30 bg-zinc-900/50 backdrop-blur-sm sm:hidden transition-opacity print:hidden"
+                    className="fixed inset-0 z-30 bg-zinc-900/50 backdrop-blur-sm lg:hidden transition-opacity print:hidden"
                     onClick={closeSidebar}
                 />
             )}
 
             {/* Sidebar latérale */}
             <aside
-                className={`fixed top-0 left-0 z-40 w-80 h-full pt-[7.5rem] transition-transform bg-white border-r border-zinc-200 shadow-sm print:hidden ${
+                className={`fixed top-0 left-0 z-40 w-80 h-full pt-[7.5rem] transition-transform duration-300 ease-in-out bg-white border-r border-zinc-200 shadow-sm print:hidden ${
                     isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-                } sm:translate-x-0`}
+                }`}
                 aria-label="Sidebar"
             >
                 <div className="h-full px-5 pb-4 overflow-y-auto bg-white pt-6">
@@ -160,8 +160,8 @@ export default function Sidenav({ children, initials = "JN" }: SidenavProps) {
             </aside>
 
             {/* Contenu principal de la page */}
-            <div className="p-6 sm:ml-80 pt-[8.5rem] pb-8 min-h-screen flex flex-col justify-between print:p-0 print:m-0 print:min-h-0 print:w-full">
-                <div>
+            <div className={`p-6 pt-[8.5rem] pb-8 min-h-screen flex flex-col justify-between transition-all duration-300 print:p-0 print:m-0 print:min-h-0 print:w-full ${isSidebarOpen ? 'lg:ml-80' : 'ml-0'}`}>
+                <div className="w-full">
                     {children}
                 </div>
                 
