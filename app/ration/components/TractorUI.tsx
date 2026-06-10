@@ -407,20 +407,20 @@ export default function TractorUI({
               )}
               
               <div className="flex justify-between items-start mb-6 gap-4">
-                <h3 className={`text-4xl font-black ${isCompleted ? 'text-green-800' : 'text-black'}`}>
-                  {group.name}
-                </h3>
-                <div className="flex items-center gap-3">
-                  <span className="bg-yellow-100 text-yellow-900 px-3 py-1 rounded-lg text-lg font-black border border-yellow-300 shadow-sm shrink-0">
-                    Indice: {tour === 1 ? group.indice : (group.indiceTour2 || "1.00")}
-                  </span>
+                <h3 className={`text-4xl font-black flex items-center gap-4 ${isCompleted ? 'text-green-800' : 'text-black'}`}>
                   <div 
                     {...provided.dragHandleProps} 
                     onClick={(e) => e.stopPropagation()}
-                    className="w-10 h-10 bg-zinc-100 rounded-lg flex items-center justify-center text-zinc-400 hover:text-black hover:bg-zinc-200 transition-colors shrink-0 border border-zinc-200 shadow-sm"
+                    className="w-10 h-10 bg-zinc-100 rounded-lg flex items-center justify-center text-zinc-400 hover:text-black hover:bg-zinc-200 transition-colors shrink-0 border border-zinc-200 shadow-sm cursor-grab active:cursor-grabbing"
                   >
                     <FontAwesomeIcon icon={faGripVertical} />
                   </div>
+                  {group.name}
+                </h3>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="bg-yellow-100 text-yellow-900 px-3 py-1 rounded-lg text-lg font-black border border-yellow-300 shadow-sm">
+                    Indice: {tour === 1 ? group.indice : (group.indiceTour2 || "1.00")}
+                  </span>
                 </div>
               </div>
               
