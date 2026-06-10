@@ -14,6 +14,9 @@ export default function RationPage() {
 
   // Form State
   const [notes, setNotes] = useState("");
+  const allKeys: GroupKey[] = ['g1', 'g2', 'g3', 'g4', 'taries', 'taures', 'genisses', 'taures_5_6'];
+  const [tour1Keys, setTour1Keys] = useState<GroupKey[]>(['g1', 'g2', 'g3', 'g4']);
+  const [tour2Keys, setTour2Keys] = useState<GroupKey[]>([...allKeys]);
   const [groups, setGroups] = useState<GroupsState>({
     g1: { 
       name: "Mix groupe 1", real: 44, fed: 48, indice: "1.00", indiceTour2: "0.25", time: "11h45/12h30",
@@ -171,6 +174,27 @@ export default function RationPage() {
     }));
   };
 
+  const handleReorderGroups = (sourceTour: 1 | 2, destTour: 1 | 2, sourceIndex: number, destIndex: number) => {
+    const getList = (t: 1 | 2) => t === 1 ? [...tour1Keys] : [...tour2Keys];
+    const setList = (t: 1 | 2, list: GroupKey[]) => t === 1 ? setTour1Keys(list) : setTour2Keys(list);
+
+    const sourceList = getList(sourceTour);
+    const destList = getList(destTour);
+    const [moved] = sourceList.splice(sourceIndex, 1);
+
+    if (sourceTour === destTour) {
+      sourceList.splice(destIndex, 0, moved);
+      setList(sourceTour, sourceList);
+    } else {
+      // Éviter les doublons dans la même tournée
+      if (!destList.includes(moved)) {
+        destList.splice(destIndex, 0, moved);
+        setList(sourceTour, sourceList);
+        setList(destTour, destList);
+      }
+    }
+  };
+
   const handleRemoveAliment = (groupKey: GroupKey, id: string) => {
     setGroups(prev => ({
       ...prev,
@@ -288,6 +312,9 @@ export default function RationPage() {
         <RationForm 
           groups={groups}
           saison={saison}
+          tour1Keys={tour1Keys}
+          tour2Keys={tour2Keys}
+          handleReorderGroups={handleReorderGroups}
           handleSaisonToggle={handleSaisonToggle}
           globalPluie={globalPluie}
           setGlobalPluie={setGlobalPluie}
@@ -313,7 +340,10 @@ export default function RationPage() {
         <TractorUI 
           groups={groups}
           saison={saison}
+          tour1Keys={tour1Keys}
+          tour2Keys={tour2Keys}
           globalPluie={globalPluie}
+          handleReorderGroups={handleReorderGroups}
           onToggleGroupCompletion={handleToggleGroupCompletion}
           onFinishAll={() => setView('report')}
           onAdjustAlimentWeight={handleAdjustAlimentWeight}
@@ -330,7 +360,9 @@ export default function RationPage() {
       <RationReport 
         groups={groups}
         notes={notes}
-        onModify={() => setView('tractor')}
+        tour1Keys={tour1Keys}
+        tour2Keys={tour2Keys}
+        onModify={() => setView('form')}
         handlePrint={handlePrint}
       />
     </Sidenav>

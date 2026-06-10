@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheckCircle, faClock, faArrowLeft, faTractor, faCarrot, faCheck, faExclamationTriangle, faStickyNote, faPen, faScaleBalanced, faCloudShowersHeavy, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faCheckCircle, faClock, faArrowLeft, faTractor, faCarrot, faCheck, faExclamationTriangle, faStickyNote, faPen, faScaleBalanced, faCloudShowersHeavy, faXmark, faGripVertical } from '@fortawesome/free-solid-svg-icons';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { GroupsState, GroupKey, Saison, PluieMode, GroupPluieMode } from '../types';
 
 interface TractorUIProps {
   groups: GroupsState;
   saison: Saison;
+  tour1Keys: GroupKey[];
+  tour2Keys: GroupKey[];
   globalPluie: PluieMode;
+  handleReorderGroups: (sourceTour: 1 | 2, destTour: 1 | 2, sourceIndex: number, destIndex: number) => void;
   onToggleGroupCompletion: (groupKey: GroupKey, tour: 1 | 2) => void;
   onFinishAll: () => void;
   onAdjustAlimentWeight: (groupKey: GroupKey, tour: 1 | 2, alimentId: string, actualV2: number) => void;
@@ -15,9 +19,12 @@ interface TractorUIProps {
 }
 
 export default function TractorUI({ 
-  groups, saison, globalPluie, 
+  groups, saison, tour1Keys, tour2Keys, globalPluie, handleReorderGroups,
   onToggleGroupCompletion, onFinishAll, onAdjustAlimentWeight, onIndiceChange, onGroupPluieChange
 }: TractorUIProps) {
+  const [mounted, setMounted] = useState(false);
+  React.useEffect(() => setMounted(true), []);
+
   const [activeGroup, setActiveGroup] = useState<{ key: GroupKey, tour: 1 | 2 } | null>(null);
   
   // Modals state
@@ -30,8 +37,6 @@ export default function TractorUI({
   const [confirmModal, setConfirmModal] = useState<{key: GroupKey, tour: 1 | 2, totalIndice: number} | null>(null);
 
   const groupKeys = Object.keys(groups) as GroupKey[];
-  const summerRound1Keys = groupKeys;
-  const summerRound2Keys: GroupKey[] = ['g1', 'g2', 'g3', 'g4'];
 
   const isGroupCompleted = (key: GroupKey, tour: 1 | 2) => {
     return tour === 1 ? !!groups[key].completedAt : !!groups[key].completedAtTour2;
@@ -42,8 +47,8 @@ export default function TractorUI({
   };
 
   const allCompleted = saison === 'hiver' 
-    ? groupKeys.every(k => isGroupCompleted(k, 1))
-    : summerRound1Keys.every(k => isGroupCompleted(k, 1)) && summerRound2Keys.every(k => isGroupCompleted(k, 2));
+    ? tour1Keys.every(k => isGroupCompleted(k, 1))
+    : tour1Keys.every(k => isGroupCompleted(k, 1)) && tour2Keys.every(k => isGroupCompleted(k, 2));
 
   const handleAttemptFinishGroup = (key: GroupKey, tour: 1 | 2) => {
     if (isGroupCompleted(key, tour)) {
@@ -352,28 +357,49 @@ export default function TractorUI({
     );
   }
 
+  const onGlobalDragEnd = (result: DropResult) => {
+    const { source, destination, type } = result;
+    if (!destination) return;
+    
+    if (type === 'group') {
+      const sourceTour = source.droppableId === 'tour-1' ? 1 : 2;
+      const destTour = destination.droppableId === 'tour-1' ? 1 : 2;
+      handleReorderGroups(sourceTour, destTour, source.index, destination.index);
+    }
+  };
+
   const renderGridSection = (keys: GroupKey[], tour: 1 | 2, title: string, badgeColor: string) => (
     <div className="mb-16">
       <h2 className="text-4xl font-black text-zinc-800 mb-8 flex items-center gap-4">
         <span className={`w-12 h-12 ${badgeColor} rounded-full flex items-center justify-center text-2xl`}>{tour}</span>
         {title}
       </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-        {keys.map(key => {
-          const group = groups[key];
-          const isCompleted = isGroupCompleted(key, tour);
-          const completionTime = getCompletionTime(key, tour);
-
-          return (
+      {mounted && (
+        <Droppable droppableId={`tour-${tour}`} type="group" direction="horizontal">
+          {(provided) => (
             <div 
-              key={`${key}-tour${tour}`}
-              onClick={() => setActiveGroup({ key, tour })}
-              className={`relative cursor-pointer rounded-[2.5rem] p-8 transition-all hover:-translate-y-2 shadow-lg hover:shadow-2xl border-4 ${
-                isCompleted 
-                  ? 'bg-green-50 border-green-500/50 opacity-90' 
-                  : 'bg-white border-zinc-200 hover:border-blue-400'
-              }`}
+              ref={provided.innerRef} 
+              {...provided.droppableProps}
+              className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 min-h-[200px]"
             >
+              {keys.map((key, index) => {
+                const group = groups[key];
+                const isCompleted = isGroupCompleted(key, tour);
+                const completionTime = getCompletionTime(key, tour);
+
+                return (
+                  <Draggable key={`${key}-tour${tour}`} draggableId={`tractor-group-${key}-${tour}`} index={index}>
+                    {(provided, snapshot) => (
+                      <div 
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        onClick={() => setActiveGroup({ key, tour })}
+                        className={`relative cursor-pointer rounded-[2.5rem] p-8 transition-all ${snapshot.isDragging ? 'shadow-2xl scale-[1.02] border-blue-500 z-50' : 'hover:-translate-y-2 shadow-lg hover:shadow-2xl'} border-4 ${
+                          isCompleted 
+                            ? 'bg-green-50 border-green-500/50 opacity-90' 
+                            : 'bg-white border-zinc-200 hover:border-blue-400'
+                        }`}
+                      >
               {isCompleted && (
                 <div className="absolute -top-6 -right-6 w-16 h-16 bg-green-500 text-white rounded-full flex items-center justify-center text-3xl shadow-xl border-4 border-white">
                   <FontAwesomeIcon icon={faCheckCircle} />
@@ -384,9 +410,18 @@ export default function TractorUI({
                 <h3 className={`text-4xl font-black ${isCompleted ? 'text-green-800' : 'text-black'}`}>
                   {group.name}
                 </h3>
-                <span className="bg-yellow-100 text-yellow-900 px-3 py-1 rounded-lg text-lg font-black border border-yellow-300 shadow-sm shrink-0">
-                  Indice: {tour === 1 ? group.indice : (group.indiceTour2 || "1.00")}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="bg-yellow-100 text-yellow-900 px-3 py-1 rounded-lg text-lg font-black border border-yellow-300 shadow-sm shrink-0">
+                    Indice: {tour === 1 ? group.indice : (group.indiceTour2 || "1.00")}
+                  </span>
+                  <div 
+                    {...provided.dragHandleProps} 
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-10 h-10 bg-zinc-100 rounded-lg flex items-center justify-center text-zinc-400 hover:text-black hover:bg-zinc-200 transition-colors shrink-0 border border-zinc-200 shadow-sm"
+                  >
+                    <FontAwesomeIcon icon={faGripVertical} />
+                  </div>
+                </div>
               </div>
               
               <div className="space-y-4">
@@ -430,9 +465,15 @@ export default function TractorUI({
                 </div>
               )}
             </div>
-          );
-        })}
-      </div>
+          )}
+        </Draggable>
+                );
+              })}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      )}
     </div>
   );
 
@@ -463,16 +504,18 @@ export default function TractorUI({
         </div>
       </div>
 
-      {saison === 'hiver' ? (
-        renderGridSection(groupKeys, 1, "Tous les groupes", "bg-blue-100 text-blue-700")
-      ) : (
-        <>
-          {renderGridSection(summerRound1Keys, 1, "Première tournée", "bg-blue-100 text-blue-700")}
-          <div className="border-t-4 border-dashed border-zinc-300 pt-16">
-            {renderGridSection(summerRound2Keys, 2, "Deuxième tournée", "bg-yellow-100 text-yellow-700")}
-          </div>
-        </>
-      )}
+      <DragDropContext onDragEnd={onGlobalDragEnd}>
+        {saison === 'hiver' ? (
+          renderGridSection(tour1Keys, 1, "Tous les groupes", "bg-blue-100 text-blue-700")
+        ) : (
+          <>
+            {renderGridSection(tour1Keys, 1, "Première tournée", "bg-blue-100 text-blue-700")}
+            <div className="border-t-4 border-dashed border-zinc-300 pt-16">
+              {renderGridSection(tour2Keys, 2, "Deuxième tournée", "bg-yellow-100 text-yellow-700")}
+            </div>
+          </>
+        )}
+      </DragDropContext>
 
       {allCompleted && (
         <div className="mt-8 text-center animate-in fade-in slide-in-from-bottom-8 duration-500">

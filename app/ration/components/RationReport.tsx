@@ -1,17 +1,19 @@
 import React from 'react';
 import Image from "next/image";
 import logo from '../../../public/images/logo.png';
-import { GroupsState } from '../types';
+import { GroupsState, GroupKey } from '../types';
 import ReportRow from './ReportRow';
 
 interface RationReportProps {
   groups: GroupsState;
   notes: string;
+  tour1Keys: GroupKey[];
+  tour2Keys: GroupKey[];
   onModify: () => void;
   handlePrint: () => void;
 }
 
-export default function RationReport({ groups, notes, onModify, handlePrint }: RationReportProps) {
+export default function RationReport({ groups, notes, tour1Keys, tour2Keys, onModify, handlePrint }: RationReportProps) {
   return (
     <div className="min-h-screen bg-zinc-100 py-4 sm:py-8 px-2 sm:px-8 text-black">
       <div className="max-w-[1200px] mx-auto bg-white text-black shadow-2xl border border-zinc-400 p-4 sm:p-12 lg:px-20 print:shadow-none print:border-none print:p-0 print:max-w-none">

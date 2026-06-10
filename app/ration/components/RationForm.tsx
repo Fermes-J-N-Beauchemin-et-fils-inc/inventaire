@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCarrot, faPlus, faTrash, faSun, faSnowflake, faGripVertical, faCloudShowersHeavy, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
+import { faCarrot, faPlus, faTrash, faSun, faSnowflake, faGripVertical, faCloudShowersHeavy, faExclamationTriangle, faTractor } from '@fortawesome/free-solid-svg-icons';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { GroupsState, GroupKey, Saison, PluieMode, GroupPluieMode } from '../types';
 import { mockAlimentsDetails } from '../../aliments/data/mockAliments';
@@ -8,6 +8,9 @@ import { mockAlimentsDetails } from '../../aliments/data/mockAliments';
 interface RationFormProps {
   groups: GroupsState;
   saison: Saison;
+  tour1Keys: GroupKey[];
+  tour2Keys: GroupKey[];
+  handleReorderGroups: (sourceTour: 1 | 2, destTour: 1 | 2, sourceIndex: number, destIndex: number) => void;
   handleSaisonToggle: () => void;
   globalPluie: PluieMode;
   setGlobalPluie: (m: PluieMode) => void;
@@ -25,7 +28,7 @@ interface RationFormProps {
 }
 
 export default function RationForm({ 
-  groups, saison, handleSaisonToggle, globalPluie, setGlobalPluie, handleGroupPluieChange,
+  groups, saison, tour1Keys, tour2Keys, handleReorderGroups, handleSaisonToggle, globalPluie, setGlobalPluie, handleGroupPluieChange,
   notes, setNotes, handleGroupChange, handleNoteChange, handleSystemNoteChange,
   handleAddAliment, handleUpdateAliment, handleRemoveAliment, handleReorderAliments,
   onGenerate 
@@ -60,28 +63,43 @@ export default function RationForm({
     onGenerate();
   };
 
-  const onDragEnd = (result: DropResult, groupKey: GroupKey) => {
-    if (!result.destination) return;
-    handleReorderAliments(groupKey, result.source.index, result.destination.index);
+  const onGlobalDragEnd = (result: DropResult) => {
+    const { source, destination, type } = result;
+    if (!destination) return;
+    
+    if (type === 'group') {
+      const sourceTour = source.droppableId === 'tour-1' ? 1 : 2;
+      const destTour = destination.droppableId === 'tour-1' ? 1 : 2;
+      handleReorderGroups(sourceTour, destTour, source.index, destination.index);
+    } else if (type === 'aliment') {
+      const parts = source.droppableId.split('-');
+      const key = parts[1] as GroupKey;
+      handleReorderAliments(key, source.index, destination.index);
+    }
   };
 
-  const allKeys = Object.keys(groups) as GroupKey[];
-  const summerRound1Keys = allKeys;
-  const summerRound2Keys: GroupKey[] = ['g1', 'g2', 'g3', 'g4'];
-
-  const renderGroupCard = (key: GroupKey, tour: 1 | 2) => {
+  const renderGroupCard = (key: GroupKey, tour: 1 | 2, index: number) => {
     const group = groups[key];
     const isRound2 = tour === 2;
     const indiceValue = isRound2 ? group.indiceTour2 : group.indice;
     const indiceField = isRound2 ? 'indiceTour2' : 'indice';
 
     return (
-      <div key={`${key}-tour${tour}`} className="bg-zinc-50 p-6 rounded-xl border-2 border-zinc-300 shadow-sm relative flex flex-col">
-        <div className="flex justify-between items-center mb-4 border-b-2 border-zinc-200 pb-2">
-          <h3 className="text-xl font-black text-black">
-            {group.name} {saison === 'ete' && <span className="text-blue-600 text-base ml-2">({isRound2 ? '2ème' : '1ère'} tournée)</span>}
-          </h3>
-        </div>
+      <Draggable key={`${key}-tour${tour}`} draggableId={`group-${key}-${tour}`} index={index}>
+        {(provided, snapshot) => (
+          <div 
+            ref={provided.innerRef}
+            {...provided.draggableProps}
+            className={`bg-zinc-50 p-6 rounded-xl border-2 ${snapshot.isDragging ? 'border-blue-500 shadow-xl' : 'border-zinc-300 shadow-sm'} relative flex flex-col transition-shadow`}
+          >
+            <div className="flex justify-between items-center mb-4 border-b-2 border-zinc-200 pb-2">
+              <h3 className="text-xl font-black text-black flex items-center gap-3">
+                <div {...provided.dragHandleProps} className="text-zinc-400 hover:text-black cursor-grab active:cursor-grabbing px-2 py-1 bg-zinc-200 rounded">
+                  <FontAwesomeIcon icon={faGripVertical} />
+                </div>
+                {group.name} {saison === 'ete' && <span className="text-blue-600 text-base ml-2">({isRound2 ? '2ème' : '1ère'} tournée)</span>}
+              </h3>
+            </div>
         
         {/* Global Settings */}
         <div className="space-y-4 mb-6">
@@ -163,51 +181,51 @@ export default function RationForm({
               </button>
             </div>
             
-            <DragDropContext onDragEnd={(res) => onDragEnd(res, key)}>
-              <Droppable droppableId={`droppable-${key}`}>
-                {(provided) => (
-                  <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
-                    {group.aliments.map((aliment, index) => (
-                      <Draggable key={aliment.id} draggableId={aliment.id} index={index}>
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            className={`flex gap-2 items-center bg-white p-2 rounded-lg border shadow-sm transition-colors ${snapshot.isDragging ? 'border-blue-500 shadow-md ring-2 ring-blue-200' : 'border-zinc-200 hover:border-blue-300'}`}
-                          >
-                            <div {...provided.dragHandleProps} className="text-zinc-300 hover:text-zinc-500 px-2 cursor-grab active:cursor-grabbing">
-                              <FontAwesomeIcon icon={faGripVertical} />
-                            </div>
-                            <select 
-                              value={aliment.name} 
-                              onChange={(e) => handleUpdateAliment(key, aliment.id, 'name', e.target.value)}
-                              className="flex-1 px-3 py-2 text-base font-black text-black border-2 border-zinc-400 hover:border-black focus:border-blue-600 rounded-lg focus:outline-none bg-zinc-100 shadow-sm cursor-pointer"
-                            >
-                              {Array.from(new Set([
-                                ...mockAlimentsDetails.map(a => a.commonName),
-                                aliment.name
-                              ])).sort().map(name => (
-                                <option key={name} value={name}>{name}</option>
-                              ))}
-                            </select>
-                            <button 
-                              onClick={() => handleRemoveAliment(key, aliment.id)}
-                              className="w-8 h-8 flex-shrink-0 flex items-center justify-center text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                            >
-                              <FontAwesomeIcon icon={faTrash} />
-                            </button>
+            <Droppable droppableId={`aliments-${key}-${tour}`} type="aliment">
+              {(provided) => (
+                <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
+                  {group.aliments.map((aliment, index) => (
+                    <Draggable key={aliment.id} draggableId={aliment.id} index={index}>
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          className={`flex gap-2 items-center bg-white p-2 rounded-lg border shadow-sm transition-colors ${snapshot.isDragging ? 'border-blue-500 shadow-md ring-2 ring-blue-200' : 'border-zinc-200 hover:border-blue-300'}`}
+                        >
+                          <div {...provided.dragHandleProps} className="text-zinc-300 hover:text-zinc-500 px-2 cursor-grab active:cursor-grabbing">
+                            <FontAwesomeIcon icon={faGripVertical} />
                           </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </DragDropContext>
+                          <select 
+                            value={aliment.name} 
+                            onChange={(e) => handleUpdateAliment(key, aliment.id, 'name', e.target.value)}
+                            className="flex-1 px-3 py-2 text-base font-black text-black border-2 border-zinc-400 hover:border-black focus:border-blue-600 rounded-lg focus:outline-none bg-zinc-100 shadow-sm cursor-pointer"
+                          >
+                            {Array.from(new Set([
+                              ...mockAlimentsDetails.map(a => a.commonName),
+                              aliment.name
+                            ])).sort().map(name => (
+                              <option key={name} value={name}>{name}</option>
+                            ))}
+                          </select>
+                          <button 
+                            onClick={() => handleRemoveAliment(key, aliment.id)}
+                            className="w-8 h-8 flex-shrink-0 flex items-center justify-center text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <FontAwesomeIcon icon={faTrash} />
+                          </button>
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
           </div>
         )}
       </div>
+      )}
+      </Draggable>
     );
   };
 
@@ -215,7 +233,6 @@ export default function RationForm({
     <div className="max-w-[1200px] mx-auto min-h-screen pb-12">
       <div className="bg-white rounded-3xl p-6 sm:p-12 shadow-xl border border-zinc-200">
         
-        {/* Header & Toggle */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
           <div>
             <h1 className="text-4xl sm:text-5xl font-black text-zinc-900 tracking-tight flex items-center gap-4">
@@ -257,35 +274,51 @@ export default function RationForm({
           </div>
         </div>
 
-        <div className="space-y-12">
-          
-          {/* Tour 1 Grid */}
-          <div>
+        <DragDropContext onDragEnd={onGlobalDragEnd}>
+          <div className="space-y-12">
+            
+            <div>
+              {saison === 'ete' && (
+                <h2 className="text-3xl font-black text-zinc-800 mb-6 flex items-center gap-4">
+                  <span className="w-10 h-10 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-xl">1</span>
+                  Première tournée
+                </h2>
+              )}
+              <Droppable droppableId="tour-1" type="group" direction="horizontal">
+                {(provided) => (
+                  <div 
+                    ref={provided.innerRef} 
+                    {...provided.droppableProps}
+                    className="grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-[200px]"
+                  >
+                    {tour1Keys.map((key, index) => renderGroupCard(key, 1, index))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </div>
+
             {saison === 'ete' && (
-              <h2 className="text-3xl font-black text-zinc-800 mb-6 flex items-center gap-4">
-                <span className="w-10 h-10 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-xl">1</span>
-                Première tournée
-              </h2>
-            )}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {summerRound1Keys.map(key => renderGroupCard(key, 1))}
-            </div>
-          </div>
-
-          {/* Tour 2 Grid */}
-          {saison === 'ete' && (
-            <div className="pt-12 border-t-4 border-dashed border-zinc-300">
-              <h2 className="text-3xl font-black text-zinc-800 mb-6 flex items-center gap-4">
-                <span className="w-10 h-10 bg-yellow-100 text-yellow-700 rounded-full flex items-center justify-center text-xl">2</span>
-                Deuxième tournée <span className="text-xl text-zinc-500 font-medium">(Groupes en lactation)</span>
-              </h2>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {summerRound2Keys.map(key => renderGroupCard(key, 2))}
+              <div className="pt-12 border-t-4 border-dashed border-zinc-300">
+                <h2 className="text-3xl font-black text-zinc-800 mb-6 flex items-center gap-4">
+                  <span className="w-10 h-10 bg-yellow-100 text-yellow-700 rounded-full flex items-center justify-center text-xl">2</span>
+                  Deuxième tournée <span className="text-xl text-zinc-500 font-medium">(Groupes en lactation)</span>
+                </h2>
+                <Droppable droppableId="tour-2" type="group" direction="horizontal">
+                  {(provided) => (
+                    <div 
+                      ref={provided.innerRef} 
+                      {...provided.droppableProps}
+                      className="grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-[200px]"
+                    >
+                      {tour2Keys.map((key, index) => renderGroupCard(key, 2, index))}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Notes Section */}
           <div className="bg-zinc-50 p-6 rounded-xl border-2 border-zinc-300 shadow-sm">
             <label className="block text-xl font-black text-black mb-3">Notes (apparaîtront à la fin du rapport)</label>
             <textarea
@@ -297,16 +330,17 @@ export default function RationForm({
             />
           </div>
 
-          {/* Action */}
-          <div className="pt-6 border-t-2 border-zinc-200">
+          <div className="flex justify-end pt-8">
             <button
               onClick={handleStartDistribution}
-              className="w-full py-5 bg-[#15803D] hover:bg-green-700 active:bg-green-800 text-white font-black text-2xl rounded-2xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-1"
+              className="px-12 py-6 bg-[#15803D] hover:bg-green-700 active:bg-green-800 text-white rounded-2xl font-black text-2xl flex items-center gap-4 transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1"
             >
-              Commencer la distribution &rarr;
+              <span>Démarrer le tracteur</span>
+              <FontAwesomeIcon icon={faTractor} className="text-3xl" />
             </button>
           </div>
         </div>
+        </DragDropContext>
       </div>
     </div>
   );
