@@ -359,15 +359,6 @@ export default function AccountSettings({ user, currentSessionId }: { user: User
                                             </div>
                                         </div>
                                     </div>
-                                    {!isCurrent && (
-                                        <button
-                                            onClick={() => handleRevokeSession(session.token)}
-                                            className="w-10 h-10 rounded-full bg-white border border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-colors flex items-center justify-center shadow-sm"
-                                            title="Révoquer cette session"
-                                        >
-                                            <FontAwesomeIcon icon={faTrash} />
-                                        </button>
-                                    )}
                                 </div>
                             );
                         })}
