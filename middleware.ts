@@ -10,12 +10,20 @@ export default function middleware(request: NextRequest) {
     
     // Si l'utilisateur n'est pas connecté et essaie d'accéder à une autre page que l'accueil (login)
     if (!hasSession && !isAuthRoute) {
-        return NextResponse.redirect(new URL("/", request.url));
+        const url = request.nextUrl.clone();
+        url.pathname = "/";
+        const forwardedHost = request.headers.get('x-forwarded-host');
+        if (forwardedHost) url.host = forwardedHost;
+        return NextResponse.redirect(url);
     }
     
     // S'il est connecté et essaie d'aller sur la page de login, on le renvoie au dashboard
     if (hasSession && isAuthRoute) {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
+        const url = request.nextUrl.clone();
+        url.pathname = "/dashboard";
+        const forwardedHost = request.headers.get('x-forwarded-host');
+        if (forwardedHost) url.host = forwardedHost;
+        return NextResponse.redirect(url);
     }
     
     return NextResponse.next();
