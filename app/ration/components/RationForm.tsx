@@ -90,12 +90,16 @@ export default function RationForm({
           <div 
             ref={provided.innerRef}
             {...provided.draggableProps}
-            className={`bg-zinc-50 p-6 rounded-xl border-2 ${snapshot.isDragging ? 'border-blue-500 shadow-xl' : 'border-zinc-300 shadow-sm'} relative flex flex-col transition-shadow`}
+            style={provided.draggableProps.style}
+            className={`bg-zinc-50 p-6 rounded-xl border-2 ${snapshot.isDragging ? 'border-blue-500 shadow-xl ring-4 ring-blue-500/20' : 'border-zinc-300 shadow-sm'} relative flex flex-col transition-all`}
           >
             <div className="flex justify-between items-center mb-4 border-b-2 border-zinc-200 pb-2">
-              <h3 className="text-xl font-black text-black flex items-center gap-3">
-                <div {...provided.dragHandleProps} className="text-zinc-400 hover:text-black cursor-grab active:cursor-grabbing px-2 py-1 bg-zinc-200 rounded">
-                  <FontAwesomeIcon icon={faGripVertical} />
+              <h3 className="text-xl font-black text-black flex items-center gap-4">
+                <div 
+                  {...provided.dragHandleProps} 
+                  className="text-zinc-400 hover:text-zinc-600 hover:bg-zinc-300 cursor-grab active:cursor-grabbing w-11 h-11 flex items-center justify-center bg-zinc-200/80 rounded-xl transition-colors shadow-inner"
+                >
+                  <FontAwesomeIcon icon={faGripVertical} className="text-xl" />
                 </div>
                 {group.name} {saison === 'ete' && <span className="text-blue-600 text-base ml-2">({isRound2 ? '2ème' : '1ère'} tournée)</span>}
               </h3>
@@ -182,18 +186,23 @@ export default function RationForm({
             </div>
             
             <Droppable droppableId={`aliments-${key}-${tour}`} type="aliment">
-              {(provided) => (
-                <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
+              {(provided, snapshot) => (
+                <div 
+                  {...provided.droppableProps} 
+                  ref={provided.innerRef} 
+                  className={`space-y-3 p-3 rounded-2xl border-2 border-dashed transition-all duration-200 min-h-[100px] ${snapshot.isDraggingOver ? 'bg-blue-50/50 border-blue-400' : 'bg-zinc-50 border-zinc-200'}`}
+                >
                   {group.aliments.map((aliment, index) => (
-                    <Draggable key={aliment.id} draggableId={aliment.id} index={index}>
+                    <Draggable key={`aliment-${key}-${aliment.id}`} draggableId={`aliment-${key}-${aliment.id}`} index={index}>
                       {(provided, snapshot) => (
                         <div
                           ref={provided.innerRef}
                           {...provided.draggableProps}
-                          className={`flex gap-2 items-center bg-white p-2 rounded-lg border shadow-sm transition-colors ${snapshot.isDragging ? 'border-blue-500 shadow-md ring-2 ring-blue-200' : 'border-zinc-200 hover:border-blue-300'}`}
+                          style={provided.draggableProps.style}
+                          className={`flex gap-3 items-center bg-white p-2.5 rounded-xl border shadow-sm transition-all duration-200 ${snapshot.isDragging ? 'border-blue-500 shadow-lg ring-4 ring-blue-500/20 scale-[1.02] z-50' : 'border-zinc-200 hover:border-blue-300 hover:shadow-md'}`}
                         >
-                          <div {...provided.dragHandleProps} className="text-zinc-300 hover:text-zinc-500 px-2 cursor-grab active:cursor-grabbing">
-                            <FontAwesomeIcon icon={faGripVertical} />
+                          <div {...provided.dragHandleProps} className="text-zinc-300 hover:text-zinc-500 w-10 h-10 flex items-center justify-center bg-zinc-50 hover:bg-zinc-100 rounded-lg cursor-grab active:cursor-grabbing transition-colors">
+                            <FontAwesomeIcon icon={faGripVertical} className="text-lg" />
                           </div>
                           <select 
                             value={aliment.name} 
@@ -284,12 +293,12 @@ export default function RationForm({
                   Première tournée
                 </h2>
               )}
-              <Droppable droppableId="tour-1" type="group" direction="horizontal">
+              <Droppable droppableId="tour-1" type="group">
                 {(provided) => (
                   <div 
                     ref={provided.innerRef} 
                     {...provided.droppableProps}
-                    className="grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-[200px]"
+                    className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start min-h-[200px]"
                   >
                     {tour1Keys.map((key, index) => renderGroupCard(key, 1, index))}
                     {provided.placeholder}
@@ -304,12 +313,12 @@ export default function RationForm({
                   <span className="w-10 h-10 bg-yellow-100 text-yellow-700 rounded-full flex items-center justify-center text-xl">2</span>
                   Deuxième tournée <span className="text-xl text-zinc-500 font-medium">(Groupes en lactation)</span>
                 </h2>
-                <Droppable droppableId="tour-2" type="group" direction="horizontal">
+                <Droppable droppableId="tour-2" type="group">
                   {(provided) => (
                     <div 
                       ref={provided.innerRef} 
                       {...provided.droppableProps}
-                      className="grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-[200px]"
+                      className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start min-h-[200px]"
                     >
                       {tour2Keys.map((key, index) => renderGroupCard(key, 2, index))}
                       {provided.placeholder}

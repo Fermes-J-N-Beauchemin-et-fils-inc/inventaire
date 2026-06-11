@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheckCircle, faClock, faArrowLeft, faTractor, faCarrot, faCheck, faExclamationTriangle, faStickyNote, faPen, faScaleBalanced, faCloudShowersHeavy, faXmark, faGripVertical } from '@fortawesome/free-solid-svg-icons';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { faCheckCircle, faClock, faArrowLeft, faTractor, faCarrot, faCheck, faExclamationTriangle, faStickyNote, faPen, faScaleBalanced, faCloudShowersHeavy, faXmark, faGripVertical, faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import { ReactSortable } from "react-sortablejs";
 import { GroupsState, GroupKey, Saison, PluieMode, GroupPluieMode } from '../types';
 
 interface TractorUIProps {
@@ -357,17 +357,6 @@ export default function TractorUI({
     );
   }
 
-  const onGlobalDragEnd = (result: DropResult) => {
-    const { source, destination, type } = result;
-    if (!destination) return;
-    
-    if (type === 'group') {
-      const sourceTour = source.droppableId === 'tour-1' ? 1 : 2;
-      const destTour = destination.droppableId === 'tour-1' ? 1 : 2;
-      handleReorderGroups(sourceTour, destTour, source.index, destination.index);
-    }
-  };
-
   const renderGridSection = (keys: GroupKey[], tour: 1 | 2, title: string, badgeColor: string) => (
     <div className="mb-16">
       <h2 className="text-4xl font-black text-zinc-800 mb-8 flex items-center gap-4">
@@ -375,104 +364,103 @@ export default function TractorUI({
         {title}
       </h2>
       {mounted && (
-        <Droppable droppableId={`tour-${tour}`} type="group" direction="horizontal">
-          {(provided) => (
-            <div 
-              ref={provided.innerRef} 
-              {...provided.droppableProps}
-              className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 min-h-[200px]"
-            >
-              {keys.map((key, index) => {
-                const group = groups[key];
-                const isCompleted = isGroupCompleted(key, tour);
-                const completionTime = getCompletionTime(key, tour);
+        <ReactSortable
+          list={keys.map(k => ({ id: k }))}
+          setList={() => {}}
+          animation={250}
+          delayOnTouchOnly={true}
+          delay={100}
+          handle=".drag-handle"
+          ghostClass="opacity-40"
+          dragClass="scale-[1.02]"
+          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 items-start min-h-[200px]"
+          onEnd={(evt) => {
+            if (evt.oldIndex !== undefined && evt.newIndex !== undefined && evt.oldIndex !== evt.newIndex) {
+              handleReorderGroups(tour, tour, evt.oldIndex, evt.newIndex);
+            }
+          }}
+        >
+          {keys.map((key) => {
+            const group = groups[key];
+            const isCompleted = isGroupCompleted(key, tour);
+            const completionTime = getCompletionTime(key, tour);
 
-                return (
-                  <Draggable key={`${key}-tour${tour}`} draggableId={`tractor-group-${key}-${tour}`} index={index}>
-                    {(provided, snapshot) => (
-                      <div 
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        onClick={() => setActiveGroup({ key, tour })}
-                        className={`relative cursor-pointer rounded-[2.5rem] p-8 transition-all ${snapshot.isDragging ? 'shadow-2xl scale-[1.02] border-blue-500 z-50' : 'hover:-translate-y-2 shadow-lg hover:shadow-2xl'} border-4 ${
-                          isCompleted 
-                            ? 'bg-green-50 border-green-500/50 opacity-90' 
-                            : 'bg-white border-zinc-200 hover:border-blue-400'
-                        }`}
-                      >
-              {isCompleted && (
-                <div className="absolute -top-6 -right-6 w-16 h-16 bg-green-500 text-white rounded-full flex items-center justify-center text-3xl shadow-xl border-4 border-white">
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                </div>
-              )}
-              
-              <div className="flex justify-between items-start mb-6 gap-4">
-                <h3 className={`text-4xl font-black flex items-center gap-4 ${isCompleted ? 'text-green-800' : 'text-black'}`}>
-                  <div 
-                    {...provided.dragHandleProps} 
-                    onClick={(e) => e.stopPropagation()}
-                    className="w-10 h-10 bg-zinc-100 rounded-lg flex items-center justify-center text-zinc-400 hover:text-black hover:bg-zinc-200 transition-colors shrink-0 border border-zinc-200 shadow-sm cursor-grab active:cursor-grabbing"
-                  >
-                    <FontAwesomeIcon icon={faGripVertical} />
-                  </div>
-                  {group.name}
-                </h3>
-                <div className="flex items-center gap-3 shrink-0">
-                  <span className="bg-yellow-100 text-yellow-900 px-3 py-1 rounded-lg text-lg font-black border border-yellow-300 shadow-sm">
-                    Indice: {tour === 1 ? group.indice : (group.indiceTour2 || "1.00")}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="flex items-center gap-4 text-2xl font-bold text-zinc-600">
-                  <FontAwesomeIcon icon={faCarrot} className="w-8 text-orange-500" />
-                  <span>{group.aliments.length} ingrédients</span>
-                </div>
-                {(group.systemNote || group.note) && (
-                  <div className="flex items-center gap-4 text-2xl font-bold text-red-600">
-                    <FontAwesomeIcon icon={faExclamationTriangle} className="w-8" />
-                    <span>Notes importantes !</span>
+            return (
+              <div 
+                key={`${key}-tour${tour}`}
+                onClick={() => setActiveGroup({ key, tour })}
+                className={`relative cursor-pointer rounded-[2.5rem] p-8 transition-all hover:-translate-y-2 shadow-lg hover:shadow-2xl border-4 ${
+                  isCompleted 
+                    ? 'bg-green-50 border-green-500/50 opacity-90' 
+                    : 'bg-white border-zinc-200 hover:border-blue-400'
+                }`}
+              >
+                {isCompleted && (
+                  <div className="absolute -top-6 -right-6 w-16 h-16 bg-green-500 text-white rounded-full flex items-center justify-center text-3xl shadow-xl border-4 border-white">
+                    <FontAwesomeIcon icon={faCheckCircle} />
                   </div>
                 )}
-                {tour === 1 && group.time && (
+                
+                <div className="flex justify-between items-start mb-6 gap-4">
+                  <h3 className={`text-4xl font-black flex items-center gap-4 ${isCompleted ? 'text-green-800' : 'text-black'}`}>
+                    <div 
+                      onClick={(e) => e.stopPropagation()}
+                      className="drag-handle w-14 h-14 bg-zinc-100 rounded-2xl flex items-center justify-center text-zinc-400 hover:text-zinc-600 hover:bg-zinc-200 transition-colors shrink-0 shadow-inner cursor-grab active:cursor-grabbing"
+                    >
+                      <FontAwesomeIcon icon={faGripVertical} className="text-2xl" />
+                    </div>
+                    {group.name}
+                  </h3>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="bg-yellow-100 text-yellow-900 px-3 py-1 rounded-lg text-lg font-black border border-yellow-300 shadow-sm">
+                      Indice: {tour === 1 ? group.indice : (group.indiceTour2 || "1.00")}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
                   <div className="flex items-center gap-4 text-2xl font-bold text-zinc-600">
-                    <FontAwesomeIcon icon={faClock} className="w-8 text-blue-500" />
-                    <span>{group.time}</span>
+                    <FontAwesomeIcon icon={faCarrot} className="w-8 text-orange-500" />
+                    <span>{group.aliments.length} ingrédients</span>
                   </div>
-                )}
-                <div className="flex items-center gap-4 text-2xl font-bold text-blue-800">
-                  <FontAwesomeIcon icon={faCloudShowersHeavy} className="w-8 text-blue-400" />
-                  <span className="capitalize">{group.pluieMode && group.pluieMode !== 'global' ? group.pluieMode.replace('-', ' ') : `Météo globale (${globalPluie})`}</span>
+                  {(group.systemNote || group.note) && (
+                    <div className="flex items-center gap-4 text-2xl font-bold text-red-600">
+                      <FontAwesomeIcon icon={faExclamationTriangle} className="w-8" />
+                      <span>Notes importantes !</span>
+                    </div>
+                  )}
+                  {tour === 1 && group.time && (
+                    <div className="flex items-center gap-4 text-2xl font-bold text-zinc-600">
+                      <FontAwesomeIcon icon={faClock} className="w-8 text-blue-500" />
+                      <span>{group.time}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-4 text-2xl font-bold text-blue-800">
+                    <FontAwesomeIcon icon={faCloudShowersHeavy} className="w-8 text-blue-400" />
+                    <span className="capitalize">{group.pluieMode && group.pluieMode !== 'global' ? group.pluieMode.replace('-', ' ') : `Météo globale (${globalPluie})`}</span>
+                  </div>
                 </div>
-              </div>
 
-              {isCompleted ? (
-                <div className="mt-8 pt-6 border-t-4 border-green-200/50 flex items-center justify-between">
-                  <span className="text-2xl font-black text-green-700">Fait à {completionTime}</span>
+                {isCompleted ? (
+                  <div className="mt-8 text-center text-xl font-bold text-green-700 bg-green-100 py-3 rounded-xl border border-green-300 shadow-sm">
+                    Terminé à {completionTime}
+                  </div>
+                ) : (
                   <button 
-                    onClick={(e) => handleUndoGroup(e, key, tour)}
-                    className="px-6 py-3 bg-white text-zinc-500 font-bold text-xl rounded-xl border-2 border-zinc-200 hover:bg-zinc-100 hover:text-black transition-colors shadow-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveGroup({ key, tour });
+                    }}
+                    className="mt-8 w-full py-4 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 font-black text-2xl rounded-2xl transition-all shadow-sm border-2 border-blue-200 hover:border-blue-600 flex justify-between items-center px-6"
                   >
-                    Annuler
+                    Préparer
+                    <FontAwesomeIcon icon={faArrowRight} />
                   </button>
-                </div>
-              ) : (
-                <div className="mt-8 pt-6 border-t-4 border-zinc-100">
-                  <span className="text-2xl font-black text-blue-600 flex items-center gap-2">
-                    Préparer <FontAwesomeIcon icon={faArrowLeft} className="rotate-180" />
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-        </Draggable>
-                );
-              })}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
+                )}
+              </div>
+            );
+          })}
+        </ReactSortable>
       )}
     </div>
   );
@@ -504,7 +492,7 @@ export default function TractorUI({
         </div>
       </div>
 
-      <DragDropContext onDragEnd={onGlobalDragEnd}>
+      <>
         {saison === 'hiver' ? (
           renderGridSection(tour1Keys, 1, "Tous les groupes", "bg-blue-100 text-blue-700")
         ) : (
@@ -515,7 +503,7 @@ export default function TractorUI({
             </div>
           </>
         )}
-      </DragDropContext>
+      </>
 
       {allCompleted && (
         <div className="mt-8 text-center animate-in fade-in slide-in-from-bottom-8 duration-500">
