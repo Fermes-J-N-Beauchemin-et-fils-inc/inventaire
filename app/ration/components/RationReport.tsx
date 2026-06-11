@@ -9,7 +9,7 @@ interface RationReportProps {
   notes: string;
   tour1Keys: GroupKey[];
   tour2Keys: GroupKey[];
-  onModify: () => void;
+  onModify?: () => void;
   handlePrint: () => void;
 }
 
@@ -19,17 +19,19 @@ export default function RationReport({ groups, notes, tour1Keys, tour2Keys, onMo
       <div className="max-w-[1200px] mx-auto bg-white text-black shadow-2xl border border-zinc-400 p-4 sm:p-12 lg:px-20 print:shadow-none print:border-none print:p-0 print:max-w-none">
 
         {/* Actions (Hidden on print) */}
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-8 print:hidden border-b-2 border-zinc-300 pb-6 gap-4">
-          <button
-            type="button"
-            onClick={() => {
-              window.scrollTo(0, 0);
-              onModify();
-            }}
-            className="w-full sm:w-auto px-6 py-3 bg-zinc-800 hover:bg-black active:bg-zinc-700 text-white font-bold rounded-lg transition-colors text-center cursor-pointer"
-          >
-            &larr; Modifier
-          </button>
+        <div className={`flex flex-col sm:flex-row ${onModify ? 'justify-between' : 'justify-end'} items-center mb-8 print:hidden border-b-2 border-zinc-300 pb-6 gap-4`}>
+          {onModify && (
+            <button
+              type="button"
+              onClick={() => {
+                window.scrollTo(0, 0);
+                onModify();
+              }}
+              className="w-full sm:w-auto px-6 py-3 bg-zinc-800 hover:bg-black active:bg-zinc-700 text-white font-bold rounded-lg transition-colors text-center cursor-pointer"
+            >
+              &larr; Modifier
+            </button>
+          )}
 
           <div className="flex gap-4 w-full sm:w-auto">
             <button

@@ -19,6 +19,10 @@ export default async function DashboardPage() {
         redirect("/api/auth/clear-local");
     }
 
+    if ((session.user as any).role === "distributor") {
+        redirect("/ration");
+    }
+
     // Getting the user's name, fallback to 'Utilisateur' if something fails
     const userName = session?.user?.name || "Utilisateur";
     const userInitials = session?.user?.name ? session.user.name.substring(0, 2).toUpperCase() : "JN";

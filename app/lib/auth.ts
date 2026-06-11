@@ -10,6 +10,15 @@ export const auth = betterAuth({
     emailAndPassword: {
         enabled: true,
     },
+    user: {
+        additionalFields: {
+            role: {
+                type: "string",
+                required: false,
+                defaultValue: "admin"
+            }
+        }
+    },
     onAPIError: {
         throw: true,
         onError: async (error, ctx) => {
