@@ -5,8 +5,8 @@ import Sidenav from "@/app/components/ui/sidenav";
 import { mockAlimentsDetails } from '../data/mockAliments';
 import Link from 'next/link';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faArrowLeft, faDroplet, faWeightHanging, faBoxesStacked, 
+import {
+  faArrowLeft, faDroplet, faWeightHanging, faBoxesStacked,
   faChartLine, faMoneyBillWave, faClipboard, faTruck, faInfoCircle, faPen, faFlask
 } from '@fortawesome/free-solid-svg-icons';
 import { SingleLineChart, DualLineChart } from '../components/AlimentCharts';
@@ -25,6 +25,7 @@ export default function AlimentDetailPage({ params }: { params: Promise<{ id: st
             Retour à la liste
           </Link>
         </div>
+
       </Sidenav>
     );
   }
@@ -62,7 +63,7 @@ export default function AlimentDetailPage({ params }: { params: Promise<{ id: st
   return (
     <Sidenav>
       <div className="min-h-screen bg-[#FAF8F5] py-8 px-4 sm:px-8 font-sans pb-20">
-        
+
         {/* Navigation & Status Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
@@ -70,13 +71,13 @@ export default function AlimentDetailPage({ params }: { params: Promise<{ id: st
               <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
               Retour aux aliments
             </Link>
-            
+
             <button className="inline-flex items-center text-zinc-700 hover:text-blue-600 font-bold transition-colors w-fit bg-white px-4 py-2 rounded-xl shadow-sm border border-zinc-200">
               <FontAwesomeIcon icon={faPen} className="mr-2" />
               Modifier
             </button>
           </div>
-          
+
           {aliment.hasActiveOrder && (
             <div className="bg-orange-100 text-orange-800 px-5 py-2.5 rounded-xl font-black flex items-center gap-3 shadow-sm border border-orange-200 w-fit mt-4 sm:mt-0">
               <span className="relative flex h-3 w-3">
@@ -91,7 +92,7 @@ export default function AlimentDetailPage({ params }: { params: Promise<{ id: st
         {/* Main Title Section */}
         <div className="bg-white rounded-[2.5rem] p-8 sm:p-12 border-2 border-zinc-200/60 shadow-sm mb-8 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-[30rem] h-[30rem] bg-blue-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
-          
+
           <div className="relative z-10 flex flex-col lg:flex-row justify-between gap-8">
             <div>
               <div className="flex items-center gap-3 mb-2">
@@ -147,9 +148,9 @@ export default function AlimentDetailPage({ params }: { params: Promise<{ id: st
                 <span className="text-5xl font-black text-zinc-900">{aliment.currentStock}</span>
                 <span className="text-xl font-bold text-zinc-500 mb-1">/ {aliment.maxStock} {aliment.unit}</span>
               </div>
-              
+
               <div className="w-full h-4 bg-zinc-100 rounded-full overflow-hidden mb-2">
-                <div 
+                <div
                   className={`h-full rounded-full transition-all duration-1000 ${isLowStock ? 'bg-red-500' : 'bg-green-500'}`}
                   style={{ width: `${stockPercentage}%` }}
                 />
@@ -186,7 +187,7 @@ export default function AlimentDetailPage({ params }: { params: Promise<{ id: st
 
           {/* Column 2 & 3: Consumption & Pricing */}
           <div className="xl:col-span-2 space-y-8">
-            
+
             {/* Consommation */}
             <div className="bg-white rounded-[2rem] p-8 border border-zinc-200 shadow-sm">
               <div className="flex justify-between items-start mb-6">
@@ -201,12 +202,12 @@ export default function AlimentDetailPage({ params }: { params: Promise<{ id: st
                   <p className="text-3xl font-black text-blue-600">{aliment.consumptionRate} <span className="text-lg text-zinc-500">{aliment.unit}/jour</span></p>
                 </div>
               </div>
-              
-              <SingleLineChart 
-                data={aliment.consumptionHistory} 
-                dataKey="value" 
-                color="#2563EB" 
-                label="Consommation" 
+
+              <SingleLineChart
+                data={aliment.consumptionHistory}
+                dataKey="value"
+                color="#2563EB"
+                label="Consommation"
                 unit={aliment.unit}
                 isArea={true}
               />
@@ -226,12 +227,12 @@ export default function AlimentDetailPage({ params }: { params: Promise<{ id: st
                   <p className="text-3xl font-black text-amber-600">{aliment.msPercentage} <span className="text-lg text-zinc-500">%</span></p>
                 </div>
               </div>
-              
-              <SingleLineChart 
-                data={aliment.msHistory} 
-                dataKey="value" 
-                color="#D97706" 
-                label="Masse Sèche" 
+
+              <SingleLineChart
+                data={aliment.msHistory}
+                dataKey="value"
+                color="#D97706"
+                label="Masse Sèche"
                 unit="%"
                 isArea={true}
               />
@@ -258,11 +259,11 @@ export default function AlimentDetailPage({ params }: { params: Promise<{ id: st
                 </div>
               </div>
 
-              <DualLineChart 
-                data={aliment.priceHistory} 
-                key1="priceTqs" 
-                key2="priceMs" 
-                color1="#10B981" 
+              <DualLineChart
+                data={aliment.priceHistory}
+                key1="priceTqs"
+                key2="priceMs"
+                color1="#10B981"
                 color2="#F59E0B"
                 label1="Prix TQS ($)"
                 label2="Prix MS ($)"
