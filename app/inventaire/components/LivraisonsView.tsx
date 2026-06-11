@@ -11,6 +11,8 @@ interface LivraisonsViewProps {
   handleAddOrder: (e: React.FormEvent) => void;
 }
 
+
+
 export default function LivraisonsView({
   deliveries,
   inventory,
@@ -27,7 +29,7 @@ export default function LivraisonsView({
         <div className="bg-white p-6 sm:p-10 rounded-[2.5rem] border border-blue-200/60 shadow-xl relative overflow-hidden h-full">
           {/* Decorative background elements */}
           <div className="absolute top-0 right-0 w-[40rem] h-[40rem] bg-blue-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
-          
+
           <div className="relative z-10">
             <div className="mb-10">
               <h2 className="text-3xl sm:text-4xl font-black text-zinc-900 mb-3 tracking-tight flex items-center gap-4">
@@ -88,13 +90,13 @@ export default function LivraisonsView({
         <div className="bg-white p-6 sm:p-10 rounded-[2.5rem] border border-green-200/60 shadow-xl relative overflow-hidden sticky top-8">
           {/* Decorative background elements */}
           <div className="absolute top-0 right-0 w-[30rem] h-[30rem] bg-green-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
-          
+
           <div className="relative z-10">
             <h2 className="text-3xl font-black text-zinc-900 mb-8 flex items-center gap-4 tracking-tight">
               <span className="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 text-green-700 text-xl shadow-sm">
                 ➕
               </span>
-              Planifier
+              Planifier une livraison
             </h2>
 
             <form onSubmit={handleAddOrder} className="space-y-6">
