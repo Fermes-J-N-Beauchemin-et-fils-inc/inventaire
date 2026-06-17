@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheckCircle, faClock, faArrowLeft, faTractor, faCarrot, faCheck, faExclamationTriangle, faStickyNote, faPen, faScaleBalanced, faCloudShowersHeavy, faXmark, faGripVertical, faArrowRight } from '@fortawesome/free-solid-svg-icons';
-import { ReactSortable } from "react-sortablejs";
+import { faCheckCircle, faClock, faArrowLeft, faTractor, faCarrot, faCheck, faExclamationTriangle, faStickyNote, faPen, faScaleBalanced, faCloudShowersHeavy, faXmark, faGripVertical } from '@fortawesome/free-solid-svg-icons';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { GroupsState, GroupKey, Saison, PluieMode, GroupPluieMode } from '../types';
 
 interface TractorUIProps {
@@ -18,7 +18,7 @@ interface TractorUIProps {
   onGroupPluieChange: (groupKey: GroupKey, mode: GroupPluieMode) => void;
 }
 
-export default function TractorUI({ 
+export default function TractorUI({
   groups, saison, tour1Keys, tour2Keys, globalPluie, handleReorderGroups,
   onToggleGroupCompletion, onFinishAll, onAdjustAlimentWeight, onIndiceChange, onGroupPluieChange
 }: TractorUIProps) {
@@ -26,15 +26,16 @@ export default function TractorUI({
   React.useEffect(() => setMounted(true), []);
 
   const [activeGroup, setActiveGroup] = useState<{ key: GroupKey, tour: 1 | 2 } | null>(null);
-  
+
   // Modals state
-  const [adjustModal, setAdjustModal] = useState<{key: GroupKey, tour: 1 | 2, alimentId: string, alimentName: string, targetV2: number} | null>(null);
+
+  const [adjustModal, setAdjustModal] = useState<{ key: GroupKey, tour: 1 | 2, alimentId: string, alimentName: string, targetV2: number } | null>(null);
   const [adjustValue, setAdjustValue] = useState("");
 
-  const [indiceModal, setIndiceModal] = useState<{key: GroupKey, tour: 1 | 2, currentIndice: string} | null>(null);
+  const [indiceModal, setIndiceModal] = useState<{ key: GroupKey, tour: 1 | 2, currentIndice: string } | null>(null);
   const [indiceValue, setIndiceValue] = useState("");
 
-  const [confirmModal, setConfirmModal] = useState<{key: GroupKey, tour: 1 | 2, totalIndice: number} | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{ key: GroupKey, tour: 1 | 2, totalIndice: number } | null>(null);
 
   const groupKeys = Object.keys(groups) as GroupKey[];
 
@@ -46,7 +47,7 @@ export default function TractorUI({
     return tour === 1 ? groups[key].completedAt : groups[key].completedAtTour2;
   };
 
-  const allCompleted = saison === 'hiver' 
+  const allCompleted = saison === 'hiver'
     ? tour1Keys.every(k => isGroupCompleted(k, 1))
     : tour1Keys.every(k => isGroupCompleted(k, 1)) && tour2Keys.every(k => isGroupCompleted(k, 2));
 
@@ -64,7 +65,7 @@ export default function TractorUI({
       const i1 = parseFloat(g.indice || "0");
       const i2 = parseFloat(g.indiceTour2 || "0");
       const total = i1 + i2;
-      
+
       if (Math.abs(total - 1.0) > 0.01) {
         setConfirmModal({ key, tour, totalIndice: total });
         return;
@@ -127,17 +128,17 @@ export default function TractorUI({
               </div>
               <p className="text-xl font-bold text-zinc-700 mb-2">Ingrédient: <span className="text-black">{adjustModal.alimentName}</span></p>
               <p className="text-xl font-bold text-zinc-700 mb-6">Cible prévue: <span className="text-blue-600">{adjustModal.targetV2} kg</span></p>
-              
+
               <label className="block text-xl font-black text-black mb-3">Poids affiché sur la balance (kg) :</label>
-              <input 
-                type="number" 
+              <input
+                type="number"
                 value={adjustValue}
                 onChange={(e) => setAdjustValue(e.target.value)}
                 placeholder={adjustModal.targetV2.toString()}
                 className="w-full text-4xl font-black p-4 border-4 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none mb-8 text-center text-black"
                 autoFocus
               />
-              
+
               <div className="flex gap-4">
                 <button onClick={() => setAdjustModal(null)} className="flex-1 py-4 text-xl font-bold text-zinc-800 bg-zinc-200 rounded-xl hover:bg-zinc-300">Annuler</button>
                 <button onClick={handleAdjustSubmit} className="flex-1 py-4 text-xl font-black text-white bg-blue-600 rounded-xl hover:bg-blue-700 shadow-lg">Recalculer</button>
@@ -162,9 +163,9 @@ export default function TractorUI({
                 </button>
               </div>
               <p className="text-xl font-bold text-zinc-700 mb-6">Modifier temporairement l'indice de performance pour cette distribution.</p>
-              
-              <input 
-                type="number" 
+
+              <input
+                type="number"
                 step="0.01"
                 value={indiceValue}
                 onChange={(e) => setIndiceValue(e.target.value)}
@@ -172,7 +173,7 @@ export default function TractorUI({
                 className="w-full text-4xl font-black p-4 border-4 border-yellow-200 rounded-xl focus:border-yellow-500 focus:outline-none mb-8 text-center text-black"
                 autoFocus
               />
-              
+
               <div className="flex gap-4">
                 <button onClick={() => setIndiceModal(null)} className="flex-1 py-4 text-xl font-bold text-zinc-800 bg-zinc-200 rounded-xl hover:bg-zinc-300">Annuler</button>
                 <button onClick={handleIndiceSubmit} className="flex-1 py-4 text-xl font-black text-yellow-900 bg-yellow-400 rounded-xl hover:bg-yellow-500 shadow-lg">Appliquer</button>
@@ -222,7 +223,7 @@ export default function TractorUI({
     return (
       <div className="w-full min-h-screen pb-12 pt-4 px-2 sm:px-8">
         {renderModals()}
-        <button 
+        <button
           onClick={() => setActiveGroup(null)}
           className="mb-8 flex items-center gap-3 text-2xl font-black text-zinc-600 hover:text-black transition-colors"
         >
@@ -238,7 +239,7 @@ export default function TractorUI({
               </h2>
               <div className="text-2xl text-zinc-700 font-bold mt-4 flex flex-wrap items-center gap-4">
                 <span>Vaches: <span className="text-blue-600">{group.fed}</span> / {group.real}</span>
-                <button 
+                <button
                   onClick={() => { setIndiceModal({ key, tour, currentIndice: indiceStr }); setIndiceValue(indiceStr); }}
                   className="bg-yellow-100 hover:bg-yellow-200 text-yellow-900 px-4 py-2 rounded-xl border-2 border-yellow-300 transition-colors flex items-center gap-2 cursor-pointer shadow-sm active:scale-95"
                 >
@@ -297,8 +298,8 @@ export default function TractorUI({
               const scaledV1 = isNaN(val1Num) ? aliment.v1 : Math.round(val1Num * indice);
 
               return (
-                <div 
-                  key={aliment.id} 
+                <div
+                  key={aliment.id}
                   className={`flex flex-col xl:flex-row xl:justify-between xl:items-center p-6 sm:p-8 rounded-2xl border-b-2 border-zinc-100 gap-6 ${idx % 2 === 0 ? 'bg-zinc-50' : 'bg-white'}`}
                 >
                   <div className="flex items-center gap-6">
@@ -316,21 +317,21 @@ export default function TractorUI({
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-4 sm:gap-10 xl:ml-auto bg-white xl:bg-transparent p-4 sm:p-5 xl:p-0 rounded-2xl shadow-sm xl:shadow-none border-2 xl:border-none border-zinc-200 w-full xl:w-auto">
                     {aliment.v1 !== "0" && aliment.v1 !== aliment.v2 && (
                       <div className="flex flex-col items-end">
-                         <span className="text-xs sm:text-sm font-bold text-zinc-600 uppercase tracking-widest mb-1">Aliment</span>
-                         <span className="text-2xl sm:text-3xl font-black text-zinc-800">{scaledV1} <span className="text-lg sm:text-xl font-bold text-zinc-600">kg</span></span>
+                        <span className="text-xs sm:text-sm font-bold text-zinc-600 uppercase tracking-widest mb-1">Aliment</span>
+                        <span className="text-2xl sm:text-3xl font-black text-zinc-800">{scaledV1} <span className="text-lg sm:text-xl font-bold text-zinc-600">kg</span></span>
                       </div>
                     )}
                     <div className={`flex flex-col items-end ${aliment.v1 !== "0" && aliment.v1 !== aliment.v2 ? 'sm:pl-10 sm:border-l-2 border-zinc-200 pt-4 sm:pt-0 mt-4 sm:mt-0 border-t-2 sm:border-t-0' : ''}`}>
-                       <span className="text-xs sm:text-sm font-black text-blue-600 uppercase tracking-widest mb-1">RTM (Balance)</span>
-                       <span className="text-4xl sm:text-5xl font-black text-blue-700">{scaledV2} <span className="text-2xl sm:text-3xl font-bold text-blue-500/70">kg</span></span>
+                      <span className="text-xs sm:text-sm font-black text-blue-600 uppercase tracking-widest mb-1">RTM (Balance)</span>
+                      <span className="text-4xl sm:text-5xl font-black text-blue-700">{scaledV2} <span className="text-2xl sm:text-3xl font-bold text-blue-500/70">kg</span></span>
                     </div>
                     {/* Ajuster button */}
                     {typeof scaledV2 === 'number' && (
-                      <button 
+                      <button
                         onClick={() => { setAdjustModal({ key, tour, alimentId: aliment.id, alimentName: aliment.name, targetV2: scaledV2 }); setAdjustValue(""); }}
                         className="ml-0 sm:ml-4 mt-4 sm:mt-0 w-full sm:w-auto shrink-0 bg-blue-100 hover:bg-blue-200 text-blue-900 px-4 py-3 rounded-xl border border-blue-300 font-bold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-sm"
                         title="Corriger si erreur de balance"
@@ -357,6 +358,17 @@ export default function TractorUI({
     );
   }
 
+  const onGlobalDragEnd = (result: DropResult) => {
+    const { source, destination, type } = result;
+    if (!destination) return;
+
+    if (type === 'group') {
+      const sourceTour = source.droppableId === 'tour-1' ? 1 : 2;
+      const destTour = destination.droppableId === 'tour-1' ? 1 : 2;
+      handleReorderGroups(sourceTour, destTour, source.index, destination.index);
+    }
+  };
+
   const renderGridSection = (keys: GroupKey[], tour: 1 | 2, title: string, badgeColor: string) => (
     <div className="mb-16">
       <h2 className="text-4xl font-black text-zinc-800 mb-8 flex items-center gap-4">
@@ -364,103 +376,103 @@ export default function TractorUI({
         {title}
       </h2>
       {mounted && (
-        <ReactSortable
-          list={keys.map(k => ({ id: k }))}
-          setList={() => {}}
-          animation={250}
-          delayOnTouchOnly={true}
-          delay={100}
-          handle=".drag-handle"
-          ghostClass="opacity-40"
-          dragClass="scale-[1.02]"
-          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 items-start min-h-[200px]"
-          onEnd={(evt) => {
-            if (evt.oldIndex !== undefined && evt.newIndex !== undefined && evt.oldIndex !== evt.newIndex) {
-              handleReorderGroups(tour, tour, evt.oldIndex, evt.newIndex);
-            }
-          }}
-        >
-          {keys.map((key) => {
-            const group = groups[key];
-            const isCompleted = isGroupCompleted(key, tour);
-            const completionTime = getCompletionTime(key, tour);
+        <Droppable droppableId={`tour-${tour}`} type="group" direction="horizontal">
+          {(provided) => (
+            <div
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+              className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 min-h-[200px]"
+            >
+              {keys.map((key, index) => {
+                const group = groups[key];
+                const isCompleted = isGroupCompleted(key, tour);
+                const completionTime = getCompletionTime(key, tour);
 
-            return (
-              <div 
-                key={`${key}-tour${tour}`}
-                onClick={() => setActiveGroup({ key, tour })}
-                className={`relative cursor-pointer rounded-[2.5rem] p-8 transition-all hover:-translate-y-2 shadow-lg hover:shadow-2xl border-4 ${
-                  isCompleted 
-                    ? 'bg-green-50 border-green-500/50 opacity-90' 
-                    : 'bg-white border-zinc-200 hover:border-blue-400'
-                }`}
-              >
-                {isCompleted && (
-                  <div className="absolute -top-6 -right-6 w-16 h-16 bg-green-500 text-white rounded-full flex items-center justify-center text-3xl shadow-xl border-4 border-white">
-                    <FontAwesomeIcon icon={faCheckCircle} />
-                  </div>
-                )}
-                
-                <div className="flex justify-between items-start mb-6 gap-4">
-                  <h3 className={`text-4xl font-black flex items-center gap-4 ${isCompleted ? 'text-green-800' : 'text-black'}`}>
-                    <div 
-                      onClick={(e) => e.stopPropagation()}
-                      className="drag-handle w-14 h-14 bg-zinc-100 rounded-2xl flex items-center justify-center text-zinc-400 hover:text-zinc-600 hover:bg-zinc-200 transition-colors shrink-0 shadow-inner cursor-grab active:cursor-grabbing"
-                    >
-                      <FontAwesomeIcon icon={faGripVertical} className="text-2xl" />
-                    </div>
-                    {group.name}
-                  </h3>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className="bg-yellow-100 text-yellow-900 px-3 py-1 rounded-lg text-lg font-black border border-yellow-300 shadow-sm">
-                      Indice: {tour === 1 ? group.indice : (group.indiceTour2 || "1.00")}
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4 text-2xl font-bold text-zinc-600">
-                    <FontAwesomeIcon icon={faCarrot} className="w-8 text-orange-500" />
-                    <span>{group.aliments.length} ingrédients</span>
-                  </div>
-                  {(group.systemNote || group.note) && (
-                    <div className="flex items-center gap-4 text-2xl font-bold text-red-600">
-                      <FontAwesomeIcon icon={faExclamationTriangle} className="w-8" />
-                      <span>Notes importantes !</span>
-                    </div>
-                  )}
-                  {tour === 1 && group.time && (
-                    <div className="flex items-center gap-4 text-2xl font-bold text-zinc-600">
-                      <FontAwesomeIcon icon={faClock} className="w-8 text-blue-500" />
-                      <span>{group.time}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-4 text-2xl font-bold text-blue-800">
-                    <FontAwesomeIcon icon={faCloudShowersHeavy} className="w-8 text-blue-400" />
-                    <span className="capitalize">{group.pluieMode && group.pluieMode !== 'global' ? group.pluieMode.replace('-', ' ') : `Météo globale (${globalPluie})`}</span>
-                  </div>
-                </div>
+                return (
+                  <Draggable key={`${key}-tour${tour}`} draggableId={`tractor-group-${key}-${tour}`} index={index}>
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        onClick={() => setActiveGroup({ key, tour })}
+                        className={`relative cursor-pointer rounded-[2.5rem] p-8 transition-all ${snapshot.isDragging ? 'shadow-2xl scale-[1.02] border-blue-500 z-50' : 'hover:-translate-y-2 shadow-lg hover:shadow-2xl'} border-4 ${isCompleted
+                          ? 'bg-green-50 border-green-500/50 opacity-90'
+                          : 'bg-white border-zinc-200 hover:border-blue-400'
+                          }`}
+                      >
+                        {isCompleted && (
+                          <div className="absolute -top-6 -right-6 w-16 h-16 bg-green-500 text-white rounded-full flex items-center justify-center text-3xl shadow-xl border-4 border-white">
+                            <FontAwesomeIcon icon={faCheckCircle} />
+                          </div>
+                        )}
 
-                {isCompleted ? (
-                  <div className="mt-8 text-center text-xl font-bold text-green-700 bg-green-100 py-3 rounded-xl border border-green-300 shadow-sm">
-                    Terminé à {completionTime}
-                  </div>
-                ) : (
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveGroup({ key, tour });
-                    }}
-                    className="mt-8 w-full py-4 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 font-black text-2xl rounded-2xl transition-all shadow-sm border-2 border-blue-200 hover:border-blue-600 flex justify-between items-center px-6"
-                  >
-                    Préparer
-                    <FontAwesomeIcon icon={faArrowRight} />
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </ReactSortable>
+                        <div className="flex justify-between items-start mb-6 gap-4">
+                          <h3 className={`text-4xl font-black flex items-center gap-4 ${isCompleted ? 'text-green-800' : 'text-black'}`}>
+                            <div
+                              {...provided.dragHandleProps}
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-10 h-10 bg-zinc-100 rounded-lg flex items-center justify-center text-zinc-400 hover:text-black hover:bg-zinc-200 transition-colors shrink-0 border border-zinc-200 shadow-sm cursor-grab active:cursor-grabbing"
+                            >
+                              <FontAwesomeIcon icon={faGripVertical} />
+                            </div>
+                            {group.name}
+                          </h3>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className="bg-yellow-100 text-yellow-900 px-3 py-1 rounded-lg text-lg font-black border border-yellow-300 shadow-sm">
+                              Indice: {tour === 1 ? group.indice : (group.indiceTour2 || "1.00")}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-4 text-2xl font-bold text-zinc-600">
+                            <FontAwesomeIcon icon={faCarrot} className="w-8 text-orange-500" />
+                            <span>{group.aliments.length} ingrédients</span>
+                          </div>
+                          {(group.systemNote || group.note) && (
+                            <div className="flex items-center gap-4 text-2xl font-bold text-red-600">
+                              <FontAwesomeIcon icon={faExclamationTriangle} className="w-8" />
+                              <span>Notes importantes !</span>
+                            </div>
+                          )}
+                          {tour === 1 && group.time && (
+                            <div className="flex items-center gap-4 text-2xl font-bold text-zinc-600">
+                              <FontAwesomeIcon icon={faClock} className="w-8 text-blue-500" />
+                              <span>{group.time}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-4 text-2xl font-bold text-blue-800">
+                            <FontAwesomeIcon icon={faCloudShowersHeavy} className="w-8 text-blue-400" />
+                            <span className="capitalize">{group.pluieMode && group.pluieMode !== 'global' ? group.pluieMode.replace('-', ' ') : `Météo globale (${globalPluie})`}</span>
+                          </div>
+                        </div>
+
+                        {isCompleted ? (
+                          <div className="mt-8 pt-6 border-t-4 border-green-200/50 flex items-center justify-between">
+                            <span className="text-2xl font-black text-green-700">Fait à {completionTime}</span>
+                            <button
+                              onClick={(e) => handleUndoGroup(e, key, tour)}
+                              className="px-6 py-3 bg-white text-zinc-500 font-bold text-xl rounded-xl border-2 border-zinc-200 hover:bg-zinc-100 hover:text-black transition-colors shadow-sm"
+                            >
+                              Annuler
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="mt-8 pt-6 border-t-4 border-zinc-100">
+                            <span className="text-2xl font-black text-blue-600 flex items-center gap-2">
+                              Préparer <FontAwesomeIcon icon={faArrowLeft} className="rotate-180" />
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </Draggable>
+                );
+              })}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
       )}
     </div>
   );
@@ -483,7 +495,7 @@ export default function TractorUI({
         {/* Global Pluie Info */}
         <div className="bg-white p-4 rounded-2xl border-2 border-zinc-200 shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center text-xl">
-             <FontAwesomeIcon icon={faCloudShowersHeavy} />
+            <FontAwesomeIcon icon={faCloudShowersHeavy} />
           </div>
           <div>
             <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest">Météo Globale</p>
@@ -492,7 +504,7 @@ export default function TractorUI({
         </div>
       </div>
 
-      <>
+      <DragDropContext onDragEnd={onGlobalDragEnd}>
         {saison === 'hiver' ? (
           renderGridSection(tour1Keys, 1, "Tous les groupes", "bg-blue-100 text-blue-700")
         ) : (
@@ -503,7 +515,7 @@ export default function TractorUI({
             </div>
           </>
         )}
-      </>
+      </DragDropContext>
 
       {allCompleted && (
         <div className="mt-8 text-center animate-in fade-in slide-in-from-bottom-8 duration-500">
