@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import React from 'react';
 import Sidenav from "@/app/components/ui/sidenav";
 import { fetchInventoryFoods, fetchDeliveries, fetchSuppliersWithContracts } from './data/fetchInventaire';
