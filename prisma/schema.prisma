@@ -87,6 +87,33 @@ model Food {
   @@map("food")
 }
 
+// groups 
+model group {
+  id Int @id @default(autoincrement()) 
+  name String 
+  real_animal_count Int
+  animals_fed Int 
+  notes String 
+  important_notes String 
+  performance_index float
+  weather String
+  season String
+  @@map("group")
+}
+
+model daily_serving {
+  id Int @id @default(autoincrement()) 
+  food_id Int
+  group_id Int 
+  daily_kg_serving_ms float
+  
+  food Food @relation(fields: [food_id], references: [id])
+  group Group @relation(fields: [group_id], references: [id])
+  @@map("daily_serving")
+}
+
+
+// supplier, conrats and delivery 
 model supplier {
   id Int @id @default(autoincrement()) 
   name String 
@@ -107,7 +134,7 @@ model delivery {
   quantity_received float
   date_delivered DateTime
   date_expected DateTime 
-  
+
   food Food @relation(fields: [food_id],references: [id])
   contract Contract @relation(fields: [contract_id], references: [id])
 }
