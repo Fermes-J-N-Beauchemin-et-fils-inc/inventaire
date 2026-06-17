@@ -72,10 +72,10 @@ export default function AlimentDetailPage({ params }: { params: Promise<{ id: st
               Retour aux aliments
             </Link>
 
-            <button className="inline-flex items-center text-zinc-700 hover:text-blue-600 font-bold transition-colors w-fit bg-white px-4 py-2 rounded-xl shadow-sm border border-zinc-200">
+            <Link href={`/aliments/${aliment.id}/modifier`} className="inline-flex items-center text-zinc-700 hover:text-blue-600 font-bold transition-colors w-fit bg-white px-4 py-2 rounded-xl shadow-sm border border-zinc-200">
               <FontAwesomeIcon icon={faPen} className="mr-2" />
               Modifier
-            </button>
+            </Link>
           </div>
 
           {aliment.hasActiveOrder && (

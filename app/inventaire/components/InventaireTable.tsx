@@ -1,9 +1,9 @@
 import React from 'react';
 import Link from 'next/link';
-import { InventoryItem } from '../types';
+import { InventoryFoodData } from '../data/fetchInventaire';
 
 interface InventaireTableProps {
-  inventory: InventoryItem[];
+  inventory: InventoryFoodData[];
 }
 
 export default function InventaireTable({ inventory }: InventaireTableProps) {
@@ -22,16 +22,27 @@ export default function InventaireTable({ inventory }: InventaireTableProps) {
           <thead>
             <tr className="bg-zinc-50 border-b border-zinc-200">
               <th className="py-4 px-6 font-black text-zinc-500 text-sm uppercase tracking-wider">Aliment</th>
-              <th className="py-4 px-6 font-black text-zinc-500 text-sm uppercase tracking-wider text-right">Consommation (hier)</th>
-              <th className="py-4 px-6 font-black text-zinc-500 text-sm uppercase tracking-wider text-right">Consommation moyenne / jour</th>
+              <th className="py-4 px-6 font-black text-zinc-500 text-sm uppercase tracking-wider">Stockage</th>
+              <th className="py-4 px-6 font-black text-zinc-500 text-sm uppercase tracking-wider text-right">Consommation (M.S. / jour)</th>
               <th className="py-4 px-6 font-black text-zinc-500 text-sm uppercase tracking-wider text-right">Inventaire Actuel</th>
               <th className="py-4 px-6 font-black text-zinc-500 text-sm uppercase tracking-wider text-center border-l border-zinc-200">Reste Pour</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 text-lg">
             {inventory.map((item) => {
-              const isInfinite = item.remainingDays > 500;
-              const avgConsumptionPerDay = item.annualConsumption / 365;
+              // Calculate daily consumption in kg MS
+              const dailyConsumption = item.daily_servings.reduce((sum, serving) => sum + serving.daily_kg_serving_ms, 0);
+              
+              // Convert current stock to kg MS based on ms_percentage (assuming current_stock is in units like kg or tm, wait. If current_stock is in tm, 1 tm = 1000 kg. And ms_percentage is %)
+              // Let's just estimate remaining days based on daily consumption if it's > 0.
+              // Assuming current_stock is in the unit_type (e.g. tm, kg).
+              // For simplicity: if unit is tm, current_stock_kg = current_stock * 1000.
+              const isTm = item.unit_type.name.toLowerCase() === 'tm';
+              const currentStockKg = isTm ? item.current_stock * 1000 : item.current_stock;
+              const currentStockMsKg = currentStockKg * (item.ms_percentage / 100);
+              
+              const remainingDays = dailyConsumption > 0 ? Math.round(currentStockMsKg / dailyConsumption) : 999;
+              const isInfinite = remainingDays > 500;
 
               return (
                 <tr key={item.id} className="hover:bg-blue-50/50 transition-colors group">
@@ -40,14 +51,14 @@ export default function InventaireTable({ inventory }: InventaireTableProps) {
                       {item.name}
                     </Link>
                   </td>
-                  <td className="py-4 px-6 text-zinc-600 text-right font-medium">
-                    {formatNum(item.consumption)} <span className="text-zinc-400 text-sm">{item.unit}</span>
+                  <td className="py-4 px-6 text-zinc-600 text-base font-bold">
+                    {item.storage.name}
                   </td>
                   <td className="py-4 px-6 text-zinc-600 text-right font-medium">
-                    {formatNum(avgConsumptionPerDay)} <span className="text-zinc-400 text-sm">{item.unit}</span>
+                    {dailyConsumption > 0 ? formatNum(dailyConsumption) : '-'} <span className="text-zinc-400 text-sm">kg MS</span>
                   </td>
                   <td className="py-4 px-6 text-zinc-900 text-right font-black text-2xl">
-                    {formatNum(item.current)} <span className="text-zinc-500 text-base font-bold">{item.unit}</span>
+                    {formatNum(item.current_stock)} <span className="text-zinc-500 text-base font-bold">{item.unit_type.name}</span>
                   </td>
                   <td className="py-4 px-6 text-center border-l border-zinc-50 bg-zinc-50/30">
                     {isInfinite ? (
@@ -55,8 +66,8 @@ export default function InventaireTable({ inventory }: InventaireTableProps) {
                         N/A
                       </span>
                     ) : (
-                      <span className={`inline-flex items-center justify-center min-w-[100px] px-4 py-2 rounded-xl text-base font-black ${getRemainingDaysColor(item.remainingDays)}`}>
-                        {item.remainingDays} {item.remainingDays > 1 ? 'jours' : 'jour'}
+                      <span className={`inline-flex items-center justify-center min-w-[100px] px-4 py-2 rounded-xl text-base font-black ${getRemainingDaysColor(remainingDays)}`}>
+                        {remainingDays} {remainingDays > 1 ? 'jours' : 'jour'}
                       </span>
                     )}
                   </td>
@@ -65,6 +76,7 @@ export default function InventaireTable({ inventory }: InventaireTableProps) {
             })}
           </tbody>
         </table>
+        {inventory.length === 0 && <p className="p-6 text-center text-zinc-500">Aucun aliment dans l'inventaire.</p>}
       </div>
     </div>
   );

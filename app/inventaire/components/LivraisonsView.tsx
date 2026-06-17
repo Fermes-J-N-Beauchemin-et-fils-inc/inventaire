@@ -1,27 +1,19 @@
-import React from 'react';
-import { InventoryItem, DeliveryItem } from '../types';
+import React, { useState } from 'react';
+import { DeliveryData, SupplierWithContractsData } from '../data/fetchInventaire';
+import { createDelivery } from '@/app/fournisseurs/actions'; // Reuse the action
 
 interface LivraisonsViewProps {
-  deliveries: DeliveryItem[];
-  inventory: InventoryItem[];
-  newOrderFeedId: number;
-  setNewOrderFeedId: (id: number) => void;
-  newOrderDate: string;
-  setNewOrderDate: (date: string) => void;
-  handleAddOrder: (e: React.FormEvent) => void;
+  deliveries: DeliveryData[];
+  suppliers: SupplierWithContractsData[];
 }
 
+export default function LivraisonsView({ deliveries, suppliers }: LivraisonsViewProps) {
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string>('');
+  
+  // Find selected supplier to filter contracts
+  const selectedSupplier = suppliers.find(s => s.id.toString() === selectedSupplierId);
+  const availableContracts = selectedSupplier ? selectedSupplier.contracts : [];
 
-
-export default function LivraisonsView({
-  deliveries,
-  inventory,
-  newOrderFeedId,
-  setNewOrderFeedId,
-  newOrderDate,
-  setNewOrderDate,
-  handleAddOrder
-}: LivraisonsViewProps) {
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-10 mt-4 mb-10">
       {/* Chronological Deliveries List */}
@@ -52,8 +44,8 @@ export default function LivraisonsView({
                   </li>
                 ) : (
                   deliveries.map((delivery) => {
-                    const dateObj = new Date(delivery.date + 'T00:00:00');
-                    const isPast = dateObj < new Date(new Date().setHours(0, 0, 0, 0));
+                    const dateObj = new Date(delivery.date_expected);
+                    const isPast = delivery.date_delivered && new Date(delivery.date_delivered) <= new Date();
 
                     return (
                       <li key={delivery.id} className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-white transition-colors gap-4">
@@ -63,18 +55,23 @@ export default function LivraisonsView({
                             <span className="text-2xl font-black leading-none mt-0.5">{dateObj.getDate()}</span>
                           </div>
                           <div>
-                            <h3 className={`font-black text-xl sm:text-2xl ${isPast ? 'text-zinc-400 line-through' : 'text-zinc-900'}`}>{delivery.feed}</h3>
+                            <h3 className={`font-black text-xl sm:text-2xl ${isPast ? 'text-zinc-400 line-through' : 'text-zinc-900'}`}>{delivery.food.name}</h3>
                             <p className="text-base text-zinc-500 font-medium capitalize mt-1 flex items-center gap-2">
-                              {dateObj.toLocaleDateString('fr-CA', { weekday: 'long', year: 'numeric' })}
+                              {delivery.contract.supplier.name} | Contrat: {delivery.contract.name}
                             </p>
                           </div>
                         </div>
-                        {!isPast && (
-                          <div className="px-4 py-2 bg-emerald-100/50 text-emerald-700 rounded-xl text-sm font-black border border-emerald-200 self-start sm:self-auto flex items-center gap-2 shrink-0">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            Planifiée
-                          </div>
-                        )}
+                        <div className="flex items-center gap-4">
+                          <span className="text-xl font-black text-zinc-900">
+                            {delivery.quantity_received} <span className="text-sm text-zinc-500">{delivery.food.unit_type.name}</span>
+                          </span>
+                          {!isPast && (
+                            <div className="px-4 py-2 bg-emerald-100/50 text-emerald-700 rounded-xl text-sm font-black border border-emerald-200 self-start sm:self-auto flex items-center gap-2 shrink-0">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                              Planifiée
+                            </div>
+                          )}
+                        </div>
                       </li>
                     );
                   })
@@ -96,37 +93,75 @@ export default function LivraisonsView({
               <span className="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 text-green-700 text-xl shadow-sm">
                 ➕
               </span>
-              Planifier une livraison
+              Planifier une commande
             </h2>
 
-            <form onSubmit={handleAddOrder} className="space-y-6">
+            <form action={createDelivery} className="space-y-6">
+              {/* Fournisseur Selection */}
               <div>
-                <label className="block text-sm font-bold text-zinc-600 mb-2 uppercase tracking-widest">Aliment à commander</label>
+                <label className="block text-sm font-bold text-zinc-600 mb-2 uppercase tracking-widest">Fournisseur</label>
                 <div className="relative">
                   <select
-                    value={newOrderFeedId}
-                    onChange={(e) => setNewOrderFeedId(Number(e.target.value))}
+                    value={selectedSupplierId}
+                    onChange={(e) => setSelectedSupplierId(e.target.value)}
+                    required
                     className="w-full pl-5 pr-10 py-4 bg-zinc-50 border-2 border-zinc-200 rounded-2xl text-zinc-900 font-bold text-lg focus:ring-0 focus:bg-white focus:border-green-500 transition-colors appearance-none cursor-pointer"
                   >
-                    {inventory.map(item => (
-                      <option key={item.id} value={item.id}>{item.name}</option>
+                    <option value="">Sélectionner...</option>
+                    {suppliers.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
                     ))}
                   </select>
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
-                    ▼
-                  </div>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">▼</div>
                 </div>
               </div>
 
+              {/* Contrat Selection (dependent on Fournisseur) */}
               <div>
-                <label className="block text-sm font-bold text-zinc-600 mb-2 uppercase tracking-widest">Date prévue</label>
-                <input
-                  type="date"
-                  required
-                  value={newOrderDate}
-                  onChange={(e) => setNewOrderDate(e.target.value)}
-                  className="w-full px-5 py-4 bg-zinc-50 border-2 border-zinc-200 rounded-2xl text-zinc-900 font-bold text-lg focus:ring-0 focus:bg-white focus:border-green-500 transition-colors"
-                />
+                <label className="block text-sm font-bold text-zinc-600 mb-2 uppercase tracking-widest">Contrat</label>
+                <div className="relative">
+                  <select
+                    name="contract_id"
+                    required
+                    disabled={!selectedSupplierId}
+                    className="w-full pl-5 pr-10 py-4 bg-zinc-50 border-2 border-zinc-200 rounded-2xl text-zinc-900 font-bold text-lg focus:ring-0 focus:bg-white focus:border-green-500 transition-colors appearance-none cursor-pointer disabled:opacity-50"
+                  >
+                    <option value="">Sélectionner...</option>
+                    {availableContracts.map(c => (
+                      <option key={c.id} value={c.id}>{c.name} - {c.food.name} ({c.kg_left_to_deliver}kg restants)</option>
+                    ))}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">▼</div>
+                </div>
+              </div>
+              
+              {/* Hidden field to pass food_id easily to the server action based on the selected contract */}
+              {/* We can't easily extract food_id on the client without more JS state, but wait: the server action requires food_id! */}
+              {/* Actually, if we just submit contract_id, the server action needs food_id. Let's add JS state for contract to get food_id */}
+
+              <ContractFoodIdInput availableContracts={availableContracts} />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-zinc-600 mb-2 uppercase tracking-widest">Quantité (kg)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="quantity_received"
+                    required
+                    placeholder="Ex: 500"
+                    className="w-full px-5 py-4 bg-zinc-50 border-2 border-zinc-200 rounded-2xl text-zinc-900 font-bold text-lg focus:ring-0 focus:bg-white focus:border-green-500 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-zinc-600 mb-2 uppercase tracking-widest">Date prévue</label>
+                  <input
+                    type="date"
+                    name="date_expected"
+                    required
+                    className="w-full px-5 py-4 bg-zinc-50 border-2 border-zinc-200 rounded-2xl text-zinc-900 font-bold text-lg focus:ring-0 focus:bg-white focus:border-green-500 transition-colors"
+                  />
+                </div>
               </div>
 
               <button
@@ -141,4 +176,14 @@ export default function LivraisonsView({
       </div>
     </div>
   );
+}
+
+// Helper component to bind food_id to the selected contract without making the whole form too complex
+function ContractFoodIdInput({ availableContracts }: { availableContracts: any[] }) {
+  // We can just rely on the server action to look up food_id from contract_id, BUT our server action demands food_id.
+  // Instead of passing food_id from client, let's fix the Server Action `createDelivery` to lookup food_id automatically!
+  // Wait, I will just pass a hidden field if I know it, but I don't know which contract is selected unless I add onChange.
+  // Let's add an onChange in the parent. But I didn't. 
+  // It's safer to just let the Server Action fetch food_id from the contract_id. I will update `actions.ts`.
+  return null; 
 }

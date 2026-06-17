@@ -1,13 +1,15 @@
 import React from 'react';
-import { InventoryItem } from '../types';
+import { InventoryFoodData } from '../data/fetchInventaire';
 
 interface OrderEstimationProps {
-  inventory: InventoryItem[];
+  inventory: InventoryFoodData[];
   daysToOrder: number;
   setDaysToOrder: (days: number) => void;
 }
 
 export default function OrderEstimation({ inventory, daysToOrder, setDaysToOrder }: OrderEstimationProps) {
+  const formatNum = (val: number) => new Intl.NumberFormat('fr-CA', { maximumFractionDigits: 1 }).format(val);
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
@@ -35,59 +37,35 @@ export default function OrderEstimation({ inventory, daysToOrder, setDaysToOrder
             <tr className="bg-zinc-200 border-b-2 border-zinc-800">
               <th className="py-3 px-4 font-black text-black text-sm uppercase tracking-wider">Aliment</th>
               <th className="py-3 px-4 font-black text-black text-sm uppercase tracking-wider text-right border-x border-zinc-300">Inv. Actuel</th>
-              <th className="py-3 px-4 font-black text-black text-sm uppercase tracking-wider text-right bg-yellow-100">Commande (estimée)</th>
-              <th className="py-3 px-4 font-black text-black text-sm uppercase tracking-wider">Type / Format</th>
-              <th className="py-3 px-4 font-black text-black text-sm uppercase tracking-wider text-right">Vanne</th>
-              <th className="py-3 px-4 font-black text-black text-sm uppercase tracking-wider text-right">Silo après remplissage</th>
-              <th className="py-3 px-4 font-black text-black text-sm uppercase tracking-wider text-right">Consommation annuelle</th>
+              <th className="py-3 px-4 font-black text-black text-sm uppercase tracking-wider text-right bg-yellow-100">Commande (estimée kg MS)</th>
+              <th className="py-3 px-4 font-black text-black text-sm uppercase tracking-wider text-right">Consommation annuelle (kg MS)</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-200">
             {inventory.map((item) => {
-              // Dynamic calculation logic for mockup:
-              // If annualConsumption exists, use it to estimate daily consumption
-              // else use the yesterday consumption
-              let estimatedDaily = 0;
-              if (item.annualConsumption > 0) {
-                estimatedDaily = item.annualConsumption / 365;
-              } else if (item.consumption > 0) {
-                estimatedDaily = item.consumption;
-              }
+              // Calculate daily consumption in kg MS
+              const dailyConsumption = item.daily_servings.reduce((sum, serving) => sum + serving.daily_kg_serving_ms, 0);
+              const annualConsumption = dailyConsumption * 365;
+              
+              const isTm = item.unit_type.name.toLowerCase() === 'tm';
+              const currentStockKg = isTm ? item.current_stock * 1000 : item.current_stock;
+              const currentStockMsKg = currentStockKg * (item.ms_percentage / 100);
 
-              let calculatedOrder = (estimatedDaily * daysToOrder) - item.current;
-
-              // Prevent extreme negative numbers from taking over space unless it's the specific hardcoded item that was red in image
-              // In the image, "Écaille de soya" was -24.8.
-              if (item.name === "Écaille de soya") {
-                calculatedOrder = -24.8;
-              }
-
-              // Round to 1 decimal place
+              let calculatedOrder = (dailyConsumption * daysToOrder) - currentStockMsKg;
               calculatedOrder = Math.round(calculatedOrder * 10) / 10;
-
               const isRed = calculatedOrder < 0;
 
               return (
                 <tr key={item.id} className="hover:bg-yellow-50 transition-colors text-base font-semibold">
                   <td className="py-3 px-4 text-black border-r border-zinc-100">{item.name}</td>
                   <td className="py-3 px-4 text-black text-right border-r border-zinc-100 font-bold">
-                    {item.current} <span className="text-zinc-500 text-xs">{item.unit}</span>
+                    {formatNum(item.current_stock)} <span className="text-zinc-500 text-xs">{item.unit_type.name}</span>
                   </td>
                   <td className={`py-3 px-4 text-right font-black text-lg bg-yellow-50 ${isRed ? 'text-red-600' : 'text-black'}`}>
                     {calculatedOrder !== 0 ? (isRed ? `(${Math.abs(calculatedOrder)})` : Math.max(0, calculatedOrder)) : '0'}
                   </td>
-                  <td className="py-3 px-4 text-zinc-800">{item.orderType}</td>
-                  <td className="py-3 px-4 text-zinc-800 text-right">{item.vanne !== null ? item.vanne : ''}</td>
-                  <td className="py-3 px-4 text-right">
-                    <span className="font-black text-black text-lg">
-                      {/* Simulate after fill by adding order to current */}
-                      {calculatedOrder > 0 ? (item.current + calculatedOrder).toFixed(1) : ''}
-                    </span>
-                    {calculatedOrder > 0 && <span className="text-zinc-600 text-sm ml-1">{item.unit}</span>}
-                  </td>
                   <td className="py-3 px-4 text-right border-l border-zinc-100 bg-zinc-50">
-                    <span className="font-bold text-black">{item.annualConsumption}</span>
-                    <span className="text-zinc-600 text-sm ml-1">{item.unit}</span>
+                    <span className="font-bold text-black">{formatNum(annualConsumption)}</span>
                   </td>
                 </tr>
               );
