@@ -32,11 +32,19 @@ export default async function DashboardPage() {
 
     // 2. Fetching upcoming deliveries from DB
     const upcomingDeliveries = await prisma.delivery.findMany({
-        where: { date_expected: { gte: new Date() }, date_delivered: new Date("2099-12-31") },
+        where: { date_expected: { gte: new Date() } },
         include: { food: true, contract: { include: { supplier: true } } },
         orderBy: { date_expected: 'asc' },
-        take: 4
+        take: 3
     });
+
+    if (!upcomingDeliveries) {
+        console.log("No upcoming deliveries");
+    }else {
+        console.log("hello")
+    }
+
+
 
     // 3. Simulated Ration Progress Data
     const rationDone = false; // "En cours"
@@ -137,7 +145,7 @@ export default async function DashboardPage() {
                                         <FontAwesomeIcon icon={faTruckFast} className="text-blue-500" /> Livraisons à venir
                                     </h3>
                                     <p className="text-base font-medium text-zinc-500 mt-2">
-                                        Aperçu des prochaines réceptions d'aliments planifiées selon vos contrats actifs en cours.
+                                        Aperçu des 3 prochaines réceptions d'aliments planifiées selon vos contrats.
                                     </p>
                                 </div>
                                 <Link href="/fournisseurs" className="text-sm font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors shrink-0">
@@ -148,7 +156,7 @@ export default async function DashboardPage() {
                             <div className="flex-1 overflow-hidden mt-2">
                                 {upcomingDeliveries.length > 0 ? (
                                     <div className="space-y-4">
-                                        {upcomingDeliveries.map((delivery) => {
+                                        {upcomingDeliveries.map((delivery: any) => {
                                             const daysDiff = Math.ceil((new Date(delivery.date_expected).getTime() - Date.now()) / (1000 * 3600 * 24));
                                             return (
                                                 <div key={delivery.id} className="flex items-center gap-4 p-4 rounded-2xl hover:bg-zinc-50 transition-colors border border-transparent hover:border-zinc-200 bg-white shadow-sm">
