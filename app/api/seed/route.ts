@@ -14,40 +14,38 @@ export async function GET() {
 
     // 2. Insert default Unit Types
     const unitTypesData = [
-      { name: "tm" },
-      { name: "kg" },
-      { name: "poches" }
+      { name: "tm", ration_to_kg: 1000 },
+      { name: "kg", ration_to_kg: 1 },
+      { name: "poches", ration_to_kg: 25 }
     ];
     
     for (const unit of unitTypesData) {
-      await prisma.unit_type.upsert({
-        where: { name: unit.name },
-        update: {},
-        create: unit
-      });
+      const existing = await prisma.unit_type.findFirst({ where: { name: unit.name } });
+      if (!existing) {
+        await prisma.unit_type.create({ data: unit });
+      }
     }
 
     // 3. Insert default Storage Locations
     const storageLocationsData = [
-      { name: "Silo #1 -Prémix" },
-      { name: "Silo #2 -Low group" },
-      { name: "Silo #3 -Amino+" },
-      { name: "Silo #4 Fraîche" },
-      { name: "Silo #5 -Taries" },
-      { name: "Silo #6 -Maïs sec" },
-      { name: "Silo #7 -Ens. Maïs" },
-      { name: "Parc A" },
-      { name: "Parc B" },
-      { name: "Grange" },
-      { name: "Réservoir principal" }
+      { name: "Silo #1 -Prémix", max_capacity: 50000 },
+      { name: "Silo #2 -Low group", max_capacity: 50000 },
+      { name: "Silo #3 -Amino+", max_capacity: 50000 },
+      { name: "Silo #4 Fraîche", max_capacity: 50000 },
+      { name: "Silo #5 -Taries", max_capacity: 50000 },
+      { name: "Silo #6 -Maïs sec", max_capacity: 50000 },
+      { name: "Silo #7 -Ens. Maïs", max_capacity: 50000 },
+      { name: "Parc A", max_capacity: 10000 },
+      { name: "Parc B", max_capacity: 10000 },
+      { name: "Grange", max_capacity: 200000 },
+      { name: "Réservoir principal", max_capacity: 100000 }
     ];
 
     for (const storage of storageLocationsData) {
-      await prisma.storage.upsert({
-        where: { name: storage.name },
-        update: {},
-        create: storage
-      });
+      const existing = await prisma.storage.findFirst({ where: { name: storage.name } });
+      if (!existing) {
+        await prisma.storage.create({ data: storage });
+      }
     }
 
     // 4. Fetch the inserted IDs for relationships
@@ -69,12 +67,7 @@ export async function GET() {
           is_active: true,
           price_per_ms: mockFood.pricePerMs || mockFood.pricePerTqs || 0,
           price_per_tqs: mockFood.pricePerTqs || 0,
-          ms_percentage: mockFood.msPercentage || 100,
-          daily_servings: {
-            create: {
-              quantity: mockFood.consumptionRate || 0
-            }
-          }
+          ms_percentage: mockFood.msPercentage || 100
         }
       });
     }
