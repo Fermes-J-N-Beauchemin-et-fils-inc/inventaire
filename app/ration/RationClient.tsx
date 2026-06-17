@@ -7,7 +7,12 @@ import RationForm from "./components/RationForm";
 import RationReport from "./components/RationReport";
 import TractorUI from "./components/TractorUI";
 
-export default function RationClient({ isDistributor }: { isDistributor: boolean }) {
+interface RationClientProps {
+  isDistributor: boolean;
+  availableAliments: { id: string; name: string }[];
+}
+
+export default function RationClient({ isDistributor, availableAliments }: RationClientProps) {
   const [view, setView] = useState<'form' | 'tractor' | 'report'>('form');
   const [saison, setSaison] = useState<Saison>('hiver');
   const [globalPluie, setGlobalPluie] = useState<PluieMode>('normal');
@@ -345,6 +350,7 @@ export default function RationClient({ isDistributor }: { isDistributor: boolean
           saison={saison}
           tour1Keys={tour1Keys}
           tour2Keys={tour2Keys}
+          availableAliments={availableAliments}
           handleReorderGroups={handleReorderGroups}
           handleSaisonToggle={handleSaisonToggle}
           globalPluie={globalPluie}

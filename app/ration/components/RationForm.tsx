@@ -3,13 +3,13 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCarrot, faPlus, faTrash, faSun, faSnowflake, faGripVertical, faCloudShowersHeavy, faExclamationTriangle, faTractor } from '@fortawesome/free-solid-svg-icons';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { GroupsState, GroupKey, Saison, PluieMode, GroupPluieMode } from '../types';
-import { mockAlimentsDetails } from '../../aliments/data/mockAliments';
 
 interface RationFormProps {
   groups: GroupsState;
   saison: Saison;
   tour1Keys: GroupKey[];
   tour2Keys: GroupKey[];
+  availableAliments: { id: string; name: string }[];
   handleReorderGroups: (sourceTour: 1 | 2, destTour: 1 | 2, sourceIndex: number, destIndex: number) => void;
   handleSaisonToggle: () => void;
   globalPluie: PluieMode;
@@ -28,7 +28,7 @@ interface RationFormProps {
 }
 
 export default function RationForm({ 
-  groups, saison, tour1Keys, tour2Keys, handleReorderGroups, handleSaisonToggle, globalPluie, setGlobalPluie, handleGroupPluieChange,
+  groups, saison, tour1Keys, tour2Keys, availableAliments, handleReorderGroups, handleSaisonToggle, globalPluie, setGlobalPluie, handleGroupPluieChange,
   notes, setNotes, handleGroupChange, handleNoteChange, handleSystemNoteChange,
   handleAddAliment, handleUpdateAliment, handleRemoveAliment, handleReorderAliments,
   onGenerate 
@@ -210,7 +210,7 @@ export default function RationForm({
                             className="flex-1 px-3 py-2 text-base font-black text-black border-2 border-zinc-400 hover:border-black focus:border-blue-600 rounded-lg focus:outline-none bg-zinc-100 shadow-sm cursor-pointer"
                           >
                             {Array.from(new Set([
-                              ...mockAlimentsDetails.map(a => a.commonName),
+                              ...availableAliments.map(a => a.name),
                               aliment.name
                             ])).sort().map(name => (
                               <option key={name} value={name}>{name}</option>
