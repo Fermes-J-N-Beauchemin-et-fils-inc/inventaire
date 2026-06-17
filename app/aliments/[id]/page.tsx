@@ -1,9 +1,8 @@
-'use client';
-
-import React, { use } from 'react';
+import React from 'react';
 import Sidenav from "@/app/components/ui/sidenav";
-import { mockAlimentsDetails } from '../data/mockAliments';
+import { prisma } from "@/app/lib/db";
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faArrowLeft, faDroplet, faWeightHanging, faBoxesStacked,
@@ -11,11 +10,26 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { SingleLineChart, DualLineChart } from '../components/AlimentCharts';
 
-export default function AlimentDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
-  const aliment = mockAlimentsDetails.find(a => a.id === resolvedParams.id);
+export default async function AlimentDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  const id = parseInt(resolvedParams.id, 10);
 
-  if (!aliment) {
+  if (isNaN(id)) {
+    notFound();
+  }
+
+  const food = await prisma.food.findUnique({
+    where: { id },
+    include: {
+      unit_type: true,
+      storage: true,
+      deliveries: {
+        where: { date_expected: { gte: new Date() } }
+      }
+    }
+  });
+
+  if (!food) {
     return (
       <Sidenav>
         <div className="min-h-screen bg-[#FAF8F5] p-8 flex flex-col items-center justify-center">
@@ -25,27 +39,58 @@ export default function AlimentDetailPage({ params }: { params: Promise<{ id: st
             Retour à la liste
           </Link>
         </div>
-
       </Sidenav>
     );
   }
 
-  // Conversions
-  // Supposons que aliment.unit = 'tm' ou 'poches'.
-  // 1 tm = 1000 kg. 1 tonne courte (ton) = 907.185 kg.
+  // Construct view model
+  const aliment = {
+    id: food.id,
+    fullName: food.name,
+    commonName: food.common_name || "N/A",
+    currentStock: food.current_stock,
+    maxStock: food.current_stock * 2 || 100, // Dummy max stock
+    unit: food.unit_type.name,
+    msPercentage: food.ms_percentage,
+    humidityPercentage: 100 - food.ms_percentage,
+    storageLocation: food.storage.name,
+    pricePerMS: food.price_per_ms,
+    pricePerTQS: food.price_per_tqs,
+    hasActiveOrder: food.deliveries.length > 0,
+    expectedDeliveryDays: food.deliveries.length > 0 ? Math.ceil((food.deliveries[0].date_expected.getTime() - Date.now()) / (1000 * 3600 * 24)) : null,
+    
+    // Dummy fields for charts and conversions that rely on mock data structure
+    kgPerBag: food.unit_type.name.toLowerCase() === 'poches' ? 25 : undefined,
+    consumptionRate: 0,
+    consumptionHistory: [{ date: 'Auj.', value: 0 }],
+    msHistory: [{ date: 'Auj.', value: food.ms_percentage }],
+    stockHistory: [{ date: 'Auj.', value: food.current_stock }],
+    priceHistory: [{ date: 'Auj.', priceMS: food.price_per_ms, priceTQS: food.price_per_tqs }],
+    nutritionalValues: {
+      MAT: 0,
+      NDF: 0,
+      ADF: 0,
+      PDI: 0,
+      PDR: 0,
+      ENC: 0,
+      ENL: 0
+    },
+    notes: ""
+  };
+
   let stockKg = 0;
   let stockTm = 0;
   let stockTon = 0;
   let stockPoches = 0;
 
-  if (aliment.unit === 'tm') {
+  if (aliment.unit.toLowerCase() === 'tm') {
     stockTm = aliment.currentStock;
     stockKg = stockTm * 1000;
     stockTon = stockKg / 907.185;
     if (aliment.kgPerBag) {
       stockPoches = Math.floor(stockKg / aliment.kgPerBag);
     }
-  } else if (aliment.unit === 'poches' && aliment.kgPerBag) {
+  } else if (aliment.unit.toLowerCase() === 'poches' && aliment.kgPerBag) {
     stockPoches = aliment.currentStock;
     stockKg = stockPoches * aliment.kgPerBag;
     stockTm = stockKg / 1000;
@@ -164,6 +209,14 @@ export default function AlimentDetailPage({ params }: { params: Promise<{ id: st
               <h3 className="text-sm font-black text-zinc-400 uppercase tracking-widest mb-4">Conversions en temps réel</h3>
               <ul className="space-y-4">
                 <li className="flex justify-between items-center border-b border-zinc-200 pb-2">
+                  <span className="font-bold text-zinc-600">Prix / TQS</span>
+                  <span className="font-black text-lg text-zinc-900">{aliment.pricePerTQS.toLocaleString('fr-CA', { maximumFractionDigits: 2 })}$</span>
+                </li>
+                <li className="flex justify-between items-center border-b border-zinc-200 pb-2">
+                  <span className="font-bold text-zinc-600">Prix / MS</span>
+                  <span className="font-black text-lg text-zinc-900">{aliment.pricePerMS.toLocaleString('fr-CA', { maximumFractionDigits: 2 })}$</span>
+                </li>
+                <li className="flex justify-between items-center border-b border-zinc-200 pb-2">
                   <span className="font-bold text-zinc-600">Kilogrammes (kg)</span>
                   <span className="font-black text-lg text-zinc-900">{stockKg.toLocaleString('fr-CA', { maximumFractionDigits: 1 })} kg</span>
                 </li>
@@ -250,11 +303,11 @@ export default function AlimentDetailPage({ params }: { params: Promise<{ id: st
                 <div className="flex gap-4">
                   <div className="bg-emerald-50 border border-emerald-100 px-4 py-2 rounded-xl text-center">
                     <p className="text-xs font-black text-emerald-800 uppercase tracking-widest mb-1">Prix TQS</p>
-                    <p className="text-xl font-black text-emerald-700">{aliment.pricePerTqs.toFixed(2)}$ / tm</p>
+                    <p className="text-xl font-black text-emerald-700">{aliment.pricePerTQS.toFixed(2)}$ / tm</p>
                   </div>
                   <div className="bg-amber-50 border border-amber-100 px-4 py-2 rounded-xl text-center">
                     <p className="text-xs font-black text-amber-800 uppercase tracking-widest mb-1">Prix MS</p>
-                    <p className="text-xl font-black text-amber-700">{aliment.pricePerMs.toFixed(2)}$ / tm</p>
+                    <p className="text-xl font-black text-amber-700">{aliment.pricePerMS.toFixed(2)}$ / tm</p>
                   </div>
                 </div>
               </div>
