@@ -84,14 +84,14 @@ export function DashboardRedirectCard({ href, icon, label, description, color }:
     return (
         <Link
             href={href}
-            className={`p-8 rounded-[1.5rem] border-[1.5px] border-zinc-200/80 shadow-sm flex items-start gap-6 transition-all duration-300 ${styles.container} ${styles.hover}`}
+            className={`p-4 sm:p-5 rounded-[1.5rem] border-[1.5px] border-zinc-200/80 shadow-sm flex flex-col items-start gap-3 sm:gap-4 transition-all duration-300 min-w-0 ${styles.container} ${styles.hover}`}
         >
-            <div className={`p-4 rounded-2xl flex-shrink-0 flex items-center justify-center text-4xl shadow-sm ${styles.iconBg} ${styles.iconText}`}>
+            <div className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl flex-shrink-0 flex items-center justify-center text-xl sm:text-2xl shadow-sm ${styles.iconBg} ${styles.iconText}`}>
                 {icon}
             </div>
-            <div className="flex flex-col text-left justify-center h-full pt-1">
-                <h3 className={`font-black text-2xl leading-tight mb-2 ${styles.title}`}>{label}</h3>
-                <p className={`text-base font-medium leading-snug ${styles.desc}`}>{description}</p>
+            <div className="flex flex-col text-left justify-center w-full pt-1 min-w-0 flex-1">
+                <h3 className={`font-black text-lg sm:text-xl leading-tight mb-1 truncate w-full ${styles.title}`}>{label}</h3>
+                <p className={`text-xs sm:text-sm font-medium leading-snug line-clamp-2 w-full ${styles.desc}`}>{description}</p>
             </div>
         </Link>
     );
