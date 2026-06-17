@@ -70,3 +70,40 @@ model Verification {
   @@index([identifier])
   @@map("verification")
 }
+
+// food info 
+model Food {
+  id Int @id @default(autoincrement())
+  name String 
+  unit_type_id Int 
+  is_active Boolean  @default(true)
+  storage_id Int
+  current_stock float
+  ration_ms_per_day_kg float
+
+  Unit_type Unit_type @relation(fields: [unit_type_id], references: [id])
+  Storage Storage @relation(fields: [storage_id], references: [id])
+  createdAt DateTime @default(now()) 
+  updatedAt DateTime @updatedAt 
+  @@map("food")
+}
+
+model Storage {
+  id Int @id @default(autoincrement()) 
+  name String 
+  max_capacity Int 
+  
+  is_active Boolean  @default(true)
+  createdAt DateTime @default(now()) 
+  updatedAt DateTime @updatedAt 
+  @@map("storage")
+}
+
+model Unit_type {
+  id Int @id @default(autoincrement()) 
+  name String 
+  ration_to_kg float 
+  createdAt DateTime @default(now()) 
+  updatedAt DateTime @updatedAt 
+  @@map("unit")
+}
