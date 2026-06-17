@@ -8,16 +8,16 @@ datasource db {
 }
 
 model User {
-  id            String    @id
-  name          String
-  email         String    @unique
-  emailVerified Boolean   @default(false)
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  failedAttempts Int      @default(0)
+  id             String    @id
+  name           String
+  email          String    @unique
+  emailVerified  Boolean   @default(false)
+  image          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  failedAttempts Int       @default(0)
   lockoutUntil   DateTime?
-  role           String   @default("admin")
+  role           String    @default("admin")
   sessions       Session[]
   accounts       Account[]
 
@@ -71,108 +71,187 @@ model Verification {
   @@map("verification")
 }
 
-// food info 
-model Food {
-  id Int @id @default(autoincrement())
-  name String 
-  unit_type_id Int 
-  storage_id Int
-  current_stock float
-  is_active Boolean  @default(true)
+// ---------------------------------------------------------
+// 1. Core Models (Corrected Syntax & Relations)
+// ---------------------------------------------------------
 
-  Unit_type Unit_type @relation(fields: [unit_type_id], references: [id])
-  Storage Storage @relation(fields: [storage_id], references: [id])
-  createdAt DateTime @default(now()) 
-  updatedAt DateTime @updatedAt 
+model Food {
+  id            Int     @id @default(autoincrement())
+  name          String
+  unit_type_id  Int
+  storage_id    Int
+  current_stock Float
+  is_active     Boolean @default(true)
+
+  // Current values to be snapshot-ed
+  price_per_ms  Float @default(0)
+  price_per_tqs Float @default(0)
+  ms_percentage Float @default(0)
+
+  // Relations
+  unit_type Unit_type @relation(fields: [unit_type_id], references: [id])
+  storage   Storage   @relation(fields: [storage_id], references: [id])
+
+  // Reverse relations required by Prisma
+  daily_servings     DailyServing[]
+  deliveries         Delivery[]
+  contracts          Contract[]
+  food_snapshots     FoodSnapshot[]
+  stock_transactions StockTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@map("food")
 }
 
-// groups 
-model group {
-  id Int @id @default(autoincrement()) 
-  name String 
+model Group {
+  id                Int     @id @default(autoincrement())
+  name              String
   real_animal_count Int
-  animals_fed Int 
-  notes String 
-  important_notes String 
-  performance_index float
-  weather String
-  season String
+  animals_fed       Int
+  notes             String?
+  important_notes   String?
+  performance_index Float
+  weather           String?
+  season            String?
+
+  daily_servings  DailyServing[]
+  group_snapshots GroupSnapshot[]
+
   @@map("group")
 }
 
-model daily_serving {
-  id Int @id @default(autoincrement()) 
-  food_id Int
-  group_id Int 
-  daily_kg_serving_ms float
-  
-  food Food @relation(fields: [food_id], references: [id])
+model DailyServing {
+  id                  Int   @id @default(autoincrement())
+  food_id             Int
+  group_id            Int
+  daily_kg_serving_ms Float
+
+  food  Food  @relation(fields: [food_id], references: [id])
   group Group @relation(fields: [group_id], references: [id])
+
   @@map("daily_serving")
 }
 
+model Supplier {
+  id           Int     @id @default(autoincrement())
+  name         String
+  phone_number String
+  address      String
+  email        String
+  logo         String?
+  is_active    Boolean @default(true)
 
-// supplier, conrats and delivery 
-model supplier {
-  id Int @id @default(autoincrement()) 
-  name String 
-  phone_number String 
-  address String 
-  email String 
-  logo String?
-  is_active Boolean  @default(true)
-  createdAt DateTime @default(now()) 
-  updatedAt DateTime @updatedAt 
+  contracts Contract[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@map("supplier")
 }
 
-model delivery {
-  id Int @id @default(autoincrement()) 
-  contract_id Int
-  food_id Int 
-  quantity_received float
-  date_delivered DateTime
-  date_expected DateTime 
+model Delivery {
+  id                Int      @id @default(autoincrement())
+  contract_id       Int
+  food_id           Int
+  quantity_received Float
+  date_delivered    DateTime
+  date_expected     DateTime
 
-  food Food @relation(fields: [food_id],references: [id])
+  food     Food     @relation(fields: [food_id], references: [id])
   contract Contract @relation(fields: [contract_id], references: [id])
-}
 
+  @@map("delivery")
+}
 
 model Contract {
-  id Int @id @default(autoincrement()) 
-  name String 
-  supplier_id Int
-  food_id Int
-  total_kg float
-  kg_left_to_deliver float
-  price_per_kg float
-  date_start DateTime 
-  date_end DateTime 
+  id                 Int      @id @default(autoincrement())
+  name               String
+  supplier_id        Int
+  food_id            Int
+  total_kg           Float
+  kg_left_to_deliver Float
+  price_per_kg       Float
+  date_start         DateTime
+  date_end           DateTime
 
-  supplier Supplier @relation(fields: [supplier_id], references: [id])
-  food Food @relation(fields: [food_id], references: [id])
+  supplier   Supplier   @relation(fields: [supplier_id], references: [id])
+  food       Food       @relation(fields: [food_id], references: [id])
+  deliveries Delivery[]
+
+  @@map("contract")
 }
 
-
-
 model Storage {
-  id Int @id @default(autoincrement()) 
-  name String 
-  max_capacity Int 
-  
-  is_active Boolean  @default(true)
-  createdAt DateTime @default(now()) 
-  updatedAt DateTime @updatedAt 
+  id           Int     @id @default(autoincrement())
+  name         String
+  max_capacity Int
+  is_active    Boolean @default(true)
+
+  foods Food[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@map("storage")
 }
 
 model Unit_type {
-  id Int @id @default(autoincrement()) 
-  name String 
-  ration_to_kg float 
-  createdAt DateTime @default(now()) 
-  updatedAt DateTime @updatedAt 
+  id           Int    @id @default(autoincrement())
+  name         String
+  ration_to_kg Float
+
+  foods Food[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@map("unit")
+}
+
+// ---------------------------------------------------------
+// 2. Snapshots & Transactions (New additions)
+// ---------------------------------------------------------
+
+model FoodSnapshot {
+  id          Int      @id @default(autoincrement())
+  food_id     Int
+  recorded_at DateTime @default(now())
+
+  ms_percentage Float
+  price_per_ms  Float
+  price_per_tqs Float
+
+  food Food @relation(fields: [food_id], references: [id], onDelete: Cascade)
+
+  @@map("food_snapshot")
+}
+
+model StockTransaction {
+  id               Int      @id @default(autoincrement())
+  food_id          Int
+  quantity         Float // Negative for consumption, positive for delivery/adjustment
+  transaction_type String // "CONSUMPTION", "DELIVERY", "ADJUSTMENT"
+  recorded_at      DateTime @default(now())
+
+  food Food @relation(fields: [food_id], references: [id], onDelete: Cascade)
+
+  @@map("stock_transaction")
+}
+
+model GroupSnapshot {
+  id          Int      @id @default(autoincrement())
+  group_id    Int
+  recorded_at DateTime @default(now())
+
+  real_animal_count Int
+  animals_fed       Int
+  performance_index Float
+  weather           String?
+  season            String?
+
+  group Group @relation(fields: [group_id], references: [id], onDelete: Cascade)
+
+  @@map("group_snapshot")
 }
