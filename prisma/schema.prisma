@@ -76,10 +76,9 @@ model Food {
   id Int @id @default(autoincrement())
   name String 
   unit_type_id Int 
-  is_active Boolean  @default(true)
   storage_id Int
   current_stock float
-  ration_ms_per_day_kg float
+  is_active Boolean  @default(true)
 
   Unit_type Unit_type @relation(fields: [unit_type_id], references: [id])
   Storage Storage @relation(fields: [storage_id], references: [id])
@@ -87,6 +86,49 @@ model Food {
   updatedAt DateTime @updatedAt 
   @@map("food")
 }
+
+model supplier {
+  id Int @id @default(autoincrement()) 
+  name String 
+  phone_number String 
+  address String 
+  email String 
+  logo String?
+  is_active Boolean  @default(true)
+  createdAt DateTime @default(now()) 
+  updatedAt DateTime @updatedAt 
+  @@map("supplier")
+}
+
+model delivery {
+  id Int @id @default(autoincrement()) 
+  contract_id Int
+  food_id Int 
+  quantity_received float
+  date_delivered DateTime
+  date_expected DateTime 
+  
+  food Food @relation(fields: [food_id],references: [id])
+  contract Contract @relation(fields: [contract_id], references: [id])
+}
+
+
+model Contract {
+  id Int @id @default(autoincrement()) 
+  name String 
+  supplier_id Int
+  food_id Int
+  total_kg float
+  kg_left_to_deliver float
+  price_per_kg float
+  date_start DateTime 
+  date_end DateTime 
+
+  supplier Supplier @relation(fields: [supplier_id], references: [id])
+  food Food @relation(fields: [food_id], references: [id])
+}
+
+
 
 model Storage {
   id Int @id @default(autoincrement()) 
