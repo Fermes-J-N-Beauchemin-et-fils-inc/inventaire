@@ -52,6 +52,16 @@ export async function receiveDelivery(formData: FormData) {
           }
         }
       });
+
+      // Log the transaction
+      await tx.stockTransaction.create({
+        data: {
+          food_id: delivery.food_id,
+          quantity: stockToAdd, // Addition
+          transaction_type: "DELIVERY",
+          recorded_at: new Date()
+        }
+      });
     }
   });
 
