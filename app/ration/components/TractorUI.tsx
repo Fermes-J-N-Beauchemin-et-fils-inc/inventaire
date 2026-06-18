@@ -16,11 +16,15 @@ interface TractorUIProps {
   onAdjustAlimentWeight: (groupKey: GroupKey, tour: 1 | 2, alimentId: string, actualV2: number) => void;
   onIndiceChange: (groupKey: GroupKey, tour: 1 | 2, newIndice: string) => void;
   onGroupPluieChange: (groupKey: GroupKey, mode: GroupPluieMode) => void;
+  pushedRationId?: number;
+  completedKeys?: string[];
+  isReadOnly?: boolean;
 }
 
 export default function TractorUI({
   groups, saison, tour1Keys, tour2Keys, globalPluie, handleReorderGroups,
-  onToggleGroupCompletion, onFinishAll, onAdjustAlimentWeight, onIndiceChange, onGroupPluieChange
+  onToggleGroupCompletion, onFinishAll, onAdjustAlimentWeight, onIndiceChange, onGroupPluieChange,
+  pushedRationId, completedKeys, isReadOnly
 }: TractorUIProps) {
   const [mounted, setMounted] = useState(false);
   React.useEffect(() => setMounted(true), []);
@@ -40,10 +44,16 @@ export default function TractorUI({
   const groupKeys = Object.keys(groups) as GroupKey[];
 
   const isGroupCompleted = (key: GroupKey, tour: 1 | 2) => {
+    if (pushedRationId && completedKeys) {
+        return completedKeys.includes(`${key}-tour${tour}`);
+    }
     return tour === 1 ? !!groups[key].completedAt : !!groups[key].completedAtTour2;
   };
 
   const getCompletionTime = (key: GroupKey, tour: 1 | 2) => {
+    if (pushedRationId && completedKeys && completedKeys.includes(`${key}-tour${tour}`)) {
+        return "Terminé";
+    }
     return tour === 1 ? groups[key].completedAt : groups[key].completedAtTour2;
   };
 
@@ -239,26 +249,35 @@ export default function TractorUI({
               </h2>
               <div className="text-2xl text-zinc-700 font-bold mt-4 flex flex-wrap items-center gap-4">
                 <span>Vaches: <span className="text-blue-600">{group.fed}</span> / {group.real}</span>
-                <button
-                  onClick={() => { setIndiceModal({ key, tour, currentIndice: indiceStr }); setIndiceValue(indiceStr); }}
-                  className="bg-yellow-100 hover:bg-yellow-200 text-yellow-900 px-4 py-2 rounded-xl border-2 border-yellow-300 transition-colors flex items-center gap-2 cursor-pointer shadow-sm active:scale-95"
-                >
-                  Indice: {indiceStr} <FontAwesomeIcon icon={faPen} className="text-sm opacity-50" />
-                </button>
-                <div className="flex items-center bg-blue-50 border-2 border-blue-200 px-4 py-2 rounded-xl text-blue-800 shadow-sm ml-0 sm:ml-2">
-                  <FontAwesomeIcon icon={faCloudShowersHeavy} className="mr-3" />
-                  <select
-                    value={group.pluieMode || 'global'}
-                    onChange={(e) => onGroupPluieChange(key, e.target.value as GroupPluieMode)}
-                    className="bg-transparent font-black outline-none cursor-pointer"
-                  >
-                    <option value="global">Météo: Globale</option>
-                    <option value="normal">Normal</option>
-                    <option value="semi-pluie">Semi-Pluie</option>
-                    <option value="pluie">Pluie</option>
-                    <option value="extra-pluie">Extra-Pluie</option>
-                  </select>
-                </div>
+                {!isReadOnly && !pushedRationId && (
+                    <>
+                        <button
+                          onClick={() => { setIndiceModal({ key, tour, currentIndice: indiceStr }); setIndiceValue(indiceStr); }}
+                          className="bg-yellow-100 hover:bg-yellow-200 text-yellow-900 px-4 py-2 rounded-xl border-2 border-yellow-300 transition-colors flex items-center gap-2 cursor-pointer shadow-sm active:scale-95"
+                        >
+                          Indice: {indiceStr} <FontAwesomeIcon icon={faPen} className="text-sm opacity-50" />
+                        </button>
+                        <div className="flex items-center bg-blue-50 border-2 border-blue-200 px-4 py-2 rounded-xl text-blue-800 shadow-sm ml-0 sm:ml-2">
+                          <FontAwesomeIcon icon={faCloudShowersHeavy} className="mr-3" />
+                          <select
+                            value={group.pluieMode || 'global'}
+                            onChange={(e) => onGroupPluieChange(key, e.target.value as GroupPluieMode)}
+                            className="bg-transparent font-black outline-none cursor-pointer"
+                          >
+                            <option value="global">Météo: Globale</option>
+                            <option value="normal">Normal</option>
+                            <option value="semi-pluie">Semi-Pluie</option>
+                            <option value="pluie">Pluie</option>
+                            <option value="extra-pluie">Extra-Pluie</option>
+                          </select>
+                        </div>
+                    </>
+                )}
+                {(isReadOnly || pushedRationId) && (
+                    <span className="bg-yellow-100 text-yellow-900 px-3 py-1 rounded-lg text-lg font-black border border-yellow-300 shadow-sm">
+                        Indice: {indiceStr}
+                    </span>
+                )}
               </div>
             </div>
             {isCompleted && (
@@ -330,7 +349,7 @@ export default function TractorUI({
                       <span className="text-4xl sm:text-5xl font-black text-blue-700">{scaledV2} <span className="text-2xl sm:text-3xl font-bold text-blue-500/70">kg</span></span>
                     </div>
                     {/* Ajuster button */}
-                    {typeof scaledV2 === 'number' && (
+                    {typeof scaledV2 === 'number' && !isReadOnly && !pushedRationId && (
                       <button
                         onClick={() => { setAdjustModal({ key, tour, alimentId: aliment.id, alimentName: aliment.name, targetV2: scaledV2 }); setAdjustValue(""); }}
                         className="ml-0 sm:ml-4 mt-4 sm:mt-0 w-full sm:w-auto shrink-0 bg-blue-100 hover:bg-blue-200 text-blue-900 px-4 py-3 rounded-xl border border-blue-300 font-bold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-sm"
@@ -346,13 +365,15 @@ export default function TractorUI({
             })}
           </div>
 
-          <button
-            onClick={() => handleAttemptFinishGroup(key, tour)}
-            className="w-full py-8 bg-[#15803D] hover:bg-green-700 active:bg-green-800 text-white font-black text-4xl rounded-3xl shadow-xl hover:shadow-2xl transition-all hover:-translate-y-2 flex items-center justify-center gap-4"
-          >
-            <FontAwesomeIcon icon={faCheck} className="text-5xl" />
-            {isCompleted ? "Fermer le groupe" : "Terminé pour ce groupe"}
-          </button>
+          {!isReadOnly && (
+              <button
+                onClick={() => handleAttemptFinishGroup(key, tour)}
+                className="w-full py-8 bg-[#15803D] hover:bg-green-700 active:bg-green-800 text-white font-black text-4xl rounded-3xl shadow-xl hover:shadow-2xl transition-all hover:-translate-y-2 flex items-center justify-center gap-4"
+              >
+                <FontAwesomeIcon icon={faCheck} className="text-5xl" />
+                {isCompleted ? "Fermer le groupe" : "Terminé pour ce groupe"}
+              </button>
+          )}
         </div>
       </div>
     );
@@ -450,12 +471,14 @@ export default function TractorUI({
                         {isCompleted ? (
                           <div className="mt-8 pt-6 border-t-4 border-green-200/50 flex items-center justify-between">
                             <span className="text-2xl font-black text-green-700">Fait à {completionTime}</span>
-                            <button
-                              onClick={(e) => handleUndoGroup(e, key, tour)}
-                              className="px-6 py-3 bg-white text-zinc-500 font-bold text-xl rounded-xl border-2 border-zinc-200 hover:bg-zinc-100 hover:text-black transition-colors shadow-sm"
-                            >
-                              Annuler
-                            </button>
+                            {!isReadOnly && !pushedRationId && (
+                                <button
+                                  onClick={(e) => handleUndoGroup(e, key, tour)}
+                                  className="px-6 py-3 bg-white text-zinc-500 font-bold text-xl rounded-xl border-2 border-zinc-200 hover:bg-zinc-100 hover:text-black transition-colors shadow-sm"
+                                >
+                                  Annuler
+                                </button>
+                            )}
                           </div>
                         ) : (
                           <div className="mt-8 pt-6 border-t-4 border-zinc-100">

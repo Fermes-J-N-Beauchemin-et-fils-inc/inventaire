@@ -1,9 +1,10 @@
 import Sidenav from "@/app/components/ui/sidenav";
 import React from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBoxOpen, faCarrot, faBuildingColumns, faWheatAwn, faSeedling, faChartLine, faTruckFast, faCheckCircle, faClock } from "@fortawesome/free-solid-svg-icons";
+import { faBoxOpen, faCarrot, faBuildingColumns, faWheatAwn, faSeedling, faChartLine, faTruckFast } from "@fortawesome/free-solid-svg-icons";
 import { DashboardRedirectCard } from "@/app/components/dashboard/DashboardRedirectCard";
 import { AlertCard, MessageCard } from "@/app/components/dashboard/NotificationCards";
+import RationProgressWidget from "@/app/components/dashboard/RationProgressWidget";
 import { auth } from "@/app/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -37,20 +38,6 @@ export default async function DashboardPage() {
         orderBy: { date_expected: 'asc' },
         take: 3
     });
-
-    if (!upcomingDeliveries) {
-        console.log("No upcoming deliveries");
-    }else {
-        console.log("hello")
-    }
-
-
-
-    // 3. Simulated Ration Progress Data
-    const rationDone = false; // "En cours"
-    const groupsTotal = 4;
-    const groupsDone = 3;
-    const rationProgressPercent = (groupsDone / groupsTotal) * 100;
 
     return (
         <Sidenav initials={userInitials}>
@@ -102,40 +89,7 @@ export default async function DashboardPage() {
 
                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                         {/* Ration Progress Widget */}
-                        <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] border border-zinc-100 shadow-xl shadow-zinc-200/50 p-8 flex flex-col justify-between transition-all hover:scale-[1.01] min-h-[250px]">
-                            <div className="flex justify-between items-start mb-6">
-                                <div>
-                                    <h3 className="font-black text-2xl text-zinc-900">Progression de la Ration</h3>
-                                    <p className="text-base font-medium text-zinc-500 mt-2">
-                                        Suivez l'état de la distribution de la ration pour l'ensemble des groupes d'animaux aujourd'hui.
-                                    </p>
-                                </div>
-                                <div className={`w-14 h-14 rounded-full flex items-center justify-center shadow-inner shrink-0 ${rationDone ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
-                                    <FontAwesomeIcon icon={rationDone ? faCheckCircle : faClock} className="text-3xl" />
-                                </div>
-                            </div>
-
-                            {rationDone ? (
-                                <div className="text-center py-4 mt-auto">
-                                    <p className="text-3xl font-black text-green-600">Ration Terminée</p>
-                                    <p className="text-base font-bold text-zinc-500 mt-2">Tous les groupes ont été nourris.</p>
-                                </div>
-                            ) : (
-                                <div className="mt-auto">
-                                    <div className="flex justify-between items-end mb-3">
-                                        <span className="text-5xl font-black text-zinc-900">{groupsDone}<span className="text-3xl text-zinc-400">/{groupsTotal}</span></span>
-                                        <span className="text-sm font-black text-orange-600 bg-orange-50 px-4 py-2 rounded-full uppercase tracking-widest">En cours</span>
-                                    </div>
-                                    <div className="w-full h-5 bg-zinc-100 rounded-full overflow-hidden mt-4 shadow-inner">
-                                        <div 
-                                            className="h-full rounded-full bg-gradient-to-r from-orange-400 to-orange-500 transition-all duration-1000 ease-out"
-                                            style={{ width: `${rationProgressPercent}%` }}
-                                        />
-                                    </div>
-                                    <p className="text-sm font-bold text-zinc-500 mt-4 text-center">{groupsDone} groupes nourris sur {groupsTotal}</p>
-                                </div>
-                            )}
-                        </div>
+                        <RationProgressWidget />
 
                         {/* Upcoming Deliveries Widget */}
                         <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] border border-zinc-100 shadow-xl shadow-zinc-200/50 p-8 transition-all hover:scale-[1.01] min-h-[250px] flex flex-col">
@@ -248,7 +202,6 @@ export default async function DashboardPage() {
                         />
                     </div>
                 </section>
-
             </div>
         </Sidenav>
     );

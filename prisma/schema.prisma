@@ -256,3 +256,15 @@ model GroupSnapshot {
 
   @@map("group_snapshot")
 }
+
+model PushedRation {
+  id             Int      @id @default(autoincrement())
+  date           DateTime @default(now())
+  status         String   @default("EN_COURS") // EN_COURS, TERMINEE
+  groups_total   Int
+  groups_done    Int      @default(0)
+  payload        Json     // Le contenu figé de la ration (groupes, aliments, quantités)
+  completed_keys Json?    // Liste des clés de groupes terminés (ex: ["g1", "taries"])
+  
+  @@map("pushed_ration")
+}

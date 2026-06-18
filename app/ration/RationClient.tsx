@@ -6,6 +6,7 @@ import { GroupKey, GroupsState, Saison, PluieMode, GroupPluieMode } from "./type
 import RationForm from "./components/RationForm";
 import RationReport from "./components/RationReport";
 import TractorUI from "./components/TractorUI";
+import toast, { Toaster } from "react-hot-toast";
 
 interface RationClientProps {
   isDistributor: boolean;
@@ -16,12 +17,62 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
   const [view, setView] = useState<'form' | 'tractor' | 'report'>('form');
   const [saison, setSaison] = useState<Saison>('hiver');
   const [globalPluie, setGlobalPluie] = useState<PluieMode>('normal');
+  const [pushedRation, setPushedRation] = useState<any>(null);
+  const [isLoadingPushed, setIsLoadingPushed] = useState(true);
+
+  // Poll for active pushed ration
+  useEffect(() => {
+    const fetchActiveRation = async () => {
+      try {
+        const res = await fetch('/api/ration/active');
+        if (res.ok) {
+          const data = await res.json();
+          setPushedRation(data.activeRation);
+          
+          if (data.activeRation && data.activeRation.status === 'EN_COURS' && view === 'form') {
+              setView('tractor');
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch active ration", err);
+      } finally {
+        setIsLoadingPushed(false);
+      }
+    };
+
+    fetchActiveRation();
+    const interval = setInterval(fetchActiveRation, 5000); // poll every 5s
+    return () => clearInterval(interval);
+  }, []); // Only run once on mount
 
   useEffect(() => {
-    if (isDistributor && view === 'form') {
-      setView('tractor');
+    if (isDistributor && view === 'form' && !isLoadingPushed) {
+      if (pushedRation) {
+        setView('tractor');
+      }
     }
-  }, [isDistributor, view]);
+  }, [isDistributor, view, pushedRation, isLoadingPushed]);
+
+  const handlePushRation = async () => {
+    const groupsTotal = saison === 'hiver' ? tour1Keys.length : (tour1Keys.length + tour2Keys.length);
+    try {
+      const res = await fetch('/api/ration/push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groups, groups_total: groupsTotal })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPushedRation(data.pushedRation);
+        toast.success("Ration poussée avec succès !");
+        setView('tractor');
+      } else {
+        toast.error("Erreur lors de la poussée de la ration.");
+      }
+    } catch (err) {
+      toast.error("Erreur serveur.");
+    }
+  };
 
   // Form State
   const [notes, setNotes] = useState("");
@@ -265,28 +316,47 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
     });
   };
 
-  const handleToggleGroupCompletion = (key: GroupKey, tour: 1 | 2 = 1) => {
-    setGroups(prev => {
-      if (tour === 1) {
-        const isCompleted = !!prev[key].completedAt;
-        return {
-          ...prev,
-          [key]: {
-            ...prev[key],
-            completedAt: isCompleted ? undefined : new Date().toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' })
-          }
-        };
-      } else {
-        const isCompleted = !!prev[key].completedAtTour2;
-        return {
-          ...prev,
-          [key]: {
-            ...prev[key],
-            completedAtTour2: isCompleted ? undefined : new Date().toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' })
-          }
-        };
+  const handleToggleGroupCompletion = async (key: GroupKey, tour: 1 | 2 = 1) => {
+    const fullKey = `${key}-tour${tour}`;
+    if (pushedRation && isDistributor) {
+      try {
+         const res = await fetch('/api/ration/complete-group', {
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify({ id: pushedRation.id, group_key: fullKey })
+         });
+         if (res.ok) {
+            const data = await res.json();
+            setPushedRation(data.pushedRation);
+         } else {
+            toast.error("Erreur de sauvegarde");
+         }
+      } catch (err) {
+         toast.error("Erreur réseau");
       }
-    });
+    } else {
+      setGroups(prev => {
+        if (tour === 1) {
+          const isCompleted = !!prev[key].completedAt;
+          return {
+            ...prev,
+            [key]: {
+              ...prev[key],
+              completedAt: isCompleted ? undefined : new Date().toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' })
+            }
+          };
+        } else {
+          const isCompleted = !!prev[key].completedAtTour2;
+          return {
+            ...prev,
+            [key]: {
+              ...prev[key],
+              completedAtTour2: isCompleted ? undefined : new Date().toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' })
+            }
+          };
+        }
+      });
+    }
   };
 
   const handleSaisonToggle = () => {
@@ -322,6 +392,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
     if (isDistributor) {
       return (
         <div className="min-h-screen bg-zinc-100 flex flex-col">
+          <Toaster position="top-center" />
           <header className="bg-white shadow-sm border-b border-zinc-200 px-6 py-4 flex justify-end items-center print:hidden">
             <button 
               onClick={async () => {
@@ -340,8 +411,40 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
         </div>
       );
     }
-    return <Sidenav>{content}</Sidenav>;
+    return <Sidenav initials={""}><Toaster position="top-center" />{content}</Sidenav>;
   };
+
+  if (isLoadingPushed) {
+    return renderLayout(
+        <div className="flex items-center justify-center min-h-[50vh]">
+            <p className="text-xl font-bold text-zinc-500 animate-pulse">Chargement de la ration...</p>
+        </div>
+    );
+  }
+
+  if (isDistributor && !pushedRation) {
+      return renderLayout(
+          <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
+              <div className="w-24 h-24 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-6">
+                <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+              </div>
+              <h2 className="text-3xl font-black text-zinc-900 mb-2">Ration non poussée</h2>
+              <p className="text-lg text-zinc-500 max-w-md">L'administrateur n'a pas encore préparé et poussé la ration d'aujourd'hui. Veuillez patienter.</p>
+          </div>
+      );
+  }
+
+  if (isDistributor && pushedRation && pushedRation.status === 'TERMINEE') {
+      return renderLayout(
+          <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
+              <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6">
+                <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+              </div>
+              <h2 className="text-3xl font-black text-zinc-900 mb-2">Distribution finie pour aujourd'hui</h2>
+              <p className="text-lg text-zinc-500 max-w-md">Excellent travail. Tous les groupes ont été nourris.</p>
+          </div>
+      );
+  }
 
   if (view === 'form' && !isDistributor) {
     return renderLayout(
@@ -365,15 +468,21 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
           handleReorderAliments={handleReorderAliments}
           notes={notes}
           setNotes={setNotes}
-          onGenerate={() => setView('tractor')}
+          onGenerate={() => {
+              if (window.confirm("Êtes-vous sûr de vouloir pousser cette ration pour la distribution ? Les valeurs seront figées.")) {
+                  handlePushRation();
+              }
+          }}
         />
     );
   }
 
   if (view === 'tractor') {
+    // Determine which groups to use (from DB or local state if not pushed)
+    const displayGroups = pushedRation ? pushedRation.payload : groups;
     return renderLayout(
         <TractorUI 
-          groups={groups}
+          groups={displayGroups}
           saison={saison}
           tour1Keys={tour1Keys}
           tour2Keys={tour2Keys}
@@ -384,6 +493,10 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
           onAdjustAlimentWeight={handleAdjustAlimentWeight}
           onIndiceChange={handleIndiceChange}
           onGroupPluieChange={handleGroupPluieChange}
+          // Pass pushed info for realtime rendering
+          pushedRationId={pushedRation?.id}
+          completedKeys={pushedRation?.completed_keys || []}
+          isReadOnly={!isDistributor}
         />
     );
   }
@@ -391,7 +504,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
   if (view === 'report') {
     return renderLayout(
         <RationReport 
-          groups={groups}
+          groups={pushedRation ? pushedRation.payload : groups}
           notes={notes}
           tour1Keys={tour1Keys}
           tour2Keys={tour2Keys}
