@@ -1,0 +1,223 @@
+'use client';
+
+import React, { useState, useTransition } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faFlask, faExclamationTriangle, faSave, faCheckCircle, faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { updateDailyServing } from '../actions';
+import toast, { Toaster } from 'react-hot-toast';
+
+interface GroupData {
+  id: number;
+  name: string;
+  daily_servings: {
+    id: number;
+    food_id: number;
+    daily_kg_serving_ms: number;
+  }[];
+}
+
+interface FoodData {
+  id: number;
+  name: string;
+  ms_percentage: number;
+}
+
+interface Props {
+  groups: GroupData[];
+  foods: FoodData[];
+}
+
+export default function NutritionClient({ groups, foods }: Props) {
+  // Local state to track modifications before saving
+  const [servings, setServings] = useState<{ [groupId: number]: { [foodId: number]: number } }>(() => {
+    const initialState: any = {};
+    groups.forEach(g => {
+      initialState[g.id] = {};
+      g.daily_servings.forEach(ds => {
+        initialState[g.id][ds.food_id] = ds.daily_kg_serving_ms;
+      });
+    });
+    return initialState;
+  });
+
+  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
+
+  const [isPending, startTransition] = useTransition();
+
+  const handleValueChange = (groupId: number, foodId: number, value: string) => {
+    const numValue = parseFloat(value) || 0;
+    setServings(prev => ({
+      ...prev,
+      [groupId]: {
+        ...prev[groupId],
+        [foodId]: numValue
+      }
+    }));
+  };
+
+  const handleSaveGroup = async (groupId: number) => {
+    startTransition(async () => {
+      try {
+        const groupServings = servings[groupId];
+        if (!groupServings) return;
+        
+        // We iterate through all foods to update/delete values
+        const promises = foods.map(food => {
+          const val = groupServings[food.id] || 0;
+          return updateDailyServing(groupId, food.id, val);
+        });
+
+        await Promise.all(promises);
+        toast.success(`Formulation sauvegardée pour ${groups.find(g => g.id === groupId)?.name}`);
+      } catch (error) {
+        console.error("Failed to save", error);
+        toast.error("Erreur lors de la sauvegarde.");
+      }
+    });
+  };
+
+  const selectedGroup = groups.find(g => g.id === selectedGroupId);
+
+  return (
+    <div>
+      <Toaster position="top-center" />
+      
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+        <div>
+          <h1 className="text-4xl sm:text-5xl font-black text-zinc-900 tracking-tight flex items-center gap-4">
+            <div className="w-16 h-16 bg-pink-600 text-white rounded-[1.5rem] flex items-center justify-center shadow-lg shadow-pink-600/30">
+              <FontAwesomeIcon icon={faFlask} />
+            </div>
+            Formulation
+          </h1>
+          <p className="text-xl text-zinc-500 font-medium mt-4 max-w-3xl">
+            Définissez la quantité de base en Kg de Matière Sèche (MS) par vache.
+          </p>
+        </div>
+      </div>
+
+      {/* Warning */}
+      <div className="bg-red-50 border-2 border-red-200 rounded-[2rem] p-6 mb-10 flex items-start gap-4">
+        <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center shrink-0 text-xl">
+          <FontAwesomeIcon icon={faExclamationTriangle} />
+        </div>
+        <div>
+          <h4 className="text-xl font-black text-red-800">Zone réservée au nutritionniste</h4>
+          <p className="text-red-700/80 font-medium mt-1">
+            Les valeurs saisies ici servent de base de calcul pour tout le reste du système (ration et inventaire). 
+            Modifiez ces paramètres uniquement lors des visites de formulation.
+          </p>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      {!selectedGroup ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {groups.map(group => {
+            const groupServings = servings[group.id] || {};
+            const totalMs = Object.values(groupServings).reduce((sum, val) => sum + val, 0);
+            const activeIngredientsCount = Object.values(groupServings).filter(val => val > 0).length;
+
+            return (
+              <button
+                key={group.id}
+                onClick={() => setSelectedGroupId(group.id)}
+                className="bg-white rounded-[2rem] border border-zinc-200 shadow-sm hover:shadow-md hover:border-pink-200 transition-all p-6 text-left group flex flex-col min-h-[200px]"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-2xl font-black text-zinc-900 group-hover:text-pink-600 transition-colors">
+                    {group.name}
+                  </h3>
+                  <div className="w-10 h-10 rounded-full bg-zinc-50 flex items-center justify-center text-zinc-400 group-hover:bg-pink-50 group-hover:text-pink-500 transition-colors">
+                    &rarr;
+                  </div>
+                </div>
+                
+                <div className="mt-auto space-y-2">
+                  <div className="flex justify-between items-center text-zinc-500">
+                    <span className="font-medium">Total cible</span>
+                    <span className="font-black text-lg text-zinc-900">{totalMs.toFixed(2)} kg MS</span>
+                  </div>
+                  <div className="flex justify-between items-center text-zinc-500">
+                    <span className="font-medium">Ingrédients</span>
+                    <span className="font-black text-zinc-700">{activeIngredientsCount}</span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="bg-white rounded-[2rem] border border-zinc-200 shadow-sm overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="p-6 border-b border-zinc-100 bg-zinc-50 flex justify-between items-center flex-wrap gap-4">
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={() => setSelectedGroupId(null)}
+                className="w-10 h-10 rounded-full bg-white border border-zinc-200 flex items-center justify-center text-zinc-500 hover:text-black hover:bg-zinc-100 shadow-sm transition-colors"
+              >
+                &larr;
+              </button>
+              <h3 className="text-2xl font-black text-zinc-900">{selectedGroup.name}</h3>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="text-zinc-600 font-bold bg-white px-4 py-2 rounded-xl shadow-sm border border-zinc-200">
+                Total: <span className="text-pink-600 font-black ml-2">
+                  {Object.values(servings[selectedGroup.id] || {}).reduce((sum, val) => sum + val, 0).toFixed(2)} kg MS
+                </span>
+              </div>
+              <button 
+                onClick={() => handleSaveGroup(selectedGroup.id)}
+                disabled={isPending}
+                className="bg-zinc-900 hover:bg-black text-white px-6 py-2.5 rounded-xl font-black shadow-lg hover:shadow-xl transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                {isPending ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faSave} />}
+                Sauvegarder
+              </button>
+            </div>
+          </div>
+          
+          <div className="p-6 overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="text-sm font-black text-zinc-400 uppercase tracking-widest border-b-2 border-zinc-100">
+                  <th className="pb-4">Aliment</th>
+                  <th className="pb-4 w-32">% MS</th>
+                  <th className="pb-4 w-48">Kg MS / Vache</th>
+                  <th className="pb-4 w-48">Kg Tel Quel (estimé)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {foods.map(food => {
+                  const kgMs = (servings[selectedGroup.id] || {})[food.id] || 0;
+                  const kgTqs = kgMs > 0 && food.ms_percentage > 0 ? kgMs / (food.ms_percentage / 100) : 0;
+                  
+                  return (
+                    <tr key={food.id} className={`transition-colors hover:bg-zinc-50 ${kgMs === 0 ? 'opacity-50 hover:opacity-100' : ''}`}>
+                      <td className="py-4 font-bold text-zinc-900">{food.name}</td>
+                      <td className="py-4 font-medium text-zinc-500">{food.ms_percentage}%</td>
+                      <td className="py-4">
+                        <input 
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={kgMs || ''}
+                          onChange={(e) => handleValueChange(selectedGroup.id, food.id, e.target.value)}
+                          placeholder="0.00"
+                          className="w-full max-w-[120px] px-3 py-2 border-2 border-zinc-200 rounded-lg font-black text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 outline-none transition-all"
+                        />
+                      </td>
+                      <td className="py-4 font-bold text-zinc-400">
+                        {kgTqs > 0 ? kgTqs.toFixed(2) : '-'} kg
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

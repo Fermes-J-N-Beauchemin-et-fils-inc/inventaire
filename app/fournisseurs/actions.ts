@@ -97,16 +97,25 @@ export async function createDelivery(formData: FormData) {
         }
       });
       
-      // Update food stock
+      // Update food stock directly (units are matching: kg)
       await tx.food.update({
         where: { id: food_id },
         data: {
           current_stock: {
-            increment: quantity_received / 1000 // assuming quantity is in kg and stock is in tm... wait! The user stores stock differently.
+            increment: quantity_received
           }
         }
       });
-      // Note: We might need a better conversion based on unit_type, but for simplicity we'll just increment here assuming quantities are matched, or we skip food stock increment for now as it's complex and just do Contract decrement.
+      
+      // Log the transaction
+      await tx.stockTransaction.create({
+        data: {
+          food_id: food_id,
+          quantity: quantity_received,
+          transaction_type: "DELIVERY",
+          recorded_at: new Date(date_delivered)
+        }
+      });
     }
   });
 
