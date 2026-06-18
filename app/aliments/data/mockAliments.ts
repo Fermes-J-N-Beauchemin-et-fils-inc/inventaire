@@ -27,7 +27,7 @@ export interface AlimentDetail {
   };
   // Historique pour les graphiques
   consumptionHistory: { date: string; value: number }[];
-  priceHistory: { date: string; ms: number; tqs: number }[];
+  priceHistory: { date: string; priceMs: number; priceTqs: number }[];
   msHistory: { date: string; value: number }[];
   isActive?: boolean;
 }
