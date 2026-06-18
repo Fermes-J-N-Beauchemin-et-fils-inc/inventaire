@@ -14,7 +14,7 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { groups, groups_total } = body;
+        const { groups, groups_total, saison, globalPluie } = body;
 
         if (!groups || typeof groups_total !== 'number') {
             return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
@@ -43,14 +43,22 @@ export async function POST(request: Request) {
                 }))
             }),
             prisma.groupSnapshot.createMany({
-                data: groupsData.map(g => ({
-                    group_id: g.id,
-                    real_animal_count: g.real_animal_count,
-                    animals_fed: g.animals_fed,
-                    performance_index: g.performance_index,
-                    weather: g.weather,
-                    season: g.season
-                }))
+                data: groupsData.map(g => {
+                    const groupKey = g.id.toString();
+                    const groupFrontend = groups[groupKey];
+                    const weather = groupFrontend?.pluieMode && groupFrontend.pluieMode !== 'global' 
+                        ? groupFrontend.pluieMode 
+                        : (globalPluie || g.weather || 'normal');
+                        
+                    return {
+                        group_id: g.id,
+                        real_animal_count: g.real_animal_count,
+                        animals_fed: g.animals_fed,
+                        performance_index: g.performance_index,
+                        weather: weather,
+                        season: saison || g.season
+                    };
+                })
             })
         ]);
 

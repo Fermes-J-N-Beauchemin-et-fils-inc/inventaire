@@ -45,3 +45,20 @@ export async function fetchSuppliersWithContracts() {
     orderBy: { name: 'asc' }
   });
 }
+
+export type StorageData = Awaited<ReturnType<typeof fetchStorages>>[number];
+
+export async function fetchStorages() {
+  return await prisma.storage.findMany({
+    include: {
+      foods: {
+        select: {
+          id: true,
+          name: true,
+          current_stock: true
+        }
+      }
+    },
+    orderBy: { name: 'asc' }
+  });
+}

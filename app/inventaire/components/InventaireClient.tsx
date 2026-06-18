@@ -1,21 +1,23 @@
 'use client';
 
 import React, { useState } from 'react';
-import { InventoryFoodData, DeliveryData, SupplierWithContractsData } from '../data/fetchInventaire';
+import { InventoryFoodData, DeliveryData, SupplierWithContractsData, StorageData } from '../data/fetchInventaire';
 import InventaireTable from './InventaireTable';
 import LivraisonsView from './LivraisonsView';
 import OrderEstimation from './OrderEstimation';
 import ReceptionView from './ReceptionView';
+import StockageView from './StockageView';
 
-type ViewMode = 'inventaire' | 'livraisons' | 'reception';
+type ViewMode = 'inventaire' | 'livraisons' | 'reception' | 'stockage';
 
 interface InventaireClientProps {
   inventory: InventoryFoodData[];
   deliveries: DeliveryData[];
   suppliers: SupplierWithContractsData[];
+  storages: StorageData[];
 }
 
-export default function InventaireClient({ inventory, deliveries, suppliers }: InventaireClientProps) {
+export default function InventaireClient({ inventory, deliveries, suppliers, storages }: InventaireClientProps) {
   const [view, setView] = useState<ViewMode>('inventaire');
   
   // For OrderEstimation, it expects daysToOrder state. We can hoist it here or push it down.
@@ -55,6 +57,15 @@ export default function InventaireClient({ inventory, deliveries, suppliers }: I
         >
           Entrée Bon Livraison
         </button>
+        <button
+          onClick={() => setView('stockage')}
+          className={`px-5 py-3 rounded-lg text-sm sm:text-base font-black transition-all ${view === 'stockage'
+            ? 'bg-amber-100 text-amber-900 shadow-md ring-2 ring-amber-800'
+            : 'text-zinc-800 hover:bg-zinc-200 hover:text-black'
+            }`}
+        >
+          Lieux de Stockage
+        </button>
       </div>
 
       {/* Content Section */}
@@ -63,13 +74,16 @@ export default function InventaireClient({ inventory, deliveries, suppliers }: I
           <InventaireTable inventory={inventory} />
         )}
 
+        {view === 'stockage' && (
+          <StockageView storages={storages} />
+        )}
+
         {view === 'livraisons' && (
           <div className="flex flex-col gap-10">
             <LivraisonsView
               deliveries={deliveries}
               suppliers={suppliers}
             />
-            {/* Note: OrderEstimation is currently tightly coupled to mock data structure. We pass the DB inventory. It will need to be refactored too. */}
             <OrderEstimation
               inventory={inventory}
               daysToOrder={daysToOrder}
@@ -79,7 +93,6 @@ export default function InventaireClient({ inventory, deliveries, suppliers }: I
         )}
 
         {view === 'reception' && (
-          // Note: ReceptionView also needs to be refactored to use DB data.
           <ReceptionView
             deliveries={deliveries}
             inventory={inventory}

@@ -63,7 +63,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
       const res = await fetch('/api/ration/push', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ groups, groups_total: groupsTotal })
+        body: JSON.stringify({ groups, groups_total: groupsTotal, saison, globalPluie })
       });
       if (res.ok) {
         const data = await res.json();

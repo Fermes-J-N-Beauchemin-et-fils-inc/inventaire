@@ -2,16 +2,17 @@ export const dynamic = 'force-dynamic';
 
 import React from 'react';
 import Sidenav from "@/app/components/ui/sidenav";
-import { fetchInventoryFoods, fetchDeliveries, fetchSuppliersWithContracts } from './data/fetchInventaire';
+import { fetchInventoryFoods, fetchDeliveries, fetchSuppliersWithContracts, fetchStorages } from './data/fetchInventaire';
 import InventaireClient from './components/InventaireClient';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBoxOpen } from "@fortawesome/free-solid-svg-icons";
 
 export default async function InventairePage() {
-  const [inventory, deliveries, suppliers] = await Promise.all([
+  const [inventory, deliveries, suppliers, storages] = await Promise.all([
     fetchInventoryFoods(),
     fetchDeliveries(),
-    fetchSuppliersWithContracts()
+    fetchSuppliersWithContracts(),
+    fetchStorages()
   ]);
 
   const todayDate = new Date().toLocaleDateString('fr-CA', {
@@ -42,6 +43,7 @@ export default async function InventairePage() {
             inventory={inventory} 
             deliveries={deliveries} 
             suppliers={suppliers} 
+            storages={storages}
           />
         </div>
       </div>

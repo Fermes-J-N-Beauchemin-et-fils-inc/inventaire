@@ -58,3 +58,16 @@ export async function receiveDelivery(formData: FormData) {
   revalidatePath('/inventaire');
   revalidatePath('/fournisseurs');
 }
+
+export async function updateStorageCapacity(storageId: number, maxCapacityTm: number) {
+  if (isNaN(storageId) || isNaN(maxCapacityTm) || maxCapacityTm < 0) {
+    throw new Error("Valeurs invalides.");
+  }
+
+  await prisma.storage.update({
+    where: { id: storageId },
+    data: { max_capacity: maxCapacityTm }
+  });
+
+  revalidatePath('/inventaire');
+}

@@ -14,3 +14,7 @@ s'execute sur le edge donc très rapide
 
 ### prisma 
 shchema.prisma holds the LDD schema 
+
+### actions are server side queries and compute 
+
+fonction asynchrone sur le serveur 
