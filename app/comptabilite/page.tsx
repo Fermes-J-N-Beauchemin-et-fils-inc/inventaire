@@ -5,22 +5,42 @@ import Link from 'next/link';
 import Sidenav from "@/app/components/ui/sidenav";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBuildingColumns, faCalendarDays } from '@fortawesome/free-solid-svg-icons';
-import { getComptabiliteDataForDate, ComptabiliteData } from './data/mockComptabilite';
 import BilanCards from './components/BilanCards';
 import ComptabiliteGraph from './components/ComptabiliteGraph';
 import GroupsDataView from './components/GroupsDataView';
 
 export default function ComptabilitePage() {
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [data, setData] = useState<ComptabiliteData | null>(null);
+  const [data, setData] = useState<any | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Re-generate mock data when date changes
-    const newData = getComptabiliteDataForDate(selectedDate);
-    setData(newData);
+    const fetchData = async () => {
+        setIsLoading(true);
+        try {
+            const res = await fetch(`/api/comptabilite?date=${selectedDate}`);
+            if (res.ok) {
+                const json = await res.json();
+                setData(json);
+            }
+        } catch (error) {
+            console.error("Failed to fetch comptabilite data", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    fetchData();
   }, [selectedDate]);
 
-  if (!data) return null;
+  if (isLoading || !data) {
+    return (
+        <Sidenav>
+            <div className="flex items-center justify-center min-h-[50vh]">
+                <p className="text-xl font-bold text-zinc-500 animate-pulse">Chargement de la comptabilité...</p>
+            </div>
+        </Sidenav>
+    );
+  }
 
   const todayISO = new Date().toISOString().split('T')[0];
   const isToday = selectedDate === todayISO;

@@ -14,7 +14,7 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { id, group_key } = body;
+        const { id, group_key, consumed } = body;
 
         if (!id || !group_key) {
             return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
@@ -40,13 +40,48 @@ export async function POST(request: Request) {
         const newGroupsDone = completedKeys.length;
         const newStatus = newGroupsDone >= pushedRation.groups_total ? "TERMINEE" : "EN_COURS";
 
-        const updated = await prisma.pushedRation.update({
-            where: { id: parseInt(id) },
-            data: {
-                completed_keys: completedKeys,
-                groups_done: newGroupsDone,
-                status: newStatus
+        // Handle inventory deduction and status update in a transaction
+        const updated = await prisma.$transaction(async (tx) => {
+            const updatedRation = await tx.pushedRation.update({
+                where: { id: parseInt(id) },
+                data: {
+                    completed_keys: completedKeys,
+                    groups_done: newGroupsDone,
+                    status: newStatus
+                }
+            });
+
+            // Deduct inventory and log transactions
+            if (consumed && Array.isArray(consumed)) {
+                for (const item of consumed) {
+                    if (!item.food_id || isNaN(item.consumed_tqs)) continue;
+                    
+                    const foodId = parseInt(item.food_id);
+                    const quantity = parseFloat(item.consumed_tqs);
+                    if (quantity <= 0) continue;
+
+                    // Update stock
+                    await tx.food.update({
+                        where: { id: foodId },
+                        data: {
+                            current_stock: {
+                                decrement: quantity
+                            }
+                        }
+                    });
+
+                    // Log transaction
+                    await tx.stockTransaction.create({
+                        data: {
+                            food_id: foodId,
+                            quantity: -quantity,
+                            transaction_type: "CONSUMPTION"
+                        }
+                    });
+                }
             }
+            
+            return updatedRation;
         });
 
         return NextResponse.json({ success: true, pushedRation: updated });

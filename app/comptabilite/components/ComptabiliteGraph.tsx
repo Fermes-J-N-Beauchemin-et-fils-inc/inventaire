@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { GraphDataPoint } from '../data/mockComptabilite';
+import { GraphDataPoint } from '../types';
 
 interface ComptabiliteGraphProps {
   data: GraphDataPoint[];

@@ -54,7 +54,11 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
   }, [isDistributor, view, pushedRation, isLoadingPushed]);
 
   const handlePushRation = async () => {
-    const groupsTotal = saison === 'hiver' ? tour1Keys.length : (tour1Keys.length + tour2Keys.length);
+    // Dynamically calculate groupsTotal based on groups actually being fed (fed > 0)
+    const activeTour1 = tour1Keys.filter(k => groups[k] && groups[k].fed > 0);
+    const activeTour2 = saison === 'ete' ? tour2Keys.filter(k => groups[k] && groups[k].fed > 0) : [];
+    const groupsTotal = activeTour1.length + activeTour2.length;
+
     try {
       const res = await fetch('/api/ration/push', {
         method: 'POST',
@@ -76,120 +80,64 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
 
   // Form State
   const [notes, setNotes] = useState("");
-  const allKeys: GroupKey[] = ['g1', 'g2', 'g3', 'g4', 'taries', 'taures', 'genisses', 'taures_5_6'];
-  const [tour1Keys, setTour1Keys] = useState<GroupKey[]>(['g1', 'g2', 'g3', 'g4']);
-  const [tour2Keys, setTour2Keys] = useState<GroupKey[]>([...allKeys]);
-  const [groups, setGroups] = useState<GroupsState>({
-    g1: { 
-      name: "Mix groupe 1", real: 44, fed: 48, indice: "1.00", indiceTour2: "0.25", time: "11h45/12h30",
-      aliments: [
-        { id: '1', name: "Ens. Foin #2", v1: "424", v2: "424" },
-        { id: '2', name: "Ens. Maïs #7", v1: "1734", v2: "2158" },
-        { id: '3', name: "Tourteau canola", v1: "154", v2: "2312" },
-        { id: '4', name: "Écaille de soya", v1: "107", v2: "2419", highlight: "text-orange-600 font-black", extra: "brasser", extraColor: "text-red-600 font-black text-sm" },
-        { id: '5', name: "Drèche sèche", v1: "0", v2: "2419", extra: "ici", extraColor: "text-red-600 font-black text-sm" },
-        { id: '6', name: "Gras Nurisol", v1: "10", v2: "2429", highlight: "font-black bg-orange-100" },
-        { id: '7', name: "Silo #6 -Maïs sec", v1: "140", v2: "2568" },
-        { id: '8', name: "Silo #4 Fraîche", v1: "129", v2: "2697" },
-        { id: '9', name: "Silo #3 -Amino+", v1: "76", v2: "2773" },
-        { id: '10', name: "Paille silo bleu #7", v1: "17", v2: "2790" },
-        { id: '11', name: "Crème DLP", v1: "203", v2: "2993" },
-        { id: '12', name: "Eau", v1: "169", v2: "3161" },
-      ]
-    },
-    g2: { 
-      name: "Mix groupe 2", real: 99, fed: 100, indice: "1.00", indiceTour2: "0.25", time: "12h30/13h00",
-      aliments: [
-        { id: '1', name: "Ens. Foin #2", v1: "1353", v2: "1353" },
-        { id: '2', name: "Ens. Maïs #7", v1: "4839", v2: "6192" },
-        { id: '3', name: "Tourteau canola", v1: "437", v2: "6628" },
-        { id: '4', name: "Écaille de soya", v1: "133", v2: "6762", highlight: "text-orange-600 font-black", extra: "brasser", extraColor: "text-red-600 font-black text-sm" },
-        { id: '5', name: "Drèche sèche", v1: "180", v2: "6942", extra: "ici", extraColor: "text-red-600 font-black text-sm" },
-        { id: '6', name: "Gras Nurisol", v1: "15", v2: "6957", highlight: "font-black bg-orange-100" },
-        { id: '7', name: "Silo #6 -Maïs sec", v1: "372", v2: "7329" },
-        { id: '8', name: "Silo #1 -Prémix", v1: "214", v2: "7543" },
-        { id: '9', name: "Silo #3 -Amino+", v1: "112", v2: "7655" },
-        { id: '10', name: "Crème DLP", v1: "577", v2: "8232", highlight: "font-black" },
-        { id: '11', name: "Eau", v1: "499", v2: "8731" },
-      ]
-    },
-    g3: { 
-      name: "Mix groupe 3", real: 77, fed: 77, indice: "1.00", indiceTour2: "0.25", time: "13h15/13h45",
-      aliments: [
-        { id: '1', name: "Ens. Foin #2", v1: "793", v2: "793" },
-        { id: '2', name: "Ens. Maïs #7", v1: "3105", v2: "3897" },
-        { id: '3', name: "Tourteau canola", v1: "248", v2: "4145" },
-        { id: '4', name: "Écaille de soya", v1: "43", v2: "4188", highlight: "text-orange-600 font-black", extra: "brasser", extraColor: "text-red-600 font-black text-sm" },
-        { id: '5', name: "Drèche sèche", v1: "156", v2: "4344", extra: "ici", extraColor: "text-red-600 font-black text-sm" },
-        { id: '6', name: "Silo #6 -Maïs sec", v1: "233", v2: "4577" },
-        { id: '7', name: "Silo #1 -Prémix", v1: "132", v2: "4709" },
-        { id: '8', name: "Silo #3 -Amino+", v1: "69", v2: "4778" },
-        { id: '9', name: "Crème DLP", v1: "355", v2: "5133", highlight: "font-black" },
-        { id: '10', name: "Eau", v1: "257", v2: "5390" },
-      ]
-    },
-    g4: { 
-      name: "Mix groupe 4", real: 61, fed: 61, indice: "1.00", indiceTour2: "0.25", time: "13h45/14h15",
-      aliments: [
-        { id: '1', name: "Ens. Foin #2", v1: "1076", v2: "1076" },
-        { id: '2', name: "Ens. Maïs #7", v1: "2479", v2: "3556" },
-        { id: '3', name: "Tourteau canola", v1: "189", v2: "3745" },
-        { id: '4', name: "Écaille de soya", v1: "34", v2: "3779", highlight: "text-orange-600 font-black", extra: "brasser", extraColor: "text-red-600 font-black text-sm" },
-        { id: '5', name: "Drèche sèche", v1: "192", v2: "3971", extra: "ici", extraColor: "text-red-600 font-black text-sm" },
-        { id: '6', name: "Silo #6 -Maïs sec", v1: "234", v2: "4205" },
-        { id: '7', name: "Silo #2 -Low group", v1: "79", v2: "4284" },
-        { id: '8', name: "Silo #3 -Amino+", v1: "34", v2: "4318" },
-        { id: '9', name: "Crème DLP", v1: "328", v2: "4646", highlight: "font-black" },
-        { id: '10', name: "Eau", v1: "202", v2: "4849" },
-      ]
-    },
-    taries: { 
-      name: "Taries normales", real: 33, fed: 33, indice: "1.00", time: "14h15/14h45",
-      systemNote: "Brasse 2000rpm. Dropper aux taries normales jusqu'à 1643.",
-      aliments: [
-        { id: '1', name: "Ens. Maïs #7", v1: "1620", v2: "1620" },
-        { id: '2', name: "Paille silo bleu #7", v1: "389", v2: "2010", highlight: "font-black" },
-        { id: '3', name: "Silo #3 -Amino+", v1: "116", v2: "2126" },
-        { id: '4', name: "Silo #5 -Taries", v1: "76", v2: "2202" },
-        { id: '5', name: "Eau", v1: "1169", v2: "3370" },
-      ]
-    },
-    taures: { 
-      name: "Taures / Pré-vêlage", real: 16, fed: 26, indice: "1.00", time: "",
-      systemNote: "Taures ... Ensuite Pré-vêlage. BRASSER @ 2000RPM 3 minutes !!! Dropper aux TAURES jusqu'à 1159. Ajouter ensuite X-Zélit et brasser 3 minutes!! **Brasser le bedpack Lundi-Mercredi-Vendredi",
-      aliments: [
-        { id: '1', name: "Restant RTM Taries", v1: "1643", v2: "1643" },
-        { id: '2', name: "Silo #3 -Amino+", v1: "29", v2: "1673" },
-        { id: '3', name: "Silo #5 -Taries", v1: "28", v2: "1700" },
-        { id: '4', name: "Silo #6 -Maïs sec", v1: "26", v2: "1726" },
-        { id: '5', name: "Écaille de soya", v1: "25", v2: "1751", highlight: "text-orange-600 font-black italic" },
-        { id: '6', name: "X-Zélit", v1: "12.6", v2: "1171", highlight: "text-purple-700 font-black" },
-      ]
-    },
-    genisses: {
-      name: "Génisses Gr 1-2-3-4 + 3parcs", real: 69, fed: 54, indice: "1.00", time: "14h45/15h15",
-      systemNote: "Brasser au départ (2000rpm).\nPorte #5 (route) ---> Soigner groupe 4-3-2-1\nCommence gr 4 à 1188, vider jusqu'à 838\nCommence gr 3 à 838, vider jusqu'à 555\nCommence gr 2 à 555, vider jusqu'à 326\nCommence gr 1 à 326, vider jusqu'à 125\nAjouter moulée à veau silo #8 dans la ferme 43\n1/2 Parcs 168 vider jusqu'à 0\n\nNotes:\n1. Le parc de veaux de boucherie (P1) est soigné avec 2kg/veau/jr de moulée -> 40kg/3jrs\n2. Le parc de veaux de boucherie (P2) est soigné avec 2kg/veau/jr de moulée -> 30kg/3jrs + un bucket\n3. Le parc de veaux de boucherie (moyen) est soigné avec rtm -> Environ 2 buckets de bobcat\n4. Le parc de veaux de boucherie (dôme) est soigné avec rtm -> Environ 2 buckets de Loader",
-      aliments: [
-        { id: '1', name: "Foin sec commodité", v1: "95", v2: "95", extra: "0 balle", extraColor: "text-zinc-400 font-bold" },
-        { id: '2', name: "Paille silo bleu #7", v1: "0", v2: "95", extra: "Mettre exact", extraColor: "text-red-500 font-bold text-sm" },
-        { id: '3', name: "Tourteau canola", v1: "94", v2: "188", highlight: "bg-orange-100 font-black" },
-        { id: '4', name: "Ens. Maïs #7", v1: "351", v2: "539" },
-        { id: '5', name: "Ens. Foin #2", v1: "639", v2: "1178", highlight: "border-4 border-green-500 font-black" },
-        { id: '6', name: "Minéral Taures", v1: "10", v2: "1188" },
-      ]
-    },
-    taures_5_6: {
-      name: "Ration Taures Gr 5-6 + Taries longues", real: 64, fed: 64, indice: "1.00", time: "",
-      systemNote: "Brasser au départ (2000rpm).\nPorte #5 (route) ---> Soigner groupe 5-6\nCommence gr 5 à 1579, vider jusqu'à 804\nCommence gr 6 à 804, vider jusqu'à 0\n\nSoigner taries longues (centre étable à vaches)\nCommence Taries longues 0, vider jusqu'à 0",
-      aliments: [
-        { id: '1', name: "Foin sec commodité", v1: "152", v2: "152", highlight: "bg-green-100 font-black", extra: "Mettre exacte", extraColor: "text-red-500 font-bold text-sm" },
-        { id: '2', name: "Ens. Maïs #7", v1: "421", v2: "572", extra: "0 balle", extraColor: "text-zinc-400 font-bold" },
-        { id: '3', name: "Tourteau canola", v1: "37", v2: "610", highlight: "bg-orange-100 font-black" },
-        { id: '4', name: "Minéral Taures", v1: "10", v2: "620", extra: "mettre exacte", extraColor: "text-zinc-400 font-bold text-sm" },
-        { id: '5', name: "Ens. Foin #2", v1: "959", v2: "1579", extra: "toppé à ce chiffre", extraColor: "text-zinc-400 font-bold text-sm" },
-      ]
-    },
-  });
+  const [tour1Keys, setTour1Keys] = useState<GroupKey[]>([]);
+  const [tour2Keys, setTour2Keys] = useState<GroupKey[]>([]);
+  const [groups, setGroups] = useState<GroupsState>({});
+  const [isConfigLoading, setIsConfigLoading] = useState(true);
+
+  // Fetch Ration Config if no pushed ration is active
+  useEffect(() => {
+    if (isLoadingPushed) return;
+    if (pushedRation) {
+        // If a ration is pushed, use its payload
+        setGroups(pushedRation.payload);
+        const pushedKeys = Object.keys(pushedRation.payload);
+        // Assuming all keys are in both tours for simplicity, or we can parse from payload if we stored it
+        setTour1Keys(pushedKeys);
+        setTour2Keys(pushedKeys);
+        setIsConfigLoading(false);
+        return;
+    }
+
+    // Fetch config from DB
+    const fetchConfig = async () => {
+      try {
+        const res = await fetch('/api/ration/config');
+        if (res.ok) {
+          const data = await res.json();
+          const initialGroups: GroupsState = {};
+          const keys: GroupKey[] = [];
+          
+          data.groups.forEach((g: any) => {
+            const key = g.id.toString();
+            keys.push(key);
+            initialGroups[key] = {
+              name: g.name,
+              real: g.real_animal_count,
+              fed: g.animals_fed,
+              indice: g.performance_index.toString(),
+              indiceTour2: "0.25", // Default
+              time: "", // Could be added to DB later
+              note: "",
+              systemNote: "",
+              aliments: data.rationConfig[key] || []
+            };
+          });
+
+          setGroups(initialGroups);
+          setTour1Keys([...keys]);
+          setTour2Keys([...keys]);
+        }
+      } catch (err) {
+        console.error("Failed to fetch ration config", err);
+        toast.error("Erreur de chargement de la configuration");
+      } finally {
+        setIsConfigLoading(false);
+      }
+    };
+
+    fetchConfig();
+  }, [isLoadingPushed, pushedRation]);
 
   const handleGroupChange = (key: GroupKey, field: 'fed' | 'indice' | 'indiceTour2' | 'real', value: string | number) => {
     setGroups(prev => ({
@@ -319,11 +267,25 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
   const handleToggleGroupCompletion = async (key: GroupKey, tour: 1 | 2 = 1) => {
     const fullKey = `${key}-tour${tour}`;
     if (pushedRation && isDistributor) {
+      // Calculate consumed amounts based on the current group configuration and indice
+      const group = groups[key];
+      const indiceStr = tour === 1 ? group.indice : (group.indiceTour2 || "1.00");
+      const indice = parseFloat(indiceStr || "1");
+      
+      const consumedAliments = group.aliments.map(a => ({
+          food_id: parseInt(a.id), // Send food_id integer
+          consumed_tqs: Math.round((parseFloat(a.v2) || 0) * indice)
+      }));
+
       try {
          const res = await fetch('/api/ration/complete-group', {
              method: 'POST',
              headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ id: pushedRation.id, group_key: fullKey })
+             body: JSON.stringify({ 
+                 id: pushedRation.id, 
+                 group_key: fullKey,
+                 consumed: consumedAliments
+             })
          });
          if (res.ok) {
             const data = await res.json();
@@ -414,10 +376,10 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
     return <Sidenav initials={""}><Toaster position="top-center" />{content}</Sidenav>;
   };
 
-  if (isLoadingPushed) {
+  if (isLoadingPushed || isConfigLoading) {
     return renderLayout(
         <div className="flex items-center justify-center min-h-[50vh]">
-            <p className="text-xl font-bold text-zinc-500 animate-pulse">Chargement de la ration...</p>
+            <p className="text-xl font-bold text-zinc-500 animate-pulse">Chargement de la configuration...</p>
         </div>
     );
   }
@@ -489,7 +451,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
           globalPluie={globalPluie}
           handleReorderGroups={handleReorderGroups}
           onToggleGroupCompletion={handleToggleGroupCompletion}
-          onFinishAll={() => setView('report')}
+          onFinishAll={() => toast.success("Ration sauvegardée ! (La comptabilité est déjà mise à jour pour chaque groupe)")}
           onAdjustAlimentWeight={handleAdjustAlimentWeight}
           onIndiceChange={handleIndiceChange}
           onGroupPluieChange={handleGroupPluieChange}

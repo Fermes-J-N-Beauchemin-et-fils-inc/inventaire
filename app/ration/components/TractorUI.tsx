@@ -529,12 +529,12 @@ export default function TractorUI({
 
       <DragDropContext onDragEnd={onGlobalDragEnd}>
         {saison === 'hiver' ? (
-          renderGridSection(tour1Keys, 1, "Tous les groupes", "bg-blue-100 text-blue-700")
+          renderGridSection(tour1Keys.filter(k => groups[k]?.fed > 0), 1, "Tous les groupes", "bg-blue-100 text-blue-700")
         ) : (
           <>
-            {renderGridSection(tour1Keys, 1, "Première tournée", "bg-blue-100 text-blue-700")}
+            {renderGridSection(tour1Keys.filter(k => groups[k]?.fed > 0), 1, "Première tournée", "bg-blue-100 text-blue-700")}
             <div className="border-t-4 border-dashed border-zinc-300 pt-16">
-              {renderGridSection(tour2Keys, 2, "Deuxième tournée", "bg-yellow-100 text-yellow-700")}
+              {renderGridSection(tour2Keys.filter(k => groups[k]?.fed > 0), 2, "Deuxième tournée", "bg-yellow-100 text-yellow-700")}
             </div>
           </>
         )}
@@ -547,7 +547,7 @@ export default function TractorUI({
             className="w-full md:w-auto px-16 py-8 bg-[#15803D] hover:bg-green-700 active:bg-green-800 text-white font-black text-4xl rounded-[2.5rem] shadow-2xl hover:shadow-green-900/50 transition-all hover:-translate-y-2 flex items-center justify-center gap-6 mx-auto border-4 border-green-400/30"
           >
             <FontAwesomeIcon icon={faCheckCircle} className="text-5xl" />
-            Générer la fiche finale
+            Sauvegarder
           </button>
           <p className="text-2xl text-zinc-500 font-bold mt-6">
             Toutes les tournées ont été complétées avec succès !

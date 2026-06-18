@@ -23,13 +23,36 @@ export async function POST(request: Request) {
         // Check if there is already an active ration for today, if so, maybe we mark it as replaced or just let it be.
         // For simplicity, we just create a new one. The GET active will fetch the latest one.
 
-        const newRation = await prisma.pushedRation.create({
-            data: {
-                groups_total,
-                payload: groups,
-                completed_keys: [],
-            }
-        });
+        const foods = await prisma.food.findMany();
+        const groupsData = await prisma.group.findMany();
+
+        const [newRation] = await prisma.$transaction([
+            prisma.pushedRation.create({
+                data: {
+                    groups_total,
+                    payload: groups,
+                    completed_keys: [],
+                }
+            }),
+            prisma.foodSnapshot.createMany({
+                data: foods.map(f => ({
+                    food_id: f.id,
+                    ms_percentage: f.ms_percentage,
+                    price_per_ms: f.price_per_ms,
+                    price_per_tqs: f.price_per_tqs
+                }))
+            }),
+            prisma.groupSnapshot.createMany({
+                data: groupsData.map(g => ({
+                    group_id: g.id,
+                    real_animal_count: g.real_animal_count,
+                    animals_fed: g.animals_fed,
+                    performance_index: g.performance_index,
+                    weather: g.weather,
+                    season: g.season
+                }))
+            })
+        ]);
 
         return NextResponse.json({ success: true, pushedRation: newRation });
     } catch (error) {

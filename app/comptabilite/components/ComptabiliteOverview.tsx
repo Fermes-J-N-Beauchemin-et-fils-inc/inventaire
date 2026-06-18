@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { GroupData } from '../data/mockComptabilite';
+import { GroupData } from '../types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCoins, faWeightHanging } from '@fortawesome/free-solid-svg-icons';
 

@@ -1,4 +1,4 @@
-export type GroupKey = 'g1' | 'g2' | 'g3' | 'g4' | 'taries' | 'taures' | 'genisses' | 'taures_5_6';
+export type GroupKey = string;
 
 export type RationAliment = {
   id: string;

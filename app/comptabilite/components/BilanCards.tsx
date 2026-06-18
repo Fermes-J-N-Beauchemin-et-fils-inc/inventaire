@@ -1,7 +1,7 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMoneyBillTrendUp, faScaleBalanced, faChartLine, faTractor } from '@fortawesome/free-solid-svg-icons';
-import { DailySummary, AnnualBilan } from '../data/mockComptabilite';
+import { DailySummary, AnnualBilan } from '../types';
 
 interface BilanCardsProps {
   daily: DailySummary;

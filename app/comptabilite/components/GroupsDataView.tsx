@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { GroupData } from '../data/mockComptabilite';
+import { GroupData } from '../types';
 import ComptabiliteOverview from './ComptabiliteOverview';
 
 interface GroupsDataViewProps {
