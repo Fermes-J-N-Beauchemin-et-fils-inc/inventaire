@@ -44,6 +44,7 @@ export async function fetchAliments(): Promise<AlimentDetail[]> {
         consumptionHistory: generateHistory(1, 0.2, 0),
         priceHistory: generatePriceHistory(food.price_per_ms, food.price_per_tqs),
         msHistory: generateHistory(food.ms_percentage, 1.5, 0),
+        isActive: food.is_active,
       };
     });
 

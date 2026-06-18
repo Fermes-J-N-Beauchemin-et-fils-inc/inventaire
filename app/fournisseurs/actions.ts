@@ -121,3 +121,25 @@ export async function createDelivery(formData: FormData) {
 
   revalidatePath('/fournisseurs');
 }
+
+export async function toggleSupplierStatus(supplierId: number, isActive: boolean) {
+  if (isNaN(supplierId)) throw new Error("ID invalide.");
+  
+  await prisma.supplier.update({
+    where: { id: supplierId },
+    data: { is_active: isActive }
+  });
+
+  revalidatePath('/fournisseurs');
+}
+
+export async function toggleContractStatus(contractId: number, isActive: boolean) {
+  if (isNaN(contractId)) throw new Error("ID invalide.");
+  
+  await prisma.contract.update({
+    where: { id: contractId },
+    data: { is_active: isActive }
+  });
+
+  revalidatePath('/fournisseurs');
+}

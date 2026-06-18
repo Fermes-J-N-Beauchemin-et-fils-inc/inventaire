@@ -27,8 +27,9 @@ export interface AlimentDetail {
   };
   // Historique pour les graphiques
   consumptionHistory: { date: string; value: number }[];
-  priceHistory: { date: string; priceMs: number; priceTqs: number }[];
+  priceHistory: { date: string; ms: number; tqs: number }[];
   msHistory: { date: string; value: number }[];
+  isActive?: boolean;
 }
 
 export const generateHistory = (baseValue: number, volatility: number, trend: number, days: number = 30) => {

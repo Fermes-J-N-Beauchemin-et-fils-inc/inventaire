@@ -8,7 +8,10 @@ import FournisseursClient from './components/FournisseursClient';
 
 export default async function FournisseursPage() {
   const fournisseurs = await fetchFournisseurs();
-  const aliments = await prisma.food.findMany({ select: { id: true, name: true, unit_type: { select: { name: true } } } });
+  const aliments = await prisma.food.findMany({ 
+    where: { is_active: true },
+    select: { id: true, name: true, unit_type: { select: { name: true } } } 
+  });
   
   return (
     <Sidenav>

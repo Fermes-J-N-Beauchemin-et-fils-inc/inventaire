@@ -176,6 +176,7 @@ model Contract {
   price_per_kg       Float
   date_start         DateTime
   date_end           DateTime
+  is_active          Boolean  @default(true)
 
   supplier   Supplier   @relation(fields: [supplier_id], references: [id])
   food       Food       @relation(fields: [food_id], references: [id])

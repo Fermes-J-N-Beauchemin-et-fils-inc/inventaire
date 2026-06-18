@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import { SupplierWithDetails } from '../data/fetchFournisseurs';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTruck, faFileContract, faBuilding, faPlus, faTimes } from '@fortawesome/free-solid-svg-icons';
-import { createSupplier, createContract, createDelivery } from '../actions';
+import { createSupplier, createContract, createDelivery, toggleSupplierStatus, toggleContractStatus } from '../actions';
+import toast from 'react-hot-toast';
 
 interface Props {
   initialFournisseurs: SupplierWithDetails[];
@@ -14,10 +15,33 @@ interface Props {
 export default function FournisseursClient({ initialFournisseurs, aliments }: Props) {
   const [activeTab, setActiveTab] = useState<'fournisseurs' | 'contrats' | 'livraisons'>('fournisseurs');
   const [showModal, setShowModal] = useState<'supplier' | 'contract' | 'delivery' | null>(null);
+  const [isPending, startTransition] = React.useTransition();
 
   // Derive flat lists for easier rendering
   const allContracts = initialFournisseurs.flatMap(s => s.contracts.map(c => ({ ...c, supplier_name: s.name })));
   const allDeliveries = allContracts.flatMap(c => c.deliveries.map(d => ({ ...d, contract_name: c.name, supplier_name: c.supplier_name, food_name: c.food.name, unit: c.food.unit_type.name })));
+
+  const handleToggleSupplier = (id: number, status: boolean) => {
+    startTransition(async () => {
+      try {
+        await toggleSupplierStatus(id, !status);
+        toast.success(`Fournisseur ${status ? 'désactivé' : 'activé'} avec succès.`);
+      } catch (e) {
+        toast.error("Erreur lors de la modification.");
+      }
+    });
+  };
+
+  const handleToggleContract = (id: number, status: boolean) => {
+    startTransition(async () => {
+      try {
+        await toggleContractStatus(id, !status);
+        toast.success(`Contrat ${status ? 'désactivé' : 'activé'} avec succès.`);
+      } catch (e) {
+        toast.error("Erreur lors de la modification.");
+      }
+    });
+  };
 
   return (
     <div>
@@ -77,15 +101,24 @@ export default function FournisseursClient({ initialFournisseurs, aliments }: Pr
       {activeTab === 'fournisseurs' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {initialFournisseurs.map(f => (
-            <div key={f.id} className="bg-white p-6 rounded-[2rem] border border-zinc-200 shadow-sm flex flex-col">
-              <h3 className="text-2xl font-black text-zinc-900 mb-2">{f.name}</h3>
+            <div key={f.id} className={`p-6 rounded-[2rem] border shadow-sm flex flex-col transition-all ${f.is_active ? 'bg-white border-zinc-200' : 'bg-zinc-100 border-zinc-200 opacity-60 grayscale'}`}>
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="text-2xl font-black text-zinc-900">{f.name}</h3>
+                <button 
+                  onClick={() => handleToggleSupplier(f.id, f.is_active)}
+                  disabled={isPending}
+                  className={`px-3 py-1 text-xs font-bold rounded-lg ${f.is_active ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-green-100 text-green-600 hover:bg-green-200'}`}
+                >
+                  {f.is_active ? 'Désactiver' : 'Activer'}
+                </button>
+              </div>
               <div className="text-zinc-500 space-y-1 mb-6">
                 <p>📞 {f.phone_number}</p>
                 <p>✉️ {f.email}</p>
                 <p>📍 {f.address}</p>
               </div>
               <div className="mt-auto pt-4 border-t border-zinc-100 flex justify-between items-center text-sm font-bold text-zinc-400">
-                <span>{f.contracts.length} contrats actifs</span>
+                <span>{f.contracts.length} contrats</span>
                 <span className={f.is_active ? "text-green-500" : "text-red-500"}>
                   {f.is_active ? "Actif" : "Inactif"}
                 </span>
@@ -108,12 +141,16 @@ export default function FournisseursClient({ initialFournisseurs, aliments }: Pr
                 <th className="p-6 font-black">Quantité (kg)</th>
                 <th className="p-6 font-black">Prix/kg</th>
                 <th className="p-6 font-black">Échéance</th>
+                <th className="p-6 font-black text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
               {allContracts.map(c => (
-                <tr key={c.id} className="hover:bg-zinc-50 transition-colors">
-                  <td className="p-6 font-bold text-zinc-900">{c.name}</td>
+                <tr key={c.id} className={`transition-colors ${c.is_active ? 'hover:bg-zinc-50' : 'bg-zinc-50 opacity-60 grayscale'}`}>
+                  <td className="p-6 font-bold text-zinc-900">
+                    {c.name}
+                    {!c.is_active && <span className="ml-2 text-xs font-black text-red-500 uppercase">Désactivé</span>}
+                  </td>
                   <td className="p-6 font-bold text-zinc-600">{c.supplier_name}</td>
                   <td className="p-6 font-bold text-indigo-600 bg-indigo-50/50 rounded-lg inline-block m-4">{c.food.name}</td>
                   <td className="p-6">
@@ -123,6 +160,15 @@ export default function FournisseursClient({ initialFournisseurs, aliments }: Pr
                   <td className="p-6 font-bold text-emerald-600">{c.price_per_kg}$</td>
                   <td className="p-6 text-zinc-500 font-medium">
                     {new Date(c.date_end).toLocaleDateString('fr-CA')}
+                  </td>
+                  <td className="p-6 text-right">
+                    <button 
+                      onClick={() => handleToggleContract(c.id, c.is_active)}
+                      disabled={isPending}
+                      className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${c.is_active ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200' : 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-200'}`}
+                    >
+                      {c.is_active ? 'Désactiver' : 'Activer'}
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -213,9 +259,11 @@ export default function FournisseursClient({ initialFournisseurs, aliments }: Pr
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-bold text-zinc-700 mb-2">Fournisseur *</label>
-                      <select name="supplier_id" required className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl appearance-none">
-                        <option value="">Choisir...</option>
-                        {initialFournisseurs.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                      <select name="supplier_id" required className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold">
+                        <option value="">Sélectionner</option>
+                        {initialFournisseurs.filter(f => f.is_active).map(f => (
+                          <option key={f.id} value={f.id}>{f.name}</option>
+                        ))}
                       </select>
                     </div>
                     <div>

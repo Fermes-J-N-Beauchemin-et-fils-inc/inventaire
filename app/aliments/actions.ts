@@ -63,3 +63,15 @@ export async function updateAliment(id: number, formData: FormData) {
   revalidatePath(`/aliments/${id}`);
   redirect(`/aliments/${id}`);
 }
+
+export async function toggleFoodStatus(foodId: number, isActive: boolean) {
+  if (isNaN(foodId)) throw new Error("ID invalide.");
+  
+  await prisma.food.update({
+    where: { id: foodId },
+    data: { is_active: isActive }
+  });
+
+  revalidatePath('/aliments');
+  revalidatePath(`/aliments/${foodId}`);
+}

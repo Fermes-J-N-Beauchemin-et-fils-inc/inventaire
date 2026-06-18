@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowRight, faBoxesStacked, faChartLine, faSearch, faPlus, faWheatAwn } from '@fortawesome/free-solid-svg-icons';
 import { AlimentDetail } from '../data/mockAliments';
+import { toggleFoodStatus } from '../actions';
+import toast from 'react-hot-toast';
 
 interface AlimentsClientProps {
   initialAliments: AlimentDetail[];
@@ -12,11 +14,24 @@ interface AlimentsClientProps {
 
 export default function AlimentsClient({ initialAliments }: AlimentsClientProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [isPending, startTransition] = React.useTransition();
 
   const filteredAliments = initialAliments.filter(aliment => 
     aliment.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     aliment.id.includes(searchQuery)
   );
+
+  const handleToggleFood = (e: React.MouseEvent, id: string, status: boolean | undefined) => {
+    e.preventDefault(); // Prevent navigating to detail page
+    startTransition(async () => {
+      try {
+        await toggleFoodStatus(Number(id), !status);
+        toast.success(`Aliment ${status ? 'désactivé' : 'activé'} avec succès.`);
+      } catch (err) {
+        toast.error("Erreur lors de la modification.");
+      }
+    });
+  };
 
   return (
     <>
@@ -64,19 +79,35 @@ export default function AlimentsClient({ initialAliments }: AlimentsClientProps)
             <Link 
               href={`/aliments/${aliment.id}`} 
               key={aliment.id}
-              className="group bg-white rounded-[2rem] p-8 border-2 border-zinc-200/60 shadow-sm hover:shadow-2xl hover:border-blue-300 hover:-translate-y-2 transition-all duration-300 flex flex-col"
+              className={`group rounded-[2rem] p-8 border-2 border-zinc-200/60 shadow-sm transition-all duration-300 flex flex-col ${aliment.isActive === false ? 'bg-zinc-100 opacity-60 grayscale hover:grayscale-0' : 'bg-white hover:shadow-2xl hover:border-blue-300 hover:-translate-y-2'}`}
             >
               {/* Card Header */}
               <div className="flex justify-between items-start mb-6">
-                <div className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-sm font-black uppercase tracking-wider">
-                  {aliment.unit}
-                </div>
-                {aliment.hasActiveOrder && (
-                  <div className="bg-orange-100 text-orange-700 px-3 py-1.5 rounded-lg text-sm font-black flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
-                    Commande
+                <div className="flex gap-2">
+                  <div className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-sm font-black uppercase tracking-wider">
+                    {aliment.unit}
                   </div>
-                )}
+                  {aliment.isActive === false && (
+                    <div className="bg-red-50 text-red-700 px-3 py-1.5 rounded-lg text-sm font-black uppercase tracking-wider">
+                      Désactivé
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {aliment.hasActiveOrder && (
+                    <div className="bg-orange-100 text-orange-700 px-3 py-1.5 rounded-lg text-sm font-black flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+                      Commande
+                    </div>
+                  )}
+                  <button
+                    onClick={(e) => handleToggleFood(e, aliment.id, aliment.isActive)}
+                    disabled={isPending}
+                    className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all ${aliment.isActive !== false ? 'bg-red-50 text-red-600 hover:bg-red-100 border-red-200' : 'bg-green-50 text-green-600 hover:bg-green-100 border-green-200'}`}
+                  >
+                    {aliment.isActive !== false ? 'Désactiver' : 'Activer'}
+                  </button>
+                </div>
               </div>
 
               {/* Title */}

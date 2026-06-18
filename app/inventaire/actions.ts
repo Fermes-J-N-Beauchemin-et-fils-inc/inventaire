@@ -81,3 +81,33 @@ export async function updateStorageCapacity(storageId: number, maxCapacityTm: nu
 
   revalidatePath('/inventaire');
 }
+
+export async function createStorage(formData: FormData) {
+  const name = formData.get("name") as string;
+  const max_capacity = parseFloat(formData.get("max_capacity") as string);
+
+  if (!name || isNaN(max_capacity) || max_capacity < 0) {
+    throw new Error("Nom ou capacité invalide.");
+  }
+
+  await prisma.storage.create({
+    data: {
+      name,
+      max_capacity,
+      is_active: true
+    }
+  });
+
+  revalidatePath('/inventaire');
+}
+
+export async function toggleStorageStatus(storageId: number, isActive: boolean) {
+  if (isNaN(storageId)) throw new Error("ID invalide.");
+  
+  await prisma.storage.update({
+    where: { id: storageId },
+    data: { is_active: isActive }
+  });
+
+  revalidatePath('/inventaire');
+}
