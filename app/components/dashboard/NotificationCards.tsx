@@ -40,6 +40,7 @@ export function MessageCard({ href, title, description }: AlertProps) {
                     {description}
                 </p>
             </div>
+           
             <div className="flex-shrink-0 text-blue-400 group-hover:text-blue-600 transition-colors flex items-center h-full">
                 <FontAwesomeIcon icon={faChevronRight} className="w-5 h-5" />
             </div>
