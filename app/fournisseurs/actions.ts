@@ -8,7 +8,7 @@ export async function createSupplier(formData: FormData) {
   const phone_number = formData.get("phone_number") as string;
   const email = formData.get("email") as string;
   const address = formData.get("address") as string;
-  const logo = (formData.get("logo") as string) || null;
+  const url = (formData.get("url") as string) || null;
 
   if (!name || !phone_number || !email || !address) {
     throw new Error("Veuillez remplir tous les champs obligatoires du fournisseur.");
@@ -20,7 +20,7 @@ export async function createSupplier(formData: FormData) {
       phone_number,
       email,
       address,
-      logo,
+      url,
       is_active: true
     }
   });
@@ -35,22 +35,68 @@ export async function createContract(formData: FormData) {
   const total_kg = parseFloat(formData.get("total_kg") as string);
   const price_per_kg = parseFloat(formData.get("price_per_kg") as string);
   const date_start = formData.get("date_start") as string;
-  const date_end = formData.get("date_end") as string;
+  let date_end = formData.get("date_end") as string;
+  const is_spot = formData.get("is_spot") === "true";
 
-  if (!name || isNaN(supplier_id) || isNaN(food_id) || isNaN(total_kg) || isNaN(price_per_kg) || !date_start || !date_end) {
+  if (!name || isNaN(supplier_id) || isNaN(food_id) || isNaN(total_kg) || isNaN(price_per_kg) || !date_start) {
     throw new Error("Veuillez remplir tous les champs obligatoires du contrat.");
   }
+  
+  if (is_spot) {
+    date_end = date_start;
+  }
 
-  await prisma.contract.create({
-    data: {
-      name,
-      supplier_id,
-      food_id,
-      total_kg,
-      kg_left_to_deliver: total_kg, // Initially, all kg are left
-      price_per_kg,
-      date_start: new Date(date_start),
-      date_end: new Date(date_end)
+  if (!date_end) {
+    throw new Error("La date de fin est requise pour un contrat non-spot.");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const masterContract = await tx.contract.create({
+      data: {
+        name,
+        supplier_id,
+        food_id,
+        total_kg,
+        price_per_kg,
+        date_start: new Date(date_start),
+        date_end: new Date(date_end)
+      }
+    });
+
+    if (is_spot) {
+      // Spot contract: 1 single sub_contract
+      await tx.subContract.create({
+        data: {
+          contract_id: masterContract.id,
+          name: "Spot " + name,
+          expected_kg: total_kg,
+          kg_left_to_deliver: total_kg
+        }
+      });
+    } else {
+      // Normal contract: generate monthly sub_contracts
+      const start = new Date(date_start);
+      const end = new Date(date_end);
+      
+      let monthsCount = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1;
+      if (monthsCount <= 0) monthsCount = 1;
+
+      const monthly_kg = total_kg / monthsCount;
+      const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+
+      for (let i = 0; i < monthsCount; i++) {
+        const d = new Date(start.getFullYear(), start.getMonth() + i, 1);
+        const mName = monthNames[d.getMonth()];
+        const yName = d.getFullYear();
+        await tx.subContract.create({
+          data: {
+            contract_id: masterContract.id,
+            name: `${mName} ${yName}`,
+            expected_kg: monthly_kg,
+            kg_left_to_deliver: monthly_kg
+          }
+        });
+      }
     }
   });
 

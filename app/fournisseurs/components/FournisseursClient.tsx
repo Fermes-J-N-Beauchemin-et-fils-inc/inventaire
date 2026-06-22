@@ -15,11 +15,26 @@ interface Props {
 export default function FournisseursClient({ initialFournisseurs, aliments }: Props) {
   const [activeTab, setActiveTab] = useState<'fournisseurs' | 'contrats' | 'livraisons'>('fournisseurs');
   const [showModal, setShowModal] = useState<'supplier' | 'contract' | 'delivery' | null>(null);
+  const [expandedContracts, setExpandedContracts] = useState<Set<number>>(new Set());
   const [isPending, startTransition] = React.useTransition();
 
   // Derive flat lists for easier rendering
-  const allContracts = initialFournisseurs.flatMap(s => s.contracts.map(c => ({ ...c, supplier_name: s.name })));
-  const allDeliveries = allContracts.flatMap(c => c.deliveries.map(d => ({ ...d, contract_name: c.name, supplier_name: c.supplier_name, food_name: c.food.name, unit: c.food.unit_type.name })));
+  const allContracts = initialFournisseurs.flatMap(s => s.contracts.map(c => ({
+    ...c,
+    supplier_name: s.name,
+    total_kg_left: c.sub_contracts?.reduce((sum: number, sc: any) => sum + sc.kg_left_to_deliver, 0) || 0
+  })));
+
+  const allDeliveries = initialFournisseurs.flatMap(s => s.deliveries.map(d => {
+    const contractNames = d.delivery_subcontracts?.map((dsc: any) => dsc.sub_contract.name).join(', ') || 'Spot / Non alloué';
+    return {
+      ...d,
+      contract_name: contractNames,
+      supplier_name: s.name,
+      food_name: d.food.name,
+      unit: 'kg' // Since we receive in kg for complex deliveries
+    };
+  }));
 
   const handleToggleSupplier = (id: number, status: boolean) => {
     startTransition(async () => {
@@ -40,6 +55,18 @@ export default function FournisseursClient({ initialFournisseurs, aliments }: Pr
       } catch (e) {
         toast.error("Erreur lors de la modification.");
       }
+    });
+  };
+
+  const toggleContractExpand = (id: number) => {
+    setExpandedContracts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
     });
   };
 
@@ -103,19 +130,33 @@ export default function FournisseursClient({ initialFournisseurs, aliments }: Pr
           {initialFournisseurs.map(f => (
             <div key={f.id} className={`p-6 rounded-[2rem] border shadow-sm flex flex-col transition-all ${f.is_active ? 'bg-white border-zinc-200' : 'bg-zinc-100 border-zinc-200 opacity-60 grayscale'}`}>
               <div className="flex justify-between items-start mb-2">
-                <h3 className="text-2xl font-black text-zinc-900">{f.name}</h3>
-                <button 
-                  onClick={() => handleToggleSupplier(f.id, f.is_active)}
-                  disabled={isPending}
-                  className={`px-3 py-1 text-xs font-bold rounded-lg ${f.is_active ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-green-100 text-green-600 hover:bg-green-200'}`}
-                >
-                  {f.is_active ? 'Désactiver' : 'Activer'}
-                </button>
+                <div className="flex items-center gap-3">
+                  {f.url && (
+                    <img src={`https://www.google.com/s2/favicons?domain=${f.url}&sz=128`} alt="" className="w-8 h-8 rounded-md bg-zinc-100" />
+                  )}
+                  <h3 className="text-2xl font-black text-zinc-900">{f.name}</h3>
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => { /* TODO handle edit modal */ }}
+                    className="px-3 py-1 text-xs font-bold rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200"
+                  >
+                    Modifier
+                  </button>
+                  <button 
+                    onClick={() => handleToggleSupplier(f.id, f.is_active)}
+                    disabled={isPending}
+                    className={`px-3 py-1 text-xs font-bold rounded-lg ${f.is_active ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-green-100 text-green-600 hover:bg-green-200'}`}
+                  >
+                    {f.is_active ? 'Désactiver' : 'Activer'}
+                  </button>
+                </div>
               </div>
               <div className="text-zinc-500 space-y-1 mb-6">
                 <p>📞 {f.phone_number}</p>
                 <p>✉️ {f.email}</p>
                 <p>📍 {f.address}</p>
+                {f.url && <p>🔗 <a href={f.url.startsWith('http') ? f.url : `https://${f.url}`} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">{f.url}</a></p>}
               </div>
               <div className="mt-auto pt-4 border-t border-zinc-100 flex justify-between items-center text-sm font-bold text-zinc-400">
                 <span>{f.contracts.length} contrats</span>
@@ -146,31 +187,68 @@ export default function FournisseursClient({ initialFournisseurs, aliments }: Pr
             </thead>
             <tbody className="divide-y divide-zinc-100">
               {allContracts.map(c => (
-                <tr key={c.id} className={`transition-colors ${c.is_active ? 'hover:bg-zinc-50' : 'bg-zinc-50 opacity-60 grayscale'}`}>
-                  <td className="p-6 font-bold text-zinc-900">
-                    {c.name}
-                    {!c.is_active && <span className="ml-2 text-xs font-black text-red-500 uppercase">Désactivé</span>}
-                  </td>
-                  <td className="p-6 font-bold text-zinc-600">{c.supplier_name}</td>
-                  <td className="p-6 font-bold text-indigo-600 bg-indigo-50/50 rounded-lg inline-block m-4">{c.food.name}</td>
-                  <td className="p-6">
-                    <span className="font-black text-zinc-900">{c.kg_left_to_deliver}</span>
-                    <span className="text-zinc-400 text-sm"> / {c.total_kg}</span>
-                  </td>
-                  <td className="p-6 font-bold text-emerald-600">{c.price_per_kg}$</td>
-                  <td className="p-6 text-zinc-500 font-medium">
-                    {new Date(c.date_end).toLocaleDateString('fr-CA')}
-                  </td>
-                  <td className="p-6 text-right">
-                    <button 
-                      onClick={() => handleToggleContract(c.id, c.is_active)}
-                      disabled={isPending}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${c.is_active ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200' : 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-200'}`}
-                    >
-                      {c.is_active ? 'Désactiver' : 'Activer'}
-                    </button>
-                  </td>
-                </tr>
+                <React.Fragment key={c.id}>
+                  <tr 
+                    className={`transition-colors cursor-pointer ${c.is_active ? 'hover:bg-zinc-50' : 'bg-zinc-50 opacity-60 grayscale'} ${expandedContracts.has(c.id) ? 'bg-indigo-50/30' : ''}`}
+                    onClick={() => toggleContractExpand(c.id)}
+                  >
+                    <td className="p-6 font-bold text-zinc-900 flex items-center gap-3">
+                      <span className={`transform transition-transform ${expandedContracts.has(c.id) ? 'rotate-90' : ''}`}>▶</span>
+                      {c.name}
+                      {!c.is_active && <span className="ml-2 text-xs font-black text-red-500 uppercase">Désactivé</span>}
+                    </td>
+                    <td className="p-6 font-bold text-zinc-600">{c.supplier_name}</td>
+                    <td className="p-6 font-bold text-indigo-600">
+                      <span className="bg-indigo-50/50 px-3 py-1 rounded-lg">{c.food.name}</span>
+                    </td>
+                    <td className="p-6">
+                      <span className="font-black text-zinc-900">{c.total_kg_left}</span>
+                      <span className="text-zinc-400 text-sm"> / {c.total_kg}</span>
+                    </td>
+                    <td className="p-6 font-bold text-emerald-600">{c.price_per_kg}$</td>
+                    <td className="p-6 text-zinc-500 font-medium">
+                      {c.date_end ? new Date(c.date_end).toLocaleDateString('fr-CA') : 'Spot'}
+                    </td>
+                    <td className="p-6 text-right" onClick={(e) => e.stopPropagation()}>
+                      <button 
+                        onClick={() => handleToggleContract(c.id, c.is_active)}
+                        disabled={isPending}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${c.is_active ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200' : 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-200'}`}
+                      >
+                        {c.is_active ? 'Désactiver' : 'Activer'}
+                      </button>
+                    </td>
+                  </tr>
+                  {expandedContracts.has(c.id) && (
+                    <tr className="bg-zinc-50 border-b border-zinc-200">
+                      <td colSpan={7} className="p-6">
+                        <div className="pl-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                          {c.sub_contracts && c.sub_contracts.length > 0 ? (
+                            c.sub_contracts.map((sc: any) => (
+                              <div key={sc.id} className="bg-white p-4 rounded-xl border border-zinc-200 shadow-sm flex flex-col gap-1">
+                                <span className="font-black text-zinc-800">{sc.name}</span>
+                                <div className="flex justify-between items-center text-sm">
+                                  <span className="text-zinc-500">Reste:</span>
+                                  <span className={`font-bold ${sc.kg_left_to_deliver > 0 ? 'text-indigo-600' : 'text-green-600'}`}>
+                                    {sc.kg_left_to_deliver} kg
+                                  </span>
+                                </div>
+                                <div className="w-full bg-zinc-100 rounded-full h-2 mt-2">
+                                  <div 
+                                    className="bg-indigo-500 h-2 rounded-full" 
+                                    style={{ width: `${Math.max(0, 100 - (sc.kg_left_to_deliver / sc.expected_kg) * 100)}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-zinc-500">Aucun sous-contrat.</p>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>
@@ -245,6 +323,11 @@ export default function FournisseursClient({ initialFournisseurs, aliments }: Pr
                     <label className="block text-sm font-bold text-zinc-700 mb-2">Adresse *</label>
                     <input name="address" required className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl" />
                   </div>
+                  <div>
+                    <label className="block text-sm font-bold text-zinc-700 mb-2">URL du site web (Optionnel)</label>
+                    <input name="url" type="text" placeholder="ex: synagri.com" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl" />
+                    <p className="text-xs text-zinc-400 mt-1">Sert à afficher le logo automatiquement.</p>
+                  </div>
                   <button type="submit" className="w-full bg-indigo-600 text-white font-black p-4 rounded-xl hover:bg-indigo-700 mt-4">Enregistrer</button>
                 </form>
               )}
@@ -284,14 +367,18 @@ export default function FournisseursClient({ initialFournisseurs, aliments }: Pr
                       <input name="price_per_kg" type="number" step="0.01" required className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl" />
                     </div>
                   </div>
+                  <div className="flex items-center gap-3 bg-indigo-50 p-4 rounded-xl border border-indigo-200">
+                    <input type="checkbox" id="is_spot" name="is_spot" value="true" className="w-5 h-5 accent-indigo-600" />
+                    <label htmlFor="is_spot" className="font-bold text-indigo-900 cursor-pointer">Ceci est un Contrat Spot (Une seule livraison)</label>
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-bold text-zinc-700 mb-2">Date de début *</label>
                       <input name="date_start" type="date" required className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl" />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-zinc-700 mb-2">Date de fin *</label>
-                      <input name="date_end" type="date" required className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl" />
+                      <label className="block text-sm font-bold text-zinc-700 mb-2">Date de fin (Laisser vide si Spot)</label>
+                      <input name="date_end" type="date" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl" />
                     </div>
                   </div>
                   <button type="submit" className="w-full bg-emerald-600 text-white font-black p-4 rounded-xl hover:bg-emerald-700 mt-4">Enregistrer</button>

@@ -76,13 +76,11 @@ model Verification {
 // ---------------------------------------------------------
 
 model Food {
-  id            Int     @id @default(autoincrement())
-  name          String
-  common_name   String?
-  unit_type_id  Int
-  storage_id    Int
-  current_stock Float
-  is_active     Boolean @default(true)
+  id           Int     @id @default(autoincrement())
+  name         String
+  common_name  String?
+  unit_type_id Int
+  is_active    Boolean @default(true)
 
   // Current values to be snapshot-ed
   price_per_ms  Float @default(0)
@@ -90,8 +88,8 @@ model Food {
   ms_percentage Float @default(0)
 
   // Relations
-  unit_type Unit_type @relation(fields: [unit_type_id], references: [id])
-  storage   Storage   @relation(fields: [storage_id], references: [id])
+  unit_type Unit_type     @relation(fields: [unit_type_id], references: [id])
+  storages  FoodStorage[]
 
   // Reverse relations required by Prisma
   daily_servings     DailyServing[]
@@ -104,6 +102,18 @@ model Food {
   updatedAt DateTime @updatedAt
 
   @@map("food")
+}
+
+model FoodStorage {
+  food_id       Int
+  storage_id    Int
+  current_stock Float @default(0)
+
+  food    Food    @relation(fields: [food_id], references: [id], onDelete: Cascade)
+  storage Storage @relation(fields: [storage_id], references: [id], onDelete: Cascade)
+
+  @@id([food_id, storage_id])
+  @@map("food_storage")
 }
 
 model Group {
@@ -142,9 +152,12 @@ model Supplier {
   address      String
   email        String
   logo         String?
+  url          String?
+  faviconUrl   String?
   is_active    Boolean @default(true)
 
-  contracts Contract[]
+  contracts  Contract[]
+  deliveries Delivery[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -153,36 +166,61 @@ model Supplier {
 }
 
 model Delivery {
-  id                Int      @id @default(autoincrement())
-  contract_id       Int
+  id                Int       @id @default(autoincrement())
+  supplier_id       Int
   food_id           Int
   quantity_received Float
-  date_delivered    DateTime
   date_expected     DateTime
+  date_delivered    DateTime?
 
-  food     Food     @relation(fields: [food_id], references: [id])
-  contract Contract @relation(fields: [contract_id], references: [id])
+  food                  Food                  @relation(fields: [food_id], references: [id])
+  supplier              Supplier              @relation(fields: [supplier_id], references: [id])
+  delivery_subcontracts DeliverySubContract[]
 
   @@map("delivery")
 }
 
 model Contract {
-  id                 Int      @id @default(autoincrement())
-  name               String
-  supplier_id        Int
-  food_id            Int
-  total_kg           Float
-  kg_left_to_deliver Float
-  price_per_kg       Float
-  date_start         DateTime
-  date_end           DateTime
-  is_active          Boolean  @default(true)
+  id           Int      @id @default(autoincrement())
+  name         String
+  supplier_id  Int
+  food_id      Int
+  total_kg     Float
+  price_per_kg Float
+  date_start   DateTime
+  date_end     DateTime
+  is_active    Boolean  @default(true)
 
-  supplier   Supplier   @relation(fields: [supplier_id], references: [id])
-  food       Food       @relation(fields: [food_id], references: [id])
-  deliveries Delivery[]
+  supplier      Supplier      @relation(fields: [supplier_id], references: [id])
+  food          Food          @relation(fields: [food_id], references: [id])
+  sub_contracts SubContract[]
 
   @@map("contract")
+}
+
+model SubContract {
+  id                 Int    @id @default(autoincrement())
+  contract_id        Int
+  name               String // ex: "Janvier 2026"
+  expected_kg        Float
+  kg_left_to_deliver Float
+
+  contract             Contract              @relation(fields: [contract_id], references: [id], onDelete: Cascade)
+  delivery_allocations DeliverySubContract[]
+
+  @@map("sub_contract")
+}
+
+model DeliverySubContract {
+  delivery_id     Int
+  sub_contract_id Int
+  quantity        Float
+
+  delivery     Delivery    @relation(fields: [delivery_id], references: [id], onDelete: Cascade)
+  sub_contract SubContract @relation(fields: [sub_contract_id], references: [id], onDelete: Cascade)
+
+  @@id([delivery_id, sub_contract_id])
+  @@map("delivery_sub_contract")
 }
 
 model Storage {
@@ -191,7 +229,8 @@ model Storage {
   max_capacity Int
   is_active    Boolean @default(true)
 
-  foods Food[]
+  food_storages      FoodStorage[]
+  stock_transactions StockTransaction[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -233,11 +272,13 @@ model FoodSnapshot {
 model StockTransaction {
   id               Int      @id @default(autoincrement())
   food_id          Int
+  storage_id       Int? // Optional for older transactions or if not silo-specific
   quantity         Float // Negative for consumption, positive for delivery/adjustment
   transaction_type String // "CONSUMPTION", "DELIVERY", "ADJUSTMENT"
   recorded_at      DateTime @default(now())
 
-  food Food @relation(fields: [food_id], references: [id], onDelete: Cascade)
+  food    Food     @relation(fields: [food_id], references: [id], onDelete: Cascade)
+  storage Storage? @relation(fields: [storage_id], references: [id], onDelete: Cascade)
 
   @@map("stock_transaction")
 }
@@ -264,8 +305,8 @@ model PushedRation {
   status         String   @default("EN_COURS") // EN_COURS, TERMINEE
   groups_total   Int
   groups_done    Int      @default(0)
-  payload        Json     // Le contenu figé de la ration (groupes, aliments, quantités)
-  completed_keys Json?    // Liste des clés de groupes terminés (ex: ["g1", "taries"])
-  
+  payload        Json // Le contenu figé de la ration (groupes, aliments, quantités)
+  completed_keys Json? // Liste des clés de groupes terminés (ex: ["g1", "taries"])
+
   @@map("pushed_ration")
 }

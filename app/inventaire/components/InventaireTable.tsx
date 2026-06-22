@@ -37,8 +37,10 @@ export default function InventaireTable({ inventory }: InventaireTableProps) {
               // Let's just estimate remaining days based on daily consumption if it's > 0.
               // Assuming current_stock is in the unit_type (e.g. tm, kg).
               // For simplicity: if unit is tm, current_stock_kg = current_stock * 1000.
+              const current_stock = item.storages.reduce((sum: number, s: any) => sum + s.current_stock, 0);
+              const storageNames = item.storages.map((s: any) => s.storage.name).join(', ') || 'Aucun silo';
               const isTm = item.unit_type.name.toLowerCase() === 'tm';
-              const currentStockKg = isTm ? item.current_stock * 1000 : item.current_stock;
+              const currentStockKg = isTm ? current_stock * 1000 : current_stock;
               const currentStockMsKg = currentStockKg * (item.ms_percentage / 100);
               
               const remainingDays = dailyConsumption > 0 ? Math.round(currentStockMsKg / dailyConsumption) : 999;
@@ -52,13 +54,13 @@ export default function InventaireTable({ inventory }: InventaireTableProps) {
                     </Link>
                   </td>
                   <td className="py-4 px-6 text-zinc-600 text-base font-bold">
-                    {item.storage.name}
+                    {storageNames}
                   </td>
                   <td className="py-4 px-6 text-zinc-600 text-right font-medium">
                     {dailyConsumption > 0 ? formatNum(dailyConsumption) : '-'} <span className="text-zinc-400 text-sm">kg MS</span>
                   </td>
                   <td className="py-4 px-6 text-zinc-900 text-right font-black text-2xl">
-                    {formatNum(item.current_stock)} <span className="text-zinc-500 text-base font-bold">{item.unit_type.name}</span>
+                    {formatNum(current_stock)} <span className="text-zinc-500 text-base font-bold">{item.unit_type.name}</span>
                   </td>
                   <td className="py-4 px-6 text-center border-l border-zinc-50 bg-zinc-50/30">
                     {isInfinite ? (

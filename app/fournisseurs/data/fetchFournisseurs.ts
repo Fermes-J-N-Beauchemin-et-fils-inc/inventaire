@@ -13,14 +13,21 @@ export async function fetchFournisseurs() {
                 unit_type: true
               }
             },
-            deliveries: {
-              orderBy: {
-                date_expected: 'asc'
-              }
-            }
+            sub_contracts: true
           },
           orderBy: {
             date_end: 'desc'
+          }
+        },
+        deliveries: {
+          include: {
+            food: true,
+            delivery_subcontracts: {
+              include: { sub_contract: true }
+            }
+          },
+          orderBy: {
+            date_expected: 'asc'
           }
         }
       },
@@ -43,13 +50,16 @@ export async function fetchSupplier(id: number) {
     include: {
       contracts: {
         include: {
-          food: {
-            include: { unit_type: true }
-          },
-          deliveries: {
-            orderBy: { date_expected: 'asc' }
-          }
+          food: { include: { unit_type: true } },
+          sub_contracts: true
         }
+      },
+      deliveries: {
+        include: {
+          food: true,
+          delivery_subcontracts: { include: { sub_contract: true } }
+        },
+        orderBy: { date_expected: 'asc' }
       }
     }
   });

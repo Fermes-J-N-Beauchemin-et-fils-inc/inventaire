@@ -9,20 +9,25 @@ export async function fetchAliments(): Promise<AlimentDetail[]> {
     const foods = await prisma.food.findMany({
       include: {
         unit_type: true,
-        storage: true,
-        contracts: true, // Used to determine if there's an active order
+        storages: { include: { storage: true } },
+        contracts: { include: { sub_contracts: true } }, // Used to determine if there's an active order
       },
       orderBy: {
         id: 'asc'
       }
     });
 
-    const mappedAliments: AlimentDetail[] = foods.map((food) => {
+    const mappedAliments: AlimentDetail[] = foods.map((food: any) => {
       // Calculate if there's an active order based on contracts
       const now = new Date();
       const hasActiveOrder = food.contracts.some(
-        (contract) => contract.date_start <= now && contract.date_end >= now && contract.kg_left_to_deliver > 0
+        (contract: any) => contract.date_start <= now && contract.date_end >= now && 
+          contract.sub_contracts.reduce((sum: number, sc: any) => sum + sc.kg_left_to_deliver, 0) > 0
       );
+
+      const currentStock = food.storages.reduce((sum: number, s: any) => sum + s.current_stock, 0);
+      const maxStock = food.storages.reduce((sum: number, s: any) => sum + s.storage.max_capacity, 0);
+      const storageLocation = food.storages.map((s: any) => s.storage.name).join(', ') || 'Aucun silo';
 
       return {
         id: food.id.toString(),
@@ -30,12 +35,12 @@ export async function fetchAliments(): Promise<AlimentDetail[]> {
         commonName: food.name, // Using name for both as schema only has one name field
         msPercentage: food.ms_percentage,
         humidityPercentage: 100 - food.ms_percentage,
-        maxStock: food.storage.max_capacity,
-        currentStock: food.current_stock,
+        maxStock: maxStock,
+        currentStock: currentStock,
         unit: food.unit_type.name as any, // Cast to any or the specific union type
         consumptionRate: 0, // Fallback, would need daily_servings aggregation
         hasActiveOrder,
-        storageLocation: food.storage.name,
+        storageLocation: storageLocation,
         notes: "", // Not present in schema for Food
         pricePerMs: food.price_per_ms,
         pricePerTqs: food.price_per_tqs,

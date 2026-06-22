@@ -3,65 +3,77 @@
 import { prisma } from "@/app/lib/db";
 import { revalidatePath } from "next/cache";
 
-export async function receiveDelivery(formData: FormData) {
-  const delivery_id = parseInt(formData.get("delivery_id") as string, 10);
-  const quantity = parseFloat(formData.get("quantity") as string);
+export async function receiveComplexDelivery(formData: FormData) {
+  const supplier_id = parseInt(formData.get("supplier_id") as string, 10);
+  const food_id = parseInt(formData.get("food_id") as string, 10);
+  const total_kg = parseFloat(formData.get("total_kg") as string);
+  const date_delivered = formData.get("date_delivered") as string;
+  
+  // sub_contracts is a JSON string of { sub_contract_id: number, quantity: number }[]
+  const sub_contracts = JSON.parse(formData.get("sub_contracts") as string || "[]");
+  // storages is a JSON string of { storage_id: number, quantity: number }[]
+  const storages = JSON.parse(formData.get("storages") as string || "[]");
 
-  if (isNaN(delivery_id) || isNaN(quantity)) {
-    throw new Error("ID de livraison ou quantité invalide.");
+  if (isNaN(supplier_id) || isNaN(food_id) || isNaN(total_kg) || !date_delivered) {
+    throw new Error("Champs obligatoires manquants.");
   }
 
-  const delivery = await prisma.delivery.findUnique({ where: { id: delivery_id } });
-  if (!delivery) throw new Error("Livraison introuvable.");
-
   await prisma.$transaction(async (tx) => {
-    // 1. Update the delivery
-    await tx.delivery.update({
-      where: { id: delivery_id },
+    // 1. Create the delivery record
+    const delivery = await tx.delivery.create({
       data: {
-        quantity_received: quantity,
-        date_delivered: new Date(),
+        supplier_id,
+        food_id,
+        quantity_received: total_kg,
+        date_expected: new Date(date_delivered),
+        date_delivered: new Date(date_delivered)
       }
     });
 
-    // 2. Update the contract kg_left_to_deliver
-    await tx.contract.update({
-      where: { id: delivery.contract_id },
-      data: {
-        kg_left_to_deliver: {
-          decrement: quantity
-        }
-      }
-    });
-
-    // 3. Update the food inventory. Assume quantity is in kg, and if unit_type is tm, we divide by 1000.
-    const food = await tx.food.findUnique({
-      where: { id: delivery.food_id },
-      include: { unit_type: true }
-    });
-
-    if (food) {
-      const isTm = food.unit_type.name.toLowerCase() === 'tm';
-      const stockToAdd = isTm ? quantity / 1000 : quantity;
-
-      await tx.food.update({
-        where: { id: delivery.food_id },
-        data: {
-          current_stock: {
-            increment: stockToAdd
+    // 2. Link and deduct from sub-contracts
+    for (const sc of sub_contracts) {
+      if (sc.quantity > 0) {
+        await tx.deliverySubContract.create({
+          data: {
+            delivery_id: delivery.id,
+            sub_contract_id: sc.sub_contract_id,
+            quantity: sc.quantity
           }
-        }
-      });
+        });
 
-      // Log the transaction
-      await tx.stockTransaction.create({
-        data: {
-          food_id: delivery.food_id,
-          quantity: stockToAdd, // Addition
-          transaction_type: "DELIVERY",
-          recorded_at: new Date()
-        }
-      });
+        await tx.subContract.update({
+          where: { id: sc.sub_contract_id },
+          data: { kg_left_to_deliver: { decrement: sc.quantity } }
+        });
+      }
+    }
+
+    // 3. Add to storages and create transactions
+    const food = await tx.food.findUnique({ where: { id: food_id }, include: { unit_type: true } });
+    if (!food) throw new Error("Aliment introuvable");
+    const isTm = food.unit_type.name.toLowerCase() === 'tm';
+
+    for (const st of storages) {
+      if (st.quantity > 0) {
+        const qtyToAdd = isTm ? st.quantity / 1000 : st.quantity;
+        
+        // Upsert FoodStorage
+        await tx.foodStorage.upsert({
+          where: { food_id_storage_id: { food_id: food_id, storage_id: st.storage_id } },
+          update: { current_stock: { increment: qtyToAdd } },
+          create: { food_id: food_id, storage_id: st.storage_id, current_stock: qtyToAdd }
+        });
+
+        await tx.stockTransaction.create({
+          data: {
+            food_id: food_id,
+            storage_id: st.storage_id,
+            quantity: qtyToAdd,
+            transaction_type: "DELIVERY",
+            recorded_at: new Date(date_delivered)
+          }
+        });
+      }
     }
   });
 

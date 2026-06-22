@@ -47,8 +47,9 @@ export default function OrderEstimation({ inventory, daysToOrder, setDaysToOrder
               const dailyConsumption = item.daily_servings.reduce((sum, serving) => sum + serving.daily_kg_serving_ms, 0);
               const annualConsumption = dailyConsumption * 365;
               
+              const current_stock = item.storages.reduce((sum: number, s: any) => sum + s.current_stock, 0);
               const isTm = item.unit_type.name.toLowerCase() === 'tm';
-              const currentStockKg = isTm ? item.current_stock * 1000 : item.current_stock;
+              const currentStockKg = isTm ? current_stock * 1000 : current_stock;
               const currentStockMsKg = currentStockKg * (item.ms_percentage / 100);
 
               let calculatedOrder = (dailyConsumption * daysToOrder) - currentStockMsKg;
@@ -59,7 +60,7 @@ export default function OrderEstimation({ inventory, daysToOrder, setDaysToOrder
                 <tr key={item.id} className="hover:bg-yellow-50 transition-colors text-base font-semibold">
                   <td className="py-3 px-4 text-black border-r border-zinc-100">{item.name}</td>
                   <td className="py-3 px-4 text-black text-right border-r border-zinc-100 font-bold">
-                    {formatNum(item.current_stock)} <span className="text-zinc-500 text-xs">{item.unit_type.name}</span>
+                    {formatNum(current_stock)} <span className="text-zinc-500 text-xs">{item.unit_type.name}</span>
                   </td>
                   <td className={`py-3 px-4 text-right font-black text-lg bg-yellow-50 ${isRed ? 'text-red-600' : 'text-black'}`}>
                     {calculatedOrder !== 0 ? (isRed ? `(${Math.abs(calculatedOrder)})` : Math.max(0, calculatedOrder)) : '0'}

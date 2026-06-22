@@ -96,6 +96,8 @@ export default function InventaireClient({ inventory, deliveries, suppliers, sto
           <ReceptionView
             deliveries={deliveries}
             inventory={inventory}
+            suppliers={suppliers}
+            storages={storages}
           />
         )}
       </div>

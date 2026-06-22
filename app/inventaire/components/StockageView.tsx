@@ -109,8 +109,11 @@ export default function StockageView({ storages }: Props) {
 
         {storages.map(storage => {
           // Calcul de la quantité actuelle en TM.
-          const currentKg = storage.foods.reduce((sum, f) => sum + f.current_stock, 0);
-          const currentTm = currentKg / 1000;
+          const currentTm = storage.food_storages.reduce((sum: number, fs: any) => {
+            const isTm = fs.food?.unit_type?.name?.toLowerCase() === 'tm';
+            const tmStock = isTm ? fs.current_stock : fs.current_stock / 1000;
+            return sum + tmStock;
+          }, 0);
           
           const maxTm = parseFloat(capacities[storage.id]) || 0;
           const percentage = maxTm > 0 ? Math.min(100, Math.max(0, (currentTm / maxTm) * 100)) : 0;
@@ -154,9 +157,24 @@ export default function StockageView({ storages }: Props) {
                 </div>
                 <div className="flex justify-between text-sm font-black mt-2">
                   <span className="text-zinc-900">{currentTm.toFixed(2)} TM actuelles</span>
-                  <span className="text-zinc-400">{storage.foods.length} aliment(s)</span>
+                  <span className="text-zinc-400">{storage.food_storages.length} aliment(s)</span>
                 </div>
               </div>
+
+              {/* Détail du contenu */}
+              {storage.food_storages.length > 0 && (
+                <div className="mb-6 space-y-2">
+                  <h4 className="text-xs font-black text-zinc-500 uppercase tracking-widest">Contenu du silo</h4>
+                  <div className="space-y-2">
+                    {storage.food_storages.map((fs: any) => (
+                      <div key={fs.food_id} className="flex justify-between items-center bg-white p-2 rounded-lg border border-zinc-100 shadow-sm text-sm font-bold">
+                        <span className="text-zinc-800">{fs.food.name}</span>
+                        <span className="text-indigo-600">{fs.current_stock} {fs.food.unit_type?.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Capacité Input */}
               <div className="mt-auto border-t border-zinc-200 pt-6">

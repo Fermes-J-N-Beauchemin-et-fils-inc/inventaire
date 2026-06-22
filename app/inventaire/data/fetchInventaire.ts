@@ -8,7 +8,7 @@ export async function fetchInventoryFoods() {
   return await prisma.food.findMany({
     include: {
       unit_type: true,
-      storage: true,
+      storages: { include: { storage: true } },
       daily_servings: true,
     },
     orderBy: {
@@ -21,8 +21,13 @@ export async function fetchDeliveries() {
   return await prisma.delivery.findMany({
     include: {
       food: { include: { unit_type: true } },
-      contract: {
-        include: { supplier: true }
+      supplier: true,
+      delivery_subcontracts: {
+        include: {
+          sub_contract: {
+            include: { contract: true }
+          }
+        }
       }
     },
     orderBy: {
@@ -36,9 +41,9 @@ export async function fetchSuppliersWithContracts() {
     where: { is_active: true },
     include: {
       contracts: {
-        include: { food: true },
-        where: {
-          kg_left_to_deliver: { gt: 0 } // Only show contracts that have pending kg
+        include: { 
+          food: true,
+          sub_contracts: true
         }
       }
     },
@@ -51,11 +56,13 @@ export type StorageData = Awaited<ReturnType<typeof fetchStorages>>[number];
 export async function fetchStorages() {
   return await prisma.storage.findMany({
     include: {
-      foods: {
-        select: {
-          id: true,
-          name: true,
-          current_stock: true
+      food_storages: {
+        include: {
+          food: {
+            include: {
+              unit_type: true
+            }
+          }
         }
       }
     },

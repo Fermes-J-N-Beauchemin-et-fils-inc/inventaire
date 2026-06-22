@@ -1,17 +1,15 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/app/lib/db';
-import { mockAlimentsDetails } from '@/app/aliments/data/mockAliments';
+import { PrismaClient } from '@prisma/client';
+import { mockAlimentsDetails } from './app/aliments/data/mockAliments';
+const prisma = new PrismaClient();
 
-export const dynamic = 'force-dynamic';
-
-export async function GET() {
+async function main() {
   try {
     const foodCount = await prisma.food.count();
     if (foodCount > 0) {
-      return NextResponse.json({ message: "Database already seeded. Aborting to prevent duplicates." });
+      console.log("Database already seeded.");
+      return;
     }
 
-    // 2. Insert default Unit Types
     const unitTypesData = [
       { name: "tm", ration_to_kg: 1000 },
       { name: "kg", ration_to_kg: 1 },
@@ -20,7 +18,7 @@ export async function GET() {
     
     for (const unit of unitTypesData) {
       await prisma.unit_type.upsert({
-        where: { id: 0 }, // fake where just to avoid dups if we could
+        where: { id: 0 },
         create: unit,
         update: {}
       }).catch(async () => {
@@ -29,7 +27,6 @@ export async function GET() {
       });
     }
 
-    // 3. Insert default Storage Locations
     const storageLocationsData = [
       { name: "Silo #1 -Prémix", max_capacity: 50000 },
       { name: "Silo #2 -Low group", max_capacity: 50000 },
@@ -57,7 +54,6 @@ export async function GET() {
     const getUnitId = (name: string) => units.find(u => u.name.toLowerCase() === name.toLowerCase())?.id || units[0].id;
     const getStorageId = (name: string) => storages.find(s => s.name.toLowerCase() === name.toLowerCase())?.id || storages[0].id;
 
-    // 4. Insert Foods and FoodStorage
     for (const mockFood of mockAlimentsDetails) {
       const food = await prisma.food.create({
         data: {
@@ -71,7 +67,6 @@ export async function GET() {
         }
       });
 
-      // Assign to storage
       await prisma.foodStorage.create({
         data: {
           food_id: food.id,
@@ -81,7 +76,6 @@ export async function GET() {
       });
     }
 
-    // 5. Insert dummy Suppliers, MasterContracts, SubContracts
     const supplier = await prisma.supplier.create({
       data: {
         name: "Synagri",
@@ -106,7 +100,6 @@ export async function GET() {
         }
       });
 
-      // Create 3 sub-contracts
       const months = ["Janvier", "Février", "Mars"];
       for (const m of months) {
         await prisma.subContract.create({
@@ -119,10 +112,9 @@ export async function GET() {
         });
       }
     }
-
-    return NextResponse.json({ message: "Database successfully seeded with new schema data!" });
-  } catch (error) {
-    console.error("Seeding error:", error);
-    return NextResponse.json({ error: "An error occurred during seeding." }, { status: 500 });
+    console.log("Seeding complete");
+  } catch (err) {
+    console.error(err);
   }
 }
+main();
