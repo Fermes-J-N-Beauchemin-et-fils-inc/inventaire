@@ -170,18 +170,29 @@ export async function createDelivery(formData: FormData) {
       // We will skip updating FoodStorage here because "Planifier une commande" shouldn't receive it immediately anyway, 
       // or if it does, it's legacy. Complex Reception is done via ReceptionView.
       
-      await tx.food.update({
-        where: { id: food_id },
-        data: {
-          current_stock: {
-            increment: quantity_received
-          }
+      // Find first active storage
+      const firstStorage = await tx.storage.findFirst({ where: { is_active: true } });
+      let storageIdToLog = null;
+
+      if (firstStorage) {
+        const food = await tx.food.findUnique({ where: { id: food_id }, include: { unit_type: true } });
+        if (food) {
+          const isTm = food.unit_type.name.toLowerCase() === 'tm';
+          const qtyToAdd = isTm ? quantity_received / 1000 : quantity_received;
+          
+          storageIdToLog = firstStorage.id;
+          await tx.foodStorage.upsert({
+            where: { food_id_storage_id: { food_id: food_id, storage_id: firstStorage.id } },
+            update: { current_stock: { increment: qtyToAdd } },
+            create: { food_id: food_id, storage_id: firstStorage.id, current_stock: qtyToAdd }
+          });
         }
-      });
+      }
       
       await tx.stockTransaction.create({
         data: {
           food_id: food_id,
+          storage_id: storageIdToLog,
           quantity: quantity_received,
           transaction_type: "DELIVERY",
           recorded_at: new Date(date_delivered)

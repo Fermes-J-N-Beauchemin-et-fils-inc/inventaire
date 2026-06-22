@@ -49,7 +49,7 @@ export default function RationForm({
   const handleStartDistribution = () => {
     if (saison === 'ete') {
       const groupsToValidate: GroupKey[] = ['g1', 'g2', 'g3', 'g4'];
-      const groupsWithIssues = [];
+      const groupsWithIssues: string[] = [];
       for (const key of groupsToValidate) {
         const g = groups[key];
         const i1 = parseFloat(g.indice || "0");

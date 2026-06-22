@@ -13,8 +13,6 @@ interface AlimentFormProps {
     id: number;
     name: string;
     unit_type_id: number;
-    storage_id: number;
-    current_stock: number;
     price_per_ms: number;
     price_per_tqs: number;
     ms_percentage: number;
@@ -73,7 +71,7 @@ export default function AlimentForm({ units, storages, initialData, action }: Al
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6">
               <div>
                 <label htmlFor="unit_type_id" className="block text-sm font-bold text-zinc-700 mb-2">Unité de mesure *</label>
                 <select
@@ -89,36 +87,6 @@ export default function AlimentForm({ units, storages, initialData, action }: Al
                   ))}
                 </select>
               </div>
-
-              <div>
-                <label htmlFor="storage_id" className="block text-sm font-bold text-zinc-700 mb-2">Lieu de stockage *</label>
-                <select
-                  id="storage_id"
-                  name="storage_id"
-                  defaultValue={initialData?.storage_id || ""}
-                  required
-                  className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm appearance-none"
-                >
-                  <option value="" disabled>Sélectionner un emplacement</option>
-                  {storages.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="current_stock" className="block text-sm font-bold text-zinc-700 mb-2">Stock Actuel *</label>
-              <input
-                type="number"
-                step="0.01"
-                id="current_stock"
-                name="current_stock"
-                defaultValue={initialData?.current_stock}
-                required
-                className="w-full md:w-1/2 px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
-                placeholder="Ex: 15.5"
-              />
             </div>
           </div>
 

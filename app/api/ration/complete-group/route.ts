@@ -60,20 +60,27 @@ export async function POST(request: Request) {
                     const quantity = parseFloat(item.consumed_tqs);
                     if (quantity <= 0) continue;
 
-                    // Update stock
-                    await tx.food.update({
-                        where: { id: foodId },
-                        data: {
-                            current_stock: {
-                                decrement: quantity
-                            }
-                        }
+                    // Update stock from the storage that has the most stock
+                    const bestStorage = await tx.foodStorage.findFirst({
+                        where: { food_id: foodId, current_stock: { gt: 0 } },
+                        orderBy: { current_stock: 'desc' }
                     });
+
+                    let storageIdToLog = null;
+
+                    if (bestStorage) {
+                        storageIdToLog = bestStorage.storage_id;
+                        await tx.foodStorage.update({
+                            where: { food_id_storage_id: { food_id: foodId, storage_id: bestStorage.storage_id } },
+                            data: { current_stock: { decrement: quantity } }
+                        });
+                    }
 
                     // Log transaction
                     await tx.stockTransaction.create({
                         data: {
                             food_id: foodId,
+                            storage_id: storageIdToLog,
                             quantity: -quantity,
                             transaction_type: "CONSUMPTION"
                         }

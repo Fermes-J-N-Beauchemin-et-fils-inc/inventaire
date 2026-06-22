@@ -24,7 +24,9 @@ export default async function AlimentDetailPage({ params }: { params: Promise<{ 
     where: { id },
     include: {
       unit_type: true,
-      storage: true,
+      storages: {
+        include: { storage: true }
+      },
       deliveries: {
         where: { date_expected: { gte: new Date() } }
       }
@@ -45,17 +47,21 @@ export default async function AlimentDetailPage({ params }: { params: Promise<{ 
     );
   }
 
+  // Calculate current stock across all silos
+  const currentStock = food.storages.reduce((sum: number, s: any) => sum + s.current_stock, 0);
+  const storageLocation = food.storages.map((s: any) => s.storage.name).join(', ') || 'Aucun silo';
+
   // Construct view model
   const aliment = {
     id: food.id,
     fullName: food.name,
     commonName: food.common_name || "N/A",
-    currentStock: food.current_stock,
-    maxStock: food.current_stock * 2 || 100, // Dummy max stock
+    currentStock: currentStock,
+    maxStock: currentStock * 2 || 100, // Dummy max stock
     unit: food.unit_type.name,
     msPercentage: food.ms_percentage,
     humidityPercentage: 100 - food.ms_percentage,
-    storageLocation: food.storage.name,
+    storageLocation: storageLocation,
     pricePerMS: food.price_per_ms,
     pricePerTQS: food.price_per_tqs,
     hasActiveOrder: food.deliveries.length > 0,
@@ -66,7 +72,7 @@ export default async function AlimentDetailPage({ params }: { params: Promise<{ 
     consumptionRate: 0,
     consumptionHistory: [{ date: 'Auj.', value: 0 }],
     msHistory: [{ date: 'Auj.', value: food.ms_percentage }],
-    stockHistory: [{ date: 'Auj.', value: food.current_stock }],
+    stockHistory: [{ date: 'Auj.', value: currentStock }],
     priceHistory: [{ date: 'Auj.', priceMS: food.price_per_ms, priceTQS: food.price_per_tqs }],
     nutritionalValues: {
       MAT: 0,

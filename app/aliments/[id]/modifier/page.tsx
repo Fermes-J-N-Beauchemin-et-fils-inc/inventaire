@@ -38,8 +38,6 @@ export default async function ModifierAlimentPage({ params }: { params: Promise<
             id: food.id,
             name: food.name,
             unit_type_id: food.unit_type_id,
-            storage_id: food.storage_id,
-            current_stock: food.current_stock,
             price_per_ms: food.price_per_ms,
             price_per_tqs: food.price_per_tqs,
             ms_percentage: food.ms_percentage,

@@ -161,9 +161,12 @@ export default function LivraisonsView({ deliveries, suppliers }: LivraisonsView
                     className="w-full pl-5 pr-10 py-4 bg-zinc-50 border-2 border-zinc-200 rounded-2xl text-zinc-900 font-bold text-lg focus:ring-0 focus:bg-white focus:border-green-500 transition-colors appearance-none cursor-pointer disabled:opacity-50"
                   >
                     <option value="">Sélectionner...</option>
-                    {availableContracts.map(c => (
-                      <option key={c.id} value={c.id}>{c.name} - {c.food.name} ({c.kg_left_to_deliver}kg restants)</option>
-                    ))}
+                    {availableContracts.map(c => {
+                      const kgLeft = c.sub_contracts?.reduce((sum: number, sc: any) => sum + sc.kg_left_to_deliver, 0) || 0;
+                      return (
+                        <option key={c.id} value={c.id}>{c.name} - {c.food.name} ({kgLeft}kg restants)</option>
+                      );
+                    })}
                   </select>
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">▼</div>
                 </div>

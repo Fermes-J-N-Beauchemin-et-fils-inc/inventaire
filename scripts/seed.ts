@@ -96,10 +96,14 @@ async function main() {
         ms_percentage: fd.ms,
         price_per_ms: fd.pms,
         price_per_tqs: fd.ptqs,
-        current_stock: fd.s,
-        storage_id: storage_id,
         unit_type_id: unit_type_id,
-        is_active: true
+        is_active: true,
+        storages: {
+          create: [{
+            storage_id: storage_id,
+            current_stock: fd.s
+          }]
+        }
       }
     });
     
@@ -107,16 +111,25 @@ async function main() {
     foodMap.set(fd.cn, food.id);
 
     // Create a dummy contract for each food (required for delivery)
-    await prisma.contract.create({
+    const contract = await prisma.contract.create({
       data: {
         name: `Default Contract - ${fd.n}`,
         supplier_id: supplier.id,
         food_id: food.id,
         total_kg: 100000,
-        kg_left_to_deliver: 100000,
         price_per_kg: fd.ptqs / 1000,
         date_start: new Date(),
         date_end: new Date(new Date().setFullYear(new Date().getFullYear() + 1))
+      }
+    });
+
+    // Create sub_contract
+    await prisma.subContract.create({
+      data: {
+        contract_id: contract.id,
+        name: "Spot default",
+        expected_kg: 100000,
+        kg_left_to_deliver: 100000
       }
     });
   }
@@ -148,7 +161,7 @@ async function main() {
 
     await prisma.delivery.create({
       data: {
-        contract_id: contract.id,
+        supplier_id: contract.supplier_id,
         food_id: foodId,
         quantity_received: del.qty,
         date_delivered: new Date(del.delivered),
