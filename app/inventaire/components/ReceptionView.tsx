@@ -192,7 +192,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                     type="number" 
                     step="0.1" 
                     min="0"
-                    value={totalKg || ''} 
+                    value={totalKg === 0 ? '' : totalKg} 
                     onChange={(e) => { setTotalKg(Number(e.target.value) || 0); }}
                     className="w-full p-4 bg-white border border-zinc-200 rounded-xl font-black text-blue-900" 
                     placeholder="0.0"
@@ -225,39 +225,60 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                   
                   <div className="space-y-4">
                     {activeSubContracts.map(sc => (
-                      <div key={sc.id} className="bg-white p-4 rounded-xl shadow-sm border border-indigo-50 flex items-center gap-4">
-                        <div className="flex-1">
-                          <h4 className="font-bold text-zinc-800">{sc.name}</h4>
-                          <p className="text-xs text-zinc-500">Reste: <span className="font-bold">{sc.kg_left_to_deliver} kg</span></p>
+                      <div key={sc.id} className="bg-white p-5 rounded-2xl shadow-sm border border-indigo-100 flex flex-col gap-4">
+                        <div className="flex justify-between items-center">
+                          <h4 className="font-bold text-zinc-800 text-lg">{sc.name}</h4>
+                          <span className="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">Reste: {sc.kg_left_to_deliver} kg</span>
                         </div>
-                        <div className="flex items-center gap-4 w-1/2">
+                        <div className="flex items-center gap-4">
+                          <button 
+                            type="button"
+                            onClick={() => handleContractChange(sc.id, Math.min(sc.kg_left_to_deliver, (contractAllocations[sc.id] || 0) + (totalKg - totalContractAllocated)))}
+                            className="text-xs font-black bg-indigo-100 text-indigo-700 hover:bg-indigo-200 px-3 py-2 rounded-lg transition-colors shrink-0"
+                          >
+                            MAX
+                          </button>
                           <input
                             type="range"
                             min="0"
                             max={sc.kg_left_to_deliver}
                             step="0.1"
-                            value={contractAllocations[sc.id] || 0}
+                            value={contractAllocations[sc.id] ?? 0}
                             onChange={(e) => handleContractChange(sc.id, Number(e.target.value) || 0)}
-                            className="w-full h-2 bg-indigo-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                            className="flex-1 h-2 bg-indigo-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                           />
-                          <input 
-                            type="number"
-                            step="0.1"
-                            min="0"
-                            max={sc.kg_left_to_deliver}
-                            value={contractAllocations[sc.id] === 0 ? '' : contractAllocations[sc.id]}
-                            onChange={(e) => handleContractChange(sc.id, Number(e.target.value) || 0)}
-                            className="w-24 p-2 border border-zinc-200 rounded-lg font-bold text-right focus:border-indigo-500 outline-none"
-                            placeholder="0 kg"
-                          />
+                          <div className="relative shrink-0">
+                            <input 
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              max={sc.kg_left_to_deliver}
+                              value={contractAllocations[sc.id] ?? ''}
+                              onChange={(e) => handleContractChange(sc.id, Number(e.target.value) || 0)}
+                              className="w-28 p-3 pr-8 border-2 border-indigo-100 rounded-xl font-black text-indigo-900 text-right focus:border-indigo-500 outline-none transition-colors"
+                              placeholder="0"
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-zinc-400">kg</span>
+                          </div>
                         </div>
                       </div>
                     ))}
-                    {activeSubContracts.length === 0 && <p className="text-zinc-500 text-sm">Aucun contrat actif pour cet aliment.</p>}
+                    {activeSubContracts.length === 0 && <p className="text-zinc-500 text-sm p-4 bg-white rounded-2xl border border-indigo-50">Aucun contrat actif pour cet aliment.</p>}
                   </div>
                   
-                  <div className={`mt-6 p-4 rounded-xl text-center font-black text-lg ${Math.abs(totalContractAllocated - totalKg) < 0.1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    Total Alloué: {totalContractAllocated.toFixed(1)} / {totalKg} kg
+                  <div className="mt-6 bg-white p-5 rounded-2xl border border-indigo-100 shadow-sm">
+                    <div className="flex justify-between items-end mb-2">
+                      <span className="text-sm font-bold text-zinc-500">Allocation Contrats</span>
+                      <span className={`text-lg font-black ${Math.abs(totalContractAllocated - totalKg) < 0.1 ? 'text-green-600' : 'text-indigo-600'}`}>
+                        {totalContractAllocated.toFixed(1)} <span className="text-sm text-zinc-400 font-medium">/ {totalKg} kg</span>
+                      </span>
+                    </div>
+                    <div className="w-full bg-zinc-100 rounded-full h-3 overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-500 ${Math.abs(totalContractAllocated - totalKg) < 0.1 ? 'bg-green-500' : totalContractAllocated > totalKg ? 'bg-red-500' : 'bg-indigo-500'}`}
+                        style={{ width: `${totalKg > 0 ? Math.min(100, (totalContractAllocated / totalKg) * 100) : 0}%` }}
+                      ></div>
+                    </div>
                   </div>
                 </div>
 
@@ -279,39 +300,60 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                       const availableKg = Math.max(0, (maxTm - currentTm) * 1000);
 
                       return (
-                        <div key={st.id} className="bg-white p-4 rounded-xl shadow-sm border border-amber-50 flex items-center gap-4">
-                          <div className="flex-1">
-                            <h4 className="font-bold text-zinc-800">{st.name}</h4>
-                            <p className="text-xs text-zinc-500">Capacité libre: <span className="font-bold">{availableKg.toFixed(1)} kg</span></p>
+                        <div key={st.id} className="bg-white p-5 rounded-2xl shadow-sm border border-amber-100 flex flex-col gap-4">
+                          <div className="flex justify-between items-center">
+                            <h4 className="font-bold text-zinc-800 text-lg">{st.name}</h4>
+                            <span className="text-sm font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full">Libre: {availableKg.toFixed(1)} kg</span>
                           </div>
-                          <div className="flex items-center gap-4 w-1/2">
+                          <div className="flex items-center gap-4">
+                            <button 
+                              type="button"
+                              onClick={() => handleStorageChange(st.id, Math.min(availableKg, (storageAllocations[st.id] || 0) + (totalKg - totalStorageAllocated)))}
+                              className="text-xs font-black bg-amber-100 text-amber-700 hover:bg-amber-200 px-3 py-2 rounded-lg transition-colors shrink-0"
+                            >
+                              MAX
+                            </button>
                             <input
                               type="range"
                               min="0"
                               max={availableKg}
                               step="0.1"
-                              value={storageAllocations[st.id] || 0}
+                              value={storageAllocations[st.id] ?? 0}
                               onChange={(e) => handleStorageChange(st.id, Number(e.target.value) || 0)}
-                              className="w-full h-2 bg-amber-200 rounded-lg appearance-none cursor-pointer accent-amber-600"
+                              className="flex-1 h-2 bg-amber-100 rounded-lg appearance-none cursor-pointer accent-amber-500"
                             />
-                            <input 
-                              type="number"
-                              step="0.1"
-                              min="0"
-                              max={availableKg}
-                              value={storageAllocations[st.id] === 0 ? '' : storageAllocations[st.id]}
-                              onChange={(e) => handleStorageChange(st.id, Number(e.target.value) || 0)}
-                              className="w-24 p-2 border border-zinc-200 rounded-lg font-bold text-right focus:border-amber-500 outline-none"
-                              placeholder="0 kg"
-                            />
+                            <div className="relative shrink-0">
+                              <input 
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max={availableKg}
+                                value={storageAllocations[st.id] ?? ''}
+                                onChange={(e) => handleStorageChange(st.id, Number(e.target.value) || 0)}
+                                className="w-28 p-3 pr-8 border-2 border-amber-100 rounded-xl font-black text-amber-900 text-right focus:border-amber-500 outline-none transition-colors"
+                                placeholder="0"
+                              />
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-zinc-400">kg</span>
+                            </div>
                           </div>
                         </div>
                       );
                     })}
                   </div>
 
-                  <div className={`mt-6 p-4 rounded-xl text-center font-black text-lg ${Math.abs(totalStorageAllocated - totalKg) < 0.1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    Total Alloué: {totalStorageAllocated.toFixed(1)} / {totalKg} kg
+                  <div className="mt-6 bg-white p-5 rounded-2xl border border-amber-100 shadow-sm">
+                    <div className="flex justify-between items-end mb-2">
+                      <span className="text-sm font-bold text-zinc-500">Allocation Silos</span>
+                      <span className={`text-lg font-black ${Math.abs(totalStorageAllocated - totalKg) < 0.1 ? 'text-green-600' : 'text-amber-600'}`}>
+                        {totalStorageAllocated.toFixed(1)} <span className="text-sm text-zinc-400 font-medium">/ {totalKg} kg</span>
+                      </span>
+                    </div>
+                    <div className="w-full bg-zinc-100 rounded-full h-3 overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-500 ${Math.abs(totalStorageAllocated - totalKg) < 0.1 ? 'bg-green-500' : totalStorageAllocated > totalKg ? 'bg-red-500' : 'bg-amber-500'}`}
+                        style={{ width: `${totalKg > 0 ? Math.min(100, (totalStorageAllocated / totalKg) * 100) : 0}%` }}
+                      ></div>
+                    </div>
                   </div>
                 </div>
               </div>
