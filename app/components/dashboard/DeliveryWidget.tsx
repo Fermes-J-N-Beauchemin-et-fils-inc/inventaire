@@ -32,7 +32,7 @@ export default async function DeliveryWidget() {
                 </Link>
             </div>
 
-            <div className="flex-1 overflow-hidden mt-2">
+            <div className="flex-1 overflow-hidden mt-2"> 
                 {upcomingDeliveries.length > 0 ? (
                     <div className="space-y-4">
                         {upcomingDeliveries.map((delivery: any) => {

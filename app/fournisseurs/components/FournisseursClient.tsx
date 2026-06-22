@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { SupplierWithDetails } from '../data/fetchFournisseurs';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTruck, faFileContract, faBuilding, faPlus, faTimes } from '@fortawesome/free-solid-svg-icons';
-import { createSupplier, createContract, createDelivery, toggleSupplierStatus, toggleContractStatus } from '../actions';
+import { createSupplier, createContract, createDelivery, toggleSupplierStatus, toggleContractStatus, deleteSubContract } from '../actions';
 import toast from 'react-hot-toast';
 
 interface Props {
@@ -14,7 +14,10 @@ interface Props {
 
 export default function FournisseursClient({ initialFournisseurs, aliments }: Props) {
   const [activeTab, setActiveTab] = useState<'fournisseurs' | 'contrats' | 'livraisons'>('fournisseurs');
-  const [showModal, setShowModal] = useState<'supplier' | 'contract' | 'delivery' | null>(null);
+  const [showModal, setShowModal] = useState<'supplier' | 'edit-supplier' | 'contract' | 'edit-subcontract' | 'new-subcontract' | 'delivery' | null>(null);
+  const [selectedContractId, setSelectedContractId] = useState<number | null>(null);
+  const [editingSupplier, setEditingSupplier] = useState<SupplierWithDetails | null>(null);
+  const [editingSubContract, setEditingSubContract] = useState<any | null>(null);
   const [expandedContracts, setExpandedContracts] = useState<Set<number>>(new Set());
   const [isPending, startTransition] = React.useTransition();
 
@@ -69,6 +72,39 @@ export default function FournisseursClient({ initialFournisseurs, aliments }: Pr
       return newSet;
     });
   };
+
+  const handleDeleteSubContract = (id: number) => {
+    toast((t) => (
+      <div className="flex flex-col gap-3">
+        <p className="font-bold text-zinc-800">Êtes-vous sûr de vouloir supprimer ce sous-contrat ? Cette action est irréversible.</p>
+        <div className="flex justify-end gap-2 mt-2">
+          <button 
+            className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl font-bold transition-colors" 
+            onClick={() => toast.dismiss(t.id)}
+          >
+            Annuler
+          </button>
+          <button 
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-red-600/20" 
+            onClick={() => {
+              toast.dismiss(t.id);
+              startTransition(async () => {
+                try {
+                  await deleteSubContract(id);
+                  toast.success("Sous-contrat supprimé.");
+                } catch(e: any) {
+                  toast.error(e.message || "Erreur lors de la suppression.");
+                }
+              });
+            }}
+          >
+            Confirmer
+          </button>
+        </div>
+      </div>
+    ), { duration: Infinity });
+  };
+
 
   return (
     <div>
@@ -132,13 +168,18 @@ export default function FournisseursClient({ initialFournisseurs, aliments }: Pr
               <div className="flex justify-between items-start mb-2">
                 <div className="flex items-center gap-3">
                   {f.url && (
-                    <img src={`https://www.google.com/s2/favicons?domain=${f.url}&sz=128`} alt="" className="w-8 h-8 rounded-md bg-zinc-100" />
+                    <img 
+                      src={`https://www.google.com/s2/favicons?domain=${f.url}&sz=128`} 
+                      alt="" 
+                      className="w-8 h-8 rounded-md bg-zinc-100" 
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
                   )}
                   <h3 className="text-2xl font-black text-zinc-900">{f.name}</h3>
                 </div>
                 <div className="flex gap-2">
                   <button 
-                    onClick={() => { /* TODO handle edit modal */ }}
+                    onClick={() => { setEditingSupplier(f); setShowModal('edit-supplier'); }}
                     className="px-3 py-1 text-xs font-bold rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200"
                   >
                     Modifier
@@ -225,9 +266,27 @@ export default function FournisseursClient({ initialFournisseurs, aliments }: Pr
                         <div className="pl-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                           {c.sub_contracts && c.sub_contracts.length > 0 ? (
                             c.sub_contracts.map((sc: any) => (
-                              <div key={sc.id} className="bg-white p-4 rounded-xl border border-zinc-200 shadow-sm flex flex-col gap-1">
-                                <span className="font-black text-zinc-800">{sc.name}</span>
-                                <div className="flex justify-between items-center text-sm">
+                              <div key={sc.id} className="bg-white p-4 rounded-xl border border-zinc-200 shadow-sm flex flex-col gap-1 relative group">
+                                <div className="flex justify-between items-start pr-12">
+                                  <span className="font-black text-zinc-800">{sc.name}</span>
+                                  <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                                    <button 
+                                      onClick={(e) => { e.stopPropagation(); setEditingSubContract(sc); setShowModal('edit-subcontract'); }}
+                                      className="text-zinc-400 hover:text-indigo-600 transition-colors"
+                                      title="Modifier"
+                                    >
+                                      ✎
+                                    </button>
+                                    <button 
+                                      onClick={(e) => { e.stopPropagation(); handleDeleteSubContract(sc.id); }}
+                                      className="text-zinc-400 hover:text-red-600 transition-colors"
+                                      title="Supprimer"
+                                    >
+                                      <FontAwesomeIcon icon={faTimes} />
+                                    </button>
+                                  </div>
+                                </div>
+                                <div className="flex justify-between items-center text-sm mt-1">
                                   <span className="text-zinc-500">Reste:</span>
                                   <span className={`font-bold ${sc.kg_left_to_deliver > 0 ? 'text-indigo-600' : 'text-green-600'}`}>
                                     {sc.kg_left_to_deliver} kg
@@ -242,8 +301,15 @@ export default function FournisseursClient({ initialFournisseurs, aliments }: Pr
                               </div>
                             ))
                           ) : (
-                            <p className="text-sm text-zinc-500">Aucun sous-contrat.</p>
+                            <p className="text-sm text-zinc-500 col-span-full">Aucun sous-contrat.</p>
                           )}
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); setSelectedContractId(c.id); setShowModal('new-subcontract'); }}
+                            className="bg-white border-2 border-dashed border-zinc-200 hover:border-indigo-400 hover:bg-indigo-50/50 p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-zinc-400 hover:text-indigo-600 transition-all cursor-pointer h-full min-h-[100px]"
+                          >
+                            <FontAwesomeIcon icon={faPlus} className="text-xl" />
+                            <span className="font-bold text-sm">Ajouter</span>
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -275,9 +341,39 @@ export default function FournisseursClient({ initialFournisseurs, aliments }: Pr
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-black text-zinc-900">{d.quantity_received} <span className="text-sm text-zinc-500">{d.unit}</span></p>
-                  <span className={`inline-block px-3 py-1 mt-1 rounded-lg text-xs font-black uppercase tracking-wider ${isDelivered ? 'bg-zinc-100 text-zinc-500' : 'bg-green-100 text-green-700'}`}>
-                    {isDelivered ? 'Livrè' : 'En Attente'}
-                  </span>
+                  <div className="flex items-center justify-end gap-2 mt-1">
+                    <span className={`inline-block px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider ${isDelivered ? 'bg-zinc-100 text-zinc-500' : 'bg-green-100 text-green-700'}`}>
+                      {isDelivered ? 'Livrè' : 'En Attente'}
+                    </span>
+                    {!isDelivered && (
+                      <button
+                        onClick={() => {
+                          toast((t) => (
+                            <div className="flex flex-col gap-3">
+                              <p className="font-bold text-zinc-800">Voulez-vous vraiment supprimer cette livraison planifiée ?</p>
+                              <div className="flex justify-end gap-2 mt-2">
+                                <button className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl font-bold" onClick={() => toast.dismiss(t.id)}>Annuler</button>
+                                <button className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold" onClick={async () => {
+                                  toast.dismiss(t.id);
+                                  const { deleteDelivery } = await import('../actions');
+                                  try {
+                                    await deleteDelivery(d.id);
+                                    toast.success("Livraison planifiée supprimée.");
+                                  } catch (error: any) {
+                                    toast.error(error.message || "Erreur lors de la suppression.");
+                                  }
+                                }}>Supprimer</button>
+                              </div>
+                            </div>
+                          ), { duration: Infinity });
+                        }}
+                        className="w-7 h-7 flex items-center justify-center bg-red-100 hover:bg-red-200 text-red-600 rounded-lg text-xs font-black transition-all"
+                        title="Supprimer"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -299,92 +395,205 @@ export default function FournisseursClient({ initialFournisseurs, aliments }: Pr
             
             <div className="p-8 sm:p-12">
               <h2 className="text-3xl font-black text-zinc-900 mb-8">
-                {showModal === 'supplier' ? 'Nouveau Fournisseur' : showModal === 'contract' ? 'Nouveau Contrat' : 'Planifier Livraison'}
+                {showModal === 'supplier' ? 'Nouveau Fournisseur' : 
+                 showModal === 'edit-supplier' ? 'Modifier Fournisseur' :
+                 showModal === 'contract' ? 'Nouveau Contrat' : 
+                 showModal === 'edit-subcontract' ? 'Modifier Sous-contrat' :
+                 'Planifier Livraison'}
               </h2>
 
               {/* Form: Supplier */}
               {showModal === 'supplier' && (
-                <form action={createSupplier} onSubmit={() => setTimeout(() => setShowModal(null), 500)} className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-bold text-zinc-700 mb-2">Nom *</label>
-                    <input name="name" required className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
+                <form action={createSupplier} onSubmit={() => setTimeout(() => setShowModal(null), 500)} className="space-y-8">
+                  <div className="bg-zinc-50 p-6 rounded-[2rem] border border-zinc-100 space-y-6">
+                    <h2 className="text-xl font-black text-zinc-800 uppercase tracking-widest mb-4">Informations Principales</h2>
                     <div>
-                      <label className="block text-sm font-bold text-zinc-700 mb-2">Téléphone *</label>
-                      <input name="phone_number" required className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl" />
+                      <label className="block text-sm font-bold text-zinc-700 mb-2">Nom *</label>
+                      <input name="name" required className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" placeholder="Ex: Synagri..." />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-bold text-zinc-700 mb-2">Téléphone *</label>
+                        <input name="phone_number" required className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" placeholder="Ex: 450-123-4567" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-zinc-700 mb-2">Email *</label>
+                        <input name="email" type="email" required className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" placeholder="Ex: contact@synagri.com" />
+                      </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-zinc-700 mb-2">Email *</label>
-                      <input name="email" type="email" required className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl" />
+                      <label className="block text-sm font-bold text-zinc-700 mb-2">Adresse *</label>
+                      <input name="address" required className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" placeholder="Ex: 123 Route Agricole..." />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-zinc-700 mb-2">URL du site web (Optionnel)</label>
+                      <input name="url" type="text" placeholder="Ex: synagri.com" className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" />
+                      <p className="text-xs font-bold text-zinc-400 mt-2 ml-1">Sert à afficher le logo automatiquement.</p>
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-bold text-zinc-700 mb-2">Adresse *</label>
-                    <input name="address" required className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl" />
+                  <div className="flex justify-end">
+                    <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-black text-lg px-8 py-4 rounded-2xl shadow-lg shadow-indigo-600/30 hover:-translate-y-1 active:translate-y-0 transition-all border-b-4 border-indigo-800 active:border-b-0 flex items-center justify-center gap-3 w-full sm:w-auto">
+                      Ajouter le fournisseur
+                    </button>
                   </div>
-                  <div>
-                    <label className="block text-sm font-bold text-zinc-700 mb-2">URL du site web (Optionnel)</label>
-                    <input name="url" type="text" placeholder="ex: synagri.com" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl" />
-                    <p className="text-xs text-zinc-400 mt-1">Sert à afficher le logo automatiquement.</p>
+                </form>
+              )}
+
+              {/* Form: Edit Supplier */}
+              {showModal === 'edit-supplier' && editingSupplier && (
+                <form action={async (fd) => { await import('../actions').then(m => m.updateSupplier(fd)); setShowModal(null); }} className="space-y-8">
+                  <input type="hidden" name="id" value={editingSupplier.id} />
+                  <div className="bg-zinc-50 p-6 rounded-[2rem] border border-zinc-100 space-y-6">
+                    <h2 className="text-xl font-black text-zinc-800 uppercase tracking-widest mb-4">Informations Principales</h2>
+                    <div>
+                      <label className="block text-sm font-bold text-zinc-700 mb-2">Nom *</label>
+                      <input name="name" defaultValue={editingSupplier.name} required className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-bold text-zinc-700 mb-2">Téléphone *</label>
+                        <input name="phone_number" defaultValue={editingSupplier.phone_number} required className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-zinc-700 mb-2">Email *</label>
+                        <input name="email" type="email" defaultValue={editingSupplier.email} required className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-zinc-700 mb-2">Adresse *</label>
+                      <input name="address" defaultValue={editingSupplier.address} required className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-zinc-700 mb-2">URL du site web (Optionnel)</label>
+                      <input name="url" type="text" defaultValue={editingSupplier.url || ''} placeholder="Ex: synagri.com" className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" />
+                      <p className="text-xs font-bold text-zinc-400 mt-2 ml-1">Sert à afficher le logo automatiquement.</p>
+                    </div>
                   </div>
-                  <button type="submit" className="w-full bg-indigo-600 text-white font-black p-4 rounded-xl hover:bg-indigo-700 mt-4">Enregistrer</button>
+                  <div className="flex justify-end">
+                    <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-black text-lg px-8 py-4 rounded-2xl shadow-lg shadow-indigo-600/30 hover:-translate-y-1 active:translate-y-0 transition-all border-b-4 border-indigo-800 active:border-b-0 flex items-center justify-center gap-3 w-full sm:w-auto">
+                      Sauvegarder les modifications
+                    </button>
+                  </div>
                 </form>
               )}
 
               {/* Form: Contract */}
               {showModal === 'contract' && (
-                <form action={createContract} onSubmit={() => setTimeout(() => setShowModal(null), 500)} className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-bold text-zinc-700 mb-2">Référence du Contrat *</label>
-                    <input name="name" required className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl" />
+                <form action={createContract} onSubmit={() => setTimeout(() => setShowModal(null), 500)} className="space-y-8">
+                  <div className="bg-emerald-50/50 p-6 rounded-[2rem] border border-emerald-100 space-y-6">
+                    <h2 className="text-xl font-black text-emerald-800 uppercase tracking-widest mb-4">Détails du Contrat</h2>
+                    <div>
+                      <label className="block text-sm font-bold text-zinc-700 mb-2">Référence du Contrat *</label>
+                      <input name="name" required className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm" placeholder="Ex: Maïs 2026..." />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-bold text-zinc-700 mb-2">Fournisseur *</label>
+                        <select name="supplier_id" required className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm appearance-none">
+                          <option value="">Sélectionner</option>
+                          {initialFournisseurs.filter(f => f.is_active).map(f => (
+                            <option key={f.id} value={f.id}>{f.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-zinc-700 mb-2">Aliment *</label>
+                        <select name="food_id" required className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm appearance-none">
+                          <option value="">Choisir...</option>
+                          {aliments.map(a => <option key={a.id} value={a.id}>{a.name} ({a.unit_type.name})</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-bold text-zinc-700 mb-2">Quantité Totale (kg) *</label>
+                        <input name="total_kg" type="number" step="0.01" required className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm" placeholder="0" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-zinc-700 mb-2">Prix par kg ($) *</label>
+                        <input name="price_per_kg" type="number" step="0.01" required className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm" placeholder="0.00" />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 bg-white p-5 rounded-[1.5rem] border-2 border-zinc-200 shadow-sm">
+                      <input type="checkbox" id="is_spot" name="is_spot" value="true" className="w-6 h-6 accent-emerald-600 rounded-md" />
+                      <label htmlFor="is_spot" className="font-black text-emerald-900 cursor-pointer">Ceci est un Contrat Spot (Une seule livraison)</label>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-bold text-zinc-700 mb-2">Date de début *</label>
+                        <input name="date_start" type="date" required className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-zinc-700 mb-2">Date de fin (Laisser vide si Spot)</label>
+                        <input name="date_end" type="date" className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm" />
+                      </div>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-bold text-zinc-700 mb-2">Fournisseur *</label>
-                      <select name="supplier_id" required className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl font-bold">
-                        <option value="">Sélectionner</option>
-                        {initialFournisseurs.filter(f => f.is_active).map(f => (
-                          <option key={f.id} value={f.id}>{f.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-bold text-zinc-700 mb-2">Aliment *</label>
-                      <select name="food_id" required className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl appearance-none">
-                        <option value="">Choisir...</option>
-                        {aliments.map(a => <option key={a.id} value={a.id}>{a.name} ({a.unit_type.name})</option>)}
-                      </select>
-                    </div>
+                  <div className="flex justify-end">
+                    <button type="submit" className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black text-lg px-8 py-4 rounded-2xl shadow-lg shadow-emerald-600/30 hover:-translate-y-1 active:translate-y-0 transition-all border-b-4 border-emerald-800 active:border-b-0 flex items-center justify-center gap-3 w-full sm:w-auto">
+                      Créer le contrat
+                    </button>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-bold text-zinc-700 mb-2">Quantité Totale (kg) *</label>
-                      <input name="total_kg" type="number" step="0.01" required className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-bold text-zinc-700 mb-2">Prix par kg ($) *</label>
-                      <input name="price_per_kg" type="number" step="0.01" required className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl" />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 bg-indigo-50 p-4 rounded-xl border border-indigo-200">
-                    <input type="checkbox" id="is_spot" name="is_spot" value="true" className="w-5 h-5 accent-indigo-600" />
-                    <label htmlFor="is_spot" className="font-bold text-indigo-900 cursor-pointer">Ceci est un Contrat Spot (Une seule livraison)</label>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-bold text-zinc-700 mb-2">Date de début *</label>
-                      <input name="date_start" type="date" required className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-bold text-zinc-700 mb-2">Date de fin (Laisser vide si Spot)</label>
-                      <input name="date_end" type="date" className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl" />
-                    </div>
-                  </div>
-                  <button type="submit" className="w-full bg-emerald-600 text-white font-black p-4 rounded-xl hover:bg-emerald-700 mt-4">Enregistrer</button>
                 </form>
               )}
 
+              {/* Form: Edit Sub-Contract */}
+              {showModal === 'edit-subcontract' && editingSubContract && (
+                <form action={async (fd) => { await import('../actions').then(m => m.updateSubContract(fd)); setShowModal(null); }} className="space-y-8">
+                  <input type="hidden" name="id" value={editingSubContract.id} />
+                  <div className="bg-zinc-50 p-6 rounded-[2rem] border border-zinc-100 space-y-6">
+                    <h2 className="text-xl font-black text-zinc-800 uppercase tracking-widest mb-4">Valeurs du Sous-contrat</h2>
+                    <div>
+                      <label className="block text-sm font-bold text-zinc-700 mb-2">Nom du sous-contrat *</label>
+                      <input name="name" defaultValue={editingSubContract.name} required className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-bold text-zinc-700 mb-2">Quantité Attendue (kg) *</label>
+                        <input name="expected_kg" type="number" step="0.01" defaultValue={editingSubContract.expected_kg} required className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-zinc-700 mb-2">Reste à Livrer (kg) *</label>
+                        <input name="kg_left_to_deliver" type="number" step="0.01" defaultValue={editingSubContract.kg_left_to_deliver} required className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <button type="submit" className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-black text-lg px-8 py-4 rounded-2xl shadow-lg shadow-blue-600/30 hover:-translate-y-1 active:translate-y-0 transition-all border-b-4 border-blue-800 active:border-b-0 flex items-center justify-center gap-3 w-full sm:w-auto">
+                      Sauvegarder les modifications
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Form: New Sub-Contract */}
+              {showModal === 'new-subcontract' && selectedContractId && (
+                <form action={async (fd) => { await import('../actions').then(m => m.createSubContract(fd)); setShowModal(null); }} className="space-y-8">
+                  <input type="hidden" name="contract_id" value={selectedContractId} />
+                  <div className="bg-zinc-50 p-6 rounded-[2rem] border border-zinc-100 space-y-6">
+                    <h2 className="text-xl font-black text-zinc-800 uppercase tracking-widest mb-4">Nouveau Sous-contrat</h2>
+                    <div>
+                      <label className="block text-sm font-bold text-zinc-700 mb-2">Nom du sous-contrat *</label>
+                      <input name="name" required className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" placeholder="Ex: Novembre 2026" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-bold text-zinc-700 mb-2">Quantité Attendue (kg) *</label>
+                        <input name="expected_kg" type="number" step="0.01" required className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" placeholder="0" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-zinc-700 mb-2">Reste à Livrer (kg) *</label>
+                        <input name="kg_left_to_deliver" type="number" step="0.01" required className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" placeholder="0" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-black text-lg px-8 py-4 rounded-2xl shadow-lg shadow-indigo-600/30 hover:-translate-y-1 active:translate-y-0 transition-all border-b-4 border-indigo-800 active:border-b-0 flex items-center justify-center gap-3 w-full sm:w-auto">
+                      Ajouter le sous-contrat
+                    </button>
+                  </div>
+                </form>
+              )}
 
             </div>
           </div>

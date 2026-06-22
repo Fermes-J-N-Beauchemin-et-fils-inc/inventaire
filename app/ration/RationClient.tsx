@@ -431,9 +431,28 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
           notes={notes}
           setNotes={setNotes}
           onGenerate={() => {
-              if (window.confirm("Êtes-vous sûr de vouloir pousser cette ration pour la distribution ? Les valeurs seront figées.")) {
-                  handlePushRation();
-              }
+              toast((t) => (
+                <div className="flex flex-col gap-3">
+                  <p className="font-bold text-zinc-800">Êtes-vous sûr de vouloir pousser cette ration pour la distribution ? Les valeurs seront figées.</p>
+                  <div className="flex justify-end gap-2 mt-2">
+                    <button 
+                      className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl font-bold transition-colors" 
+                      onClick={() => toast.dismiss(t.id)}
+                    >
+                      Annuler
+                    </button>
+                    <button 
+                      className="px-4 py-2 bg-[#15803D] hover:bg-green-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-green-600/20" 
+                      onClick={() => {
+                        toast.dismiss(t.id);
+                        handlePushRation();
+                      }}
+                    >
+                      Confirmer
+                    </button>
+                  </div>
+                </div>
+              ), { duration: Infinity });
           }}
         />
     );

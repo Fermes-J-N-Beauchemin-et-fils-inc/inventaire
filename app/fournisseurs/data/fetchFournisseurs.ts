@@ -20,6 +20,12 @@ export async function fetchFournisseurs() {
           }
         },
         deliveries: {
+          where: {
+            OR: [
+              { date_delivered: null },
+              { date_delivered: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }
+            ]
+          },
           include: {
             food: true,
             delivery_subcontracts: {
@@ -55,6 +61,12 @@ export async function fetchSupplier(id: number) {
         }
       },
       deliveries: {
+        where: {
+          OR: [
+            { date_delivered: null },
+            { date_delivered: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }
+          ]
+        },
         include: {
           food: true,
           delivery_subcontracts: { include: { sub_contract: true } }

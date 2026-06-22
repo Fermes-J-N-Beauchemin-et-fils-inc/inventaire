@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { DeliveryData, SupplierWithContractsData } from '../data/fetchInventaire';
 import { createDelivery } from '@/app/fournisseurs/actions'; // Reuse the action
+import toast from 'react-hot-toast';
 
 interface LivraisonsViewProps {
   deliveries: DeliveryData[];
@@ -57,7 +58,7 @@ export default function LivraisonsView({ deliveries, suppliers }: LivraisonsView
                           <div>
                             <h3 className={`font-black text-xl sm:text-2xl ${isPast ? 'text-zinc-400 line-through' : 'text-zinc-900'}`}>{delivery.food.name}</h3>
                             <p className="text-base text-zinc-500 font-medium capitalize mt-1 flex items-center gap-2">
-                              {delivery.contract.supplier.name} | Contrat: {delivery.contract.name}
+                              {delivery.supplier.name} | Contrats: {delivery.delivery_subcontracts?.map((dsc: any) => dsc.sub_contract.name).join(', ') || 'Spot / Non alloué'}
                             </p>
                           </div>
                         </div>
@@ -66,9 +67,51 @@ export default function LivraisonsView({ deliveries, suppliers }: LivraisonsView
                             {delivery.quantity_received} <span className="text-sm text-zinc-500">{delivery.food.unit_type.name}</span>
                           </span>
                           {!isPast && (
-                            <div className="px-4 py-2 bg-emerald-100/50 text-emerald-700 rounded-xl text-sm font-black border border-emerald-200 self-start sm:self-auto flex items-center gap-2 shrink-0">
-                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                              Planifiée
+                            <div className="flex items-center gap-2">
+                              <div className="px-4 py-2 bg-emerald-100/50 text-emerald-700 rounded-xl text-sm font-black border border-emerald-200 self-start sm:self-auto flex items-center gap-2 shrink-0">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                Planifiée
+                              </div>
+                              <button
+                                onClick={async () => {
+                                  const { markDeliveryAsReceived } = await import('@/app/fournisseurs/actions');
+                                  try {
+                                    await markDeliveryAsReceived(delivery.id);
+                                    toast.success("Livraison marquée comme reçue !");
+                                  } catch (error: any) {
+                                    toast.error(error.message || "Erreur lors de la mise à jour.");
+                                  }
+                                }}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-black shadow-md transition-all shrink-0"
+                              >
+                                Recevoir
+                              </button>
+                              <button
+                                onClick={() => {
+                                  toast((t) => (
+                                    <div className="flex flex-col gap-3">
+                                      <p className="font-bold text-zinc-800">Voulez-vous vraiment supprimer cette livraison planifiée ?</p>
+                                      <div className="flex justify-end gap-2 mt-2">
+                                        <button className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl font-bold" onClick={() => toast.dismiss(t.id)}>Annuler</button>
+                                        <button className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold" onClick={async () => {
+                                          toast.dismiss(t.id);
+                                          const { deleteDelivery } = await import('@/app/fournisseurs/actions');
+                                          try {
+                                            await deleteDelivery(delivery.id);
+                                            toast.success("Livraison planifiée supprimée.");
+                                          } catch (error: any) {
+                                            toast.error(error.message || "Erreur lors de la suppression.");
+                                          }
+                                        }}>Supprimer</button>
+                                      </div>
+                                    </div>
+                                  ), { duration: Infinity });
+                                }}
+                                className="w-9 h-9 flex items-center justify-center bg-red-100 hover:bg-red-200 text-red-600 rounded-xl text-sm font-black transition-all shrink-0"
+                                title="Supprimer"
+                              >
+                                ✕
+                              </button>
                             </div>
                           )}
                         </div>

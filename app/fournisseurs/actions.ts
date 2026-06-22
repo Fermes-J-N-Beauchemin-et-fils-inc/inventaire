@@ -105,7 +105,6 @@ export async function createContract(formData: FormData) {
 
 export async function createDelivery(formData: FormData) {
   const contract_id = parseInt(formData.get("contract_id") as string, 10);
-  let food_id = parseInt(formData.get("food_id") as string, 10);
   const quantity_received = parseFloat(formData.get("quantity_received") as string);
   const date_expected = formData.get("date_expected") as string;
   const date_delivered = formData.get("date_delivered") as string;
@@ -114,36 +113,63 @@ export async function createDelivery(formData: FormData) {
     throw new Error("Veuillez remplir tous les champs obligatoires de la livraison.");
   }
 
-  // Auto-fetch food_id from the contract if missing
-  if (isNaN(food_id)) {
-    const contract = await prisma.contract.findUnique({ select: { food_id: true }, where: { id: contract_id } });
-    if (!contract) throw new Error("Contrat introuvable.");
-    food_id = contract.food_id;
-  }
+  // Auto-fetch food_id and supplier_id from the contract
+  const contract = await prisma.contract.findUnique({ select: { food_id: true, supplier_id: true }, where: { id: contract_id } });
+  if (!contract) throw new Error("Contrat introuvable.");
+  const food_id = contract.food_id;
+  const supplier_id = contract.supplier_id;
 
   await prisma.$transaction(async (tx) => {
-    await tx.delivery.create({
+    const delivery = await tx.delivery.create({
       data: {
-        contract_id,
+        supplier_id,
         food_id,
         quantity_received,
         date_expected: new Date(date_expected),
-        date_delivered: date_delivered ? new Date(date_delivered) : new Date(date_expected)
+        date_delivered: date_delivered ? new Date(date_delivered) : null
       }
     });
 
-    // Also deduct from kg_left_to_deliver if delivered
-    if (date_delivered) {
-      await tx.contract.update({
-        where: { id: contract_id },
+    // Link it to the FIRST active sub_contract of this contract
+    const firstSubContract = await tx.subContract.findFirst({
+      where: { contract_id, kg_left_to_deliver: { gt: 0 } },
+      orderBy: { id: 'asc' }
+    });
+
+    const subContractToLink = firstSubContract || await tx.subContract.findFirst({
+      where: { contract_id },
+      orderBy: { id: 'asc' }
+    });
+
+    if (subContractToLink) {
+      await tx.deliverySubContract.create({
         data: {
-          kg_left_to_deliver: {
-            decrement: quantity_received
-          }
+          delivery_id: delivery.id,
+          sub_contract_id: subContractToLink.id,
+          quantity: quantity_received
         }
       });
       
+      if (date_delivered) {
+        await tx.subContract.update({
+          where: { id: subContractToLink.id },
+          data: {
+            kg_left_to_deliver: {
+              decrement: quantity_received
+            }
+          }
+        });
+      }
+    }
+
+    if (date_delivered) {
       // Update food stock directly (units are matching: kg)
+      // Note: this assumes storage isn't specified, so we just add to food current_stock globally, 
+      // but in the new architecture stock is in FoodStorage. 
+      // Since this is a simple planning form, we should probably warn or just use a default storage.
+      // We will skip updating FoodStorage here because "Planifier une commande" shouldn't receive it immediately anyway, 
+      // or if it does, it's legacy. Complex Reception is done via ReceptionView.
+      
       await tx.food.update({
         where: { id: food_id },
         data: {
@@ -153,7 +179,6 @@ export async function createDelivery(formData: FormData) {
         }
       });
       
-      // Log the transaction
       await tx.stockTransaction.create({
         data: {
           food_id: food_id,
@@ -166,6 +191,7 @@ export async function createDelivery(formData: FormData) {
   });
 
   revalidatePath('/fournisseurs');
+  revalidatePath('/inventaire');
 }
 
 export async function toggleSupplierStatus(supplierId: number, isActive: boolean) {
@@ -187,5 +213,146 @@ export async function toggleContractStatus(contractId: number, isActive: boolean
     data: { is_active: isActive }
   });
 
+  revalidatePath('/fournisseurs');
+}
+
+export async function updateSupplier(formData: FormData) {
+  const id = parseInt(formData.get("id") as string, 10);
+  const name = formData.get("name") as string;
+  const phone_number = formData.get("phone_number") as string;
+  const email = formData.get("email") as string;
+  const address = formData.get("address") as string;
+  const url = (formData.get("url") as string) || null;
+
+  if (isNaN(id) || !name || !phone_number || !email || !address) {
+    throw new Error("Veuillez remplir tous les champs obligatoires du fournisseur.");
+  }
+
+  await prisma.supplier.update({
+    where: { id },
+    data: { name, phone_number, email, address, url }
+  });
+
+  revalidatePath('/fournisseurs');
+}
+
+export async function updateSubContract(formData: FormData) {
+  const id = parseInt(formData.get("id") as string, 10);
+  const name = formData.get("name") as string;
+  const expected_kg = parseFloat(formData.get("expected_kg") as string);
+  const kg_left_to_deliver = parseFloat(formData.get("kg_left_to_deliver") as string);
+
+  if (isNaN(id) || !name || isNaN(expected_kg) || isNaN(kg_left_to_deliver)) {
+    throw new Error("Veuillez remplir tous les champs obligatoires.");
+  }
+
+  await prisma.subContract.update({
+    where: { id },
+    data: { name, expected_kg, kg_left_to_deliver }
+  });
+
+  revalidatePath('/fournisseurs');
+}
+
+export async function createSubContract(formData: FormData) {
+  const contract_id = parseInt(formData.get("contract_id") as string, 10);
+  const name = formData.get("name") as string;
+  const expected_kg = parseFloat(formData.get("expected_kg") as string);
+  const kg_left_to_deliver = parseFloat(formData.get("kg_left_to_deliver") as string);
+
+  if (isNaN(contract_id) || !name || isNaN(expected_kg) || isNaN(kg_left_to_deliver)) {
+    throw new Error("Veuillez remplir tous les champs obligatoires.");
+  }
+
+  await prisma.subContract.create({
+    data: { contract_id, name, expected_kg, kg_left_to_deliver }
+  });
+
+  revalidatePath('/fournisseurs');
+}
+
+export async function deleteSubContract(id: number) {
+  try {
+    if (isNaN(id)) {
+      throw new Error("ID invalide.");
+    }
+
+    await prisma.subContract.delete({
+      where: { id }
+    });
+
+    revalidatePath('/fournisseurs');
+  } catch (error: any) {
+    if (error.code === 'P2003') {
+      throw new Error("Impossible de supprimer ce sous-contrat car il est lié à des livraisons.");
+    }
+    throw new Error(error.message || "Erreur lors de la suppression du sous-contrat.");
+  }
+}
+
+export async function markDeliveryAsReceived(deliveryId: number) {
+  if (isNaN(deliveryId)) throw new Error("ID de livraison invalide.");
+
+  await prisma.$transaction(async (tx) => {
+    const delivery = await tx.delivery.findUnique({
+      where: { id: deliveryId },
+      include: { delivery_subcontracts: true }
+    });
+
+    if (!delivery || delivery.date_delivered) {
+      throw new Error("Livraison introuvable ou déjà reçue.");
+    }
+
+    // Mark as delivered today
+    const now = new Date();
+    await tx.delivery.update({
+      where: { id: deliveryId },
+      data: { date_delivered: now }
+    });
+
+    // Deduct from sub-contracts
+    for (const dsc of delivery.delivery_subcontracts) {
+      await tx.subContract.update({
+        where: { id: dsc.sub_contract_id },
+        data: { kg_left_to_deliver: { decrement: dsc.quantity } }
+      });
+    }
+
+    // Add to global stock
+    await tx.food.update({
+      where: { id: delivery.food_id },
+      data: { current_stock: { increment: delivery.quantity_received } }
+    });
+
+    // Create transaction
+    await tx.stockTransaction.create({
+      data: {
+        food_id: delivery.food_id,
+        quantity: delivery.quantity_received,
+        transaction_type: "DELIVERY",
+        recorded_at: now
+      }
+    });
+  });
+
+  revalidatePath('/inventaire');
+  revalidatePath('/fournisseurs');
+}
+
+export async function deleteDelivery(deliveryId: number) {
+  if (isNaN(deliveryId)) throw new Error("ID de livraison invalide.");
+
+  await prisma.$transaction(async (tx) => {
+    const delivery = await tx.delivery.findUnique({
+      where: { id: deliveryId }
+    });
+
+    if (!delivery) throw new Error("Livraison introuvable.");
+    if (delivery.date_delivered) throw new Error("Impossible de supprimer une livraison déjà reçue.");
+
+    await tx.delivery.delete({ where: { id: deliveryId } });
+  });
+
+  revalidatePath('/inventaire');
   revalidatePath('/fournisseurs');
 }

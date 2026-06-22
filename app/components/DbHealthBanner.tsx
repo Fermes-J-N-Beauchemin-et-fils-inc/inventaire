@@ -25,7 +25,7 @@ export function DbHealthBanner() {
           ></path>
         </svg>
         <div className="flex flex-col">
-          <strong className="font-bold text-base sm:text-lg tracking-wide uppercase">
+          <strong className="font-bold text-base sm:text-lg tracking-wide upercase">
             Panne de connexion à la base de données
           </strong>
           <span className="text-sm sm:text-base font-medium opacity-90">

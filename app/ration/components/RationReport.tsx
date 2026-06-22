@@ -3,6 +3,7 @@ import Image from "next/image";
 import logo from '../../../public/images/logo.png';
 import { GroupsState, GroupKey } from '../types';
 import ReportRow from './ReportRow';
+import toast from 'react-hot-toast';
 
 interface RationReportProps {
   groups: GroupsState;
@@ -36,7 +37,7 @@ export default function RationReport({ groups, notes, tour1Keys, tour2Keys, onMo
           <div className="flex gap-4 w-full sm:w-auto">
             <button
               type="button"
-              onClick={() => alert("Fonction d'exportation non configurée dans la maquette.")}
+              onClick={() => toast("Fonction d'exportation non configurée.", { icon: "🚧" })}
               className="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold rounded-lg transition-colors text-center cursor-pointer"
             >
               Exporter

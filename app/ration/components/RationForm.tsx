@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCarrot, faPlus, faTrash, faSun, faSnowflake, faGripVertical, faCloudShowersHeavy, faExclamationTriangle, faTractor } from '@fortawesome/free-solid-svg-icons';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { GroupsState, GroupKey, Saison, PluieMode, GroupPluieMode } from '../types';
+import toast from 'react-hot-toast';
 
 interface RationFormProps {
   groups: GroupsState;
@@ -48,15 +49,45 @@ export default function RationForm({
   const handleStartDistribution = () => {
     if (saison === 'ete') {
       const groupsToValidate: GroupKey[] = ['g1', 'g2', 'g3', 'g4'];
+      const groupsWithIssues = [];
       for (const key of groupsToValidate) {
         const g = groups[key];
         const i1 = parseFloat(g.indice || "0");
         const i2 = parseFloat(g.indiceTour2 || "0");
         if (Math.abs((i1 + i2) - 1.0) > 0.01) {
-          // Fallback simple alert if user bypasses TractorUI modal, but TractorUI handles the real block later if needed.
-          const confirm = window.confirm(`Le ${g.name} est nourri à un total de ${(i1 + i2).toFixed(2)}. Êtes-vous sûr de vouloir continuer ?`);
-          if (!confirm) return;
+          groupsWithIssues.push(`${g.name} (${(i1 + i2).toFixed(2)})`);
         }
+      }
+
+      if (groupsWithIssues.length > 0) {
+        toast((t) => (
+          <div className="flex flex-col gap-3">
+            <p className="font-bold text-zinc-800">Les groupes suivants ne sont pas à un indice total de 1.0 :</p>
+            <ul className="list-disc list-inside font-medium text-sm text-zinc-600">
+              {groupsWithIssues.map(n => <li key={n}>{n}</li>)}
+            </ul>
+            <p className="font-bold text-zinc-800">Êtes-vous sûr de vouloir continuer ?</p>
+            <div className="flex justify-end gap-2 mt-2">
+              <button 
+                className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl font-bold transition-colors" 
+                onClick={() => toast.dismiss(t.id)}
+              >
+                Annuler
+              </button>
+              <button 
+                className="px-4 py-2 bg-[#15803D] hover:bg-green-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-green-600/20" 
+                onClick={() => {
+                  toast.dismiss(t.id);
+                  window.scrollTo(0, 0);
+                  onGenerate();
+                }}
+              >
+                Continuer
+              </button>
+            </div>
+          </div>
+        ), { duration: Infinity });
+        return;
       }
     }
     window.scrollTo(0, 0);

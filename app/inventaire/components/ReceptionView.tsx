@@ -57,7 +57,6 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
     supplierId !== '' && 
     foodId !== '' && 
     totalKg > 0 && 
-    Math.abs(totalContractAllocated - totalKg) < 0.1 && 
     Math.abs(totalStorageAllocated - totalKg) < 0.1 &&
     dateDelivered !== '';
 
@@ -78,6 +77,11 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
       const toAllocate = Math.min(sc.kg_left_to_deliver, remaining);
       newAllocations[sc.id] = toAllocate;
       remaining -= toAllocate;
+    }
+    // Si la livraison dépasse tous les restes attendus, on place l'excédent sur le dernier contrat
+    if (remaining > 0 && activeSubContracts.length > 0) {
+      const lastScId = activeSubContracts[activeSubContracts.length - 1].id;
+      newAllocations[lastScId] = (newAllocations[lastScId] || 0) + remaining;
     }
     setContractAllocations(newAllocations);
   };
@@ -233,7 +237,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                         <div className="flex items-center gap-4">
                           <button 
                             type="button"
-                            onClick={() => handleContractChange(sc.id, Math.min(sc.kg_left_to_deliver, (contractAllocations[sc.id] || 0) + (totalKg - totalContractAllocated)))}
+                            onClick={() => handleContractChange(sc.id, (contractAllocations[sc.id] || 0) + (totalKg - totalContractAllocated))}
                             className="text-xs font-black bg-indigo-100 text-indigo-700 hover:bg-indigo-200 px-3 py-2 rounded-lg transition-colors shrink-0"
                           >
                             MAX
@@ -241,7 +245,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                           <input
                             type="range"
                             min="0"
-                            max={sc.kg_left_to_deliver}
+                            max={Math.max(sc.kg_left_to_deliver, totalKg)}
                             step="0.1"
                             value={contractAllocations[sc.id] ?? 0}
                             onChange={(e) => handleContractChange(sc.id, Number(e.target.value) || 0)}
@@ -252,7 +256,6 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                               type="number"
                               step="0.1"
                               min="0"
-                              max={sc.kg_left_to_deliver}
                               value={contractAllocations[sc.id] ?? ''}
                               onChange={(e) => handleContractChange(sc.id, Number(e.target.value) || 0)}
                               className="w-28 p-3 pr-8 border-2 border-indigo-100 rounded-xl font-black text-indigo-900 text-right focus:border-indigo-500 outline-none transition-colors"
@@ -269,13 +272,13 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                   <div className="mt-6 bg-white p-5 rounded-2xl border border-indigo-100 shadow-sm">
                     <div className="flex justify-between items-end mb-2">
                       <span className="text-sm font-bold text-zinc-500">Allocation Contrats</span>
-                      <span className={`text-lg font-black ${Math.abs(totalContractAllocated - totalKg) < 0.1 ? 'text-green-600' : 'text-indigo-600'}`}>
-                        {totalContractAllocated.toFixed(1)} <span className="text-sm text-zinc-400 font-medium">/ {totalKg} kg</span>
+                      <span className="text-lg font-black text-indigo-600">
+                        {totalContractAllocated.toFixed(1)} <span className="text-sm text-zinc-400 font-medium">kg alloués</span>
                       </span>
                     </div>
                     <div className="w-full bg-zinc-100 rounded-full h-3 overflow-hidden">
                       <div 
-                        className={`h-full rounded-full transition-all duration-500 ${Math.abs(totalContractAllocated - totalKg) < 0.1 ? 'bg-green-500' : totalContractAllocated > totalKg ? 'bg-red-500' : 'bg-indigo-500'}`}
+                        className="h-full rounded-full transition-all duration-500 bg-indigo-500"
                         style={{ width: `${totalKg > 0 ? Math.min(100, (totalContractAllocated / totalKg) * 100) : 0}%` }}
                       ></div>
                     </div>
@@ -366,7 +369,11 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
               className="w-full py-6 bg-blue-600 disabled:bg-zinc-300 disabled:shadow-none hover:bg-blue-700 active:bg-blue-800 text-white font-black text-2xl rounded-2xl shadow-lg shadow-blue-600/30 transition-all flex flex-col items-center justify-center gap-1"
             >
               <span>{isPending ? 'Enregistrement...' : 'Valider la réception'}</span>
-              {!isValid && !isPending && <span className="text-sm font-bold text-blue-100/50 uppercase tracking-widest mt-1">Veuillez répartir exactement la quantité totale</span>}
+              {!isValid && !isPending && (
+                <span className="text-sm font-bold text-blue-100/50 uppercase tracking-widest mt-1">
+                  Veuillez répartir exactement tout le stock dans les silos
+                </span>
+              )}
             </button>
           </form>
         </div>

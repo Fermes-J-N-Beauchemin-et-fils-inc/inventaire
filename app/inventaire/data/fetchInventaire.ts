@@ -18,7 +18,14 @@ export async function fetchInventoryFoods() {
 }
 
 export async function fetchDeliveries() {
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   return await prisma.delivery.findMany({
+    where: {
+      OR: [
+        { date_delivered: null },
+        { date_delivered: { gte: thirtyDaysAgo } }
+      ]
+    },
     include: {
       food: { include: { unit_type: true } },
       supplier: true,

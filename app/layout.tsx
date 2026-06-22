@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { DbHealthProvider } from "./components/providers/DbHealthProvider";
 import { DbHealthBanner } from "./components/DbHealthBanner";
+import { Toaster } from "react-hot-toast";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -34,6 +35,7 @@ export default function RootLayout({
         <DbHealthProvider>
           <DbHealthBanner />
           {children}
+          <Toaster position="top-center" />
         </DbHealthProvider>
       </body>
     </html>
