@@ -16,6 +16,7 @@ export async function GET() {
       { name: "tm", ration_to_kg: 1000 },
       { name: "kg", ration_to_kg: 1 },
       { name: "poches", ration_to_kg: 25 }
+      
     ];
     
     for (const unit of unitTypesData) {
