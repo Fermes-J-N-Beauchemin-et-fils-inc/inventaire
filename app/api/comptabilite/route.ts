@@ -62,7 +62,8 @@ export async function GET(request: Request) {
             totalCostToday: totalDailyCost,
             costPerCow: pushedRation ? totalDailyCost / Math.max(1, pushedRation.groups_total * 50) : 0, 
             totalWeightTqsToday: totalDailyVolume,
-            foinSecNourrisKg: foinSecVolume
+            foinSecNourrisKg: foinSecVolume,
+            salesRevenue: 0
         };
 
         // For Annual, we fetch all consumption transactions grouped by month
@@ -101,7 +102,8 @@ export async function GET(request: Request) {
         const annualBilan = {
             totalCost: annualTotalCost,
             totalVolumeKg: annualTotalVolume,
-            averageCostPerDay: annualTotalCost / Math.max(1, Math.ceil((new Date().getTime() - startOfYear.getTime()) / (1000 * 3600 * 24)))
+            averageCostPerDay: annualTotalCost / Math.max(1, Math.ceil((new Date().getTime() - startOfYear.getTime()) / (1000 * 3600 * 24))),
+            salesRevenue: 0
         };
 
         // Parse groups from pushedRation payload for the GroupsDataView
@@ -170,6 +172,52 @@ export async function GET(request: Request) {
             totalCostYear: totalGroupCost * 365,
             aliments: [] // We don't need aliments in the total group
         };
+
+        // Calculate Sales Revenue for the Day
+        const dailySales = await prisma.sale.findMany({
+            where: {
+                date_sold: {
+                    gte: startOfDay,
+                    lte: endOfDay
+                }
+            },
+            include: {
+                sale_subcontracts: {
+                    include: { sale_sub_contract: { include: { contract: true } } }
+                }
+            }
+        });
+
+        let dailySalesRevenue = 0;
+        dailySales.forEach(sale => {
+            if (sale.sale_subcontracts.length > 0) {
+                const price = sale.sale_subcontracts[0].sale_sub_contract.contract.price_per_kg;
+                dailySalesRevenue += sale.quantity_sold * price;
+            }
+        });
+
+        // Calculate Annual Sales Revenue
+        const annualSales = await prisma.sale.findMany({
+            where: {
+                date_sold: { gte: startOfYear }
+            },
+            include: {
+                sale_subcontracts: {
+                    include: { sale_sub_contract: { include: { contract: true } } }
+                }
+            }
+        });
+
+        let annualSalesRevenue = 0;
+        annualSales.forEach(sale => {
+            if (sale.sale_subcontracts.length > 0) {
+                const price = sale.sale_subcontracts[0].sale_sub_contract.contract.price_per_kg;
+                annualSalesRevenue += sale.quantity_sold * price;
+            }
+        });
+
+        dailySummary.salesRevenue = dailySalesRevenue;
+        annualBilan.salesRevenue = annualSalesRevenue;
 
         // Ensure we calculate exact cost per cow correctly in daily summary if groups exist
         if (groups.length > 0) {

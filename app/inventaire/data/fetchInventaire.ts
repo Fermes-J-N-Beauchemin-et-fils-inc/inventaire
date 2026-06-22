@@ -58,6 +58,23 @@ export async function fetchSuppliersWithContracts() {
   });
 }
 
+export type ClientWithContractsData = Awaited<ReturnType<typeof fetchClientsWithContracts>>[number];
+
+export async function fetchClientsWithContracts() {
+  return await prisma.client.findMany({
+    where: { is_active: true },
+    include: {
+      contracts: {
+        include: { 
+          food: true,
+          sub_contracts: true
+        }
+      }
+    },
+    orderBy: { name: 'asc' }
+  });
+}
+
 export type StorageData = Awaited<ReturnType<typeof fetchStorages>>[number];
 
 export async function fetchStorages() {

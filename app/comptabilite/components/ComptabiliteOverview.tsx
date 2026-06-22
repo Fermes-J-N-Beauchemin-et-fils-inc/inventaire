@@ -31,6 +31,7 @@ export default function ComptabiliteOverview({ groups, totalGroup }: Comptabilit
             <p className="text-sm font-bold text-blue-200 uppercase tracking-wide mb-1">Volume nourri</p>
             <p className="text-3xl font-black">{formatNum(totalGroup.totalKgTqs)} <span className="text-xl">kg</span></p>
           </div>
+          {/* Add a placeholder for global sales if desired, or we rely on BilanCards */}
         </div>
       </div>
 

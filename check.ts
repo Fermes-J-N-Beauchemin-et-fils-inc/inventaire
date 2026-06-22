@@ -45,6 +45,7 @@ async function main() {
     });
     console.log("Total cost:", totalDailyCost);
 
+    // 
     let totalGroupCost = 0;
     if (pushedRation && pushedRation.payload) {
         const payload: any = pushedRation.payload;

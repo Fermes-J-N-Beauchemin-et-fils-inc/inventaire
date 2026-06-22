@@ -94,7 +94,9 @@ model Food {
   // Reverse relations required by Prisma
   daily_servings     DailyServing[]
   deliveries         Delivery[]
+  sales              Sale[]
   contracts          Contract[]
+  sale_contracts     SaleContract[]
   food_snapshots     FoodSnapshot[]
   stock_transactions StockTransaction[]
 
@@ -222,6 +224,89 @@ model DeliverySubContract {
   @@id([delivery_id, sub_contract_id])
   @@map("delivery_sub_contract")
 }
+
+// ---------------------------------------------------------
+// 1.5 Sales Models (Ventes)
+// ---------------------------------------------------------
+
+model Client {
+  id           Int     @id @default(autoincrement())
+  name         String
+  phone_number String
+  address      String
+  email        String
+  logo         String?
+  url          String?
+  faviconUrl   String?
+  is_active    Boolean @default(true)
+
+  contracts SaleContract[]
+  sales     Sale[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("client")
+}
+
+model Sale {
+  id                Int       @id @default(autoincrement())
+  client_id         Int?
+  food_id           Int
+  quantity_sold     Float
+  date_expected     DateTime
+  date_sold         DateTime?
+
+  food                  Food                        @relation(fields: [food_id], references: [id])
+  client                Client?                     @relation(fields: [client_id], references: [id])
+  sale_subcontracts     SaleSubContractAllocation[]
+
+  @@map("sale")
+}
+
+model SaleContract {
+  id           Int      @id @default(autoincrement())
+  name         String
+  client_id    Int
+  food_id      Int
+  total_kg     Float
+  price_per_kg Float
+  date_start   DateTime
+  date_end     DateTime
+  is_active    Boolean  @default(true)
+
+  client        Client            @relation(fields: [client_id], references: [id])
+  food          Food              @relation(fields: [food_id], references: [id])
+  sub_contracts SaleSubContract[]
+
+  @@map("sale_contract")
+}
+
+model SaleSubContract {
+  id                 Int    @id @default(autoincrement())
+  sale_contract_id   Int
+  name               String // ex: "Janvier 2026"
+  expected_kg        Float
+  kg_left_to_deliver Float
+
+  contract             SaleContract              @relation(fields: [sale_contract_id], references: [id], onDelete: Cascade)
+  sale_allocations     SaleSubContractAllocation[]
+
+  @@map("sale_sub_contract")
+}
+
+model SaleSubContractAllocation {
+  sale_id              Int
+  sale_sub_contract_id Int
+  quantity             Float
+
+  sale              Sale              @relation(fields: [sale_id], references: [id], onDelete: Cascade)
+  sale_sub_contract SaleSubContract   @relation(fields: [sale_sub_contract_id], references: [id], onDelete: Cascade)
+
+  @@id([sale_id, sale_sub_contract_id])
+  @@map("sale_sub_contract_allocation")
+}
+
 
 model Storage {
   id           Int     @id @default(autoincrement())

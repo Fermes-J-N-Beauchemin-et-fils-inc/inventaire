@@ -80,6 +80,85 @@ export async function receiveComplexDelivery(formData: FormData) {
   revalidatePath('/inventaire');
   revalidatePath('/fournisseurs');
 }
+export async function createComplexSale(formData: FormData) {
+  const client_id = parseInt(formData.get("client_id") as string, 10);
+  const food_id = parseInt(formData.get("food_id") as string, 10);
+  const total_kg = parseFloat(formData.get("total_kg") as string);
+  const date_sold = formData.get("date_sold") as string;
+  
+  // sub_contracts is a JSON string of { sub_contract_id: number, quantity: number }[]
+  const sub_contracts = JSON.parse(formData.get("sub_contracts") as string || "[]");
+  // storages is a JSON string of { storage_id: number, quantity: number }[]
+  const storages = JSON.parse(formData.get("storages") as string || "[]");
+
+  if (isNaN(client_id) || isNaN(food_id) || isNaN(total_kg) || !date_sold) {
+    throw new Error("Champs obligatoires manquants.");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Create the sale record
+    const sale = await tx.sale.create({
+      data: {
+        client_id,
+        food_id,
+        quantity_sold: total_kg,
+        date_expected: new Date(date_sold),
+        date_sold: new Date(date_sold)
+      }
+    });
+
+    // 2. Link and deduct from sub-contracts
+    for (const sc of sub_contracts) {
+      if (sc.quantity > 0) {
+        await tx.saleSubContractAllocation.create({
+          data: {
+            sale_id: sale.id,
+            sale_sub_contract_id: sc.sub_contract_id,
+            quantity: sc.quantity
+          }
+        });
+
+        await tx.saleSubContract.update({
+          where: { id: sc.sub_contract_id },
+          data: { kg_left_to_deliver: { decrement: sc.quantity } }
+        });
+      }
+    }
+
+    // 3. Deduct from storages and create transactions
+    const food = await tx.food.findUnique({ where: { id: food_id }, include: { unit_type: true } });
+    if (!food) throw new Error("Aliment introuvable");
+    const isTm = food.unit_type.name.toLowerCase() === 'tm';
+
+    for (const st of storages) {
+      if (st.quantity > 0) {
+        const qtyToDeduct = isTm ? st.quantity / 1000 : st.quantity;
+        
+        // Update FoodStorage (we decrement)
+        // We ensure there's enough stock, otherwise Prisma might throw if we have unsigned, but we just decrement here.
+        await tx.foodStorage.update({
+          where: { food_id_storage_id: { food_id: food_id, storage_id: st.storage_id } },
+          data: { current_stock: { decrement: qtyToDeduct } }
+        });
+
+        await tx.stockTransaction.create({
+          data: {
+            food_id: food_id,
+            storage_id: st.storage_id,
+            quantity: -qtyToDeduct, // negative for sale
+            transaction_type: "SALE",
+            recorded_at: new Date(date_sold)
+          }
+        });
+      }
+    }
+  });
+
+  revalidatePath('/inventaire');
+  revalidatePath('/ventes');
+  revalidatePath('/dashboard');
+  revalidatePath('/comptabilite');
+}
 
 export async function updateStorageCapacity(storageId: number, maxCapacityTm: number) {
   if (isNaN(storageId) || isNaN(maxCapacityTm) || maxCapacityTm < 0) {
