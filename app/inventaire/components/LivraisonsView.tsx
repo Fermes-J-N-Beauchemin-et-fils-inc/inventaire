@@ -66,26 +66,12 @@ export default function LivraisonsView({ deliveries, suppliers }: LivraisonsView
                           <span className="text-xl font-black text-zinc-900">
                             {delivery.quantity_received} <span className="text-sm text-zinc-500">{delivery.food.unit_type.name}</span>
                           </span>
-                          {!isPast && (
+                          {!isPast ? (
                             <div className="flex items-center gap-2">
                               <div className="px-4 py-2 bg-emerald-100/50 text-emerald-700 rounded-xl text-sm font-black border border-emerald-200 self-start sm:self-auto flex items-center gap-2 shrink-0">
                                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                                 Planifiée
                               </div>
-                              <button
-                                onClick={async () => {
-                                  const { markDeliveryAsReceived } = await import('@/app/fournisseurs/actions');
-                                  try {
-                                    await markDeliveryAsReceived(delivery.id);
-                                    toast.success("Livraison marquée comme reçue !");
-                                  } catch (error: any) {
-                                    toast.error(error.message || "Erreur lors de la mise à jour.");
-                                  }
-                                }}
-                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-black shadow-md transition-all shrink-0"
-                              >
-                                Recevoir
-                              </button>
                               <button
                                 onClick={() => {
                                   toast((t) => (
@@ -112,6 +98,11 @@ export default function LivraisonsView({ deliveries, suppliers }: LivraisonsView
                               >
                                 ✕
                               </button>
+                            </div>
+                          ) : (
+                            <div className="px-4 py-2 bg-zinc-100 text-zinc-500 rounded-xl text-sm font-black border border-zinc-200 self-start sm:self-auto flex items-center gap-2 shrink-0">
+                              <span className="text-zinc-400">✓</span>
+                              Reçu
                             </div>
                           )}
                         </div>

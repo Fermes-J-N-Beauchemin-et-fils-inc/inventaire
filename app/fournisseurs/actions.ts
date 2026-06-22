@@ -318,21 +318,31 @@ export async function markDeliveryAsReceived(deliveryId: number) {
       });
     }
 
-    // Add to global stock
-    await tx.food.update({
-      where: { id: delivery.food_id },
-      data: { current_stock: { increment: delivery.quantity_received } }
-    });
+    // Add to global stock via a default storage (first active storage)
+    const firstStorage = await tx.storage.findFirst({ where: { is_active: true } });
+    if (firstStorage) {
+      const food = await tx.food.findUnique({ where: { id: delivery.food_id }, include: { unit_type: true } });
+      if (food) {
+        const isTm = food.unit_type.name.toLowerCase() === 'tm';
+        const qtyToAdd = isTm ? delivery.quantity_received / 1000 : delivery.quantity_received;
 
-    // Create transaction
-    await tx.stockTransaction.create({
-      data: {
-        food_id: delivery.food_id,
-        quantity: delivery.quantity_received,
-        transaction_type: "DELIVERY",
-        recorded_at: now
+        await tx.foodStorage.upsert({
+          where: { food_id_storage_id: { food_id: delivery.food_id, storage_id: firstStorage.id } },
+          update: { current_stock: { increment: qtyToAdd } },
+          create: { food_id: delivery.food_id, storage_id: firstStorage.id, current_stock: qtyToAdd }
+        });
+
+        await tx.stockTransaction.create({
+          data: {
+            food_id: delivery.food_id,
+            storage_id: firstStorage.id,
+            quantity: qtyToAdd,
+            transaction_type: "DELIVERY",
+            recorded_at: now
+          }
+        });
       }
-    });
+    }
   });
 
   revalidatePath('/inventaire');
