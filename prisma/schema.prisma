@@ -167,14 +167,14 @@ model Supplier {
 
 model Delivery {
   id                Int       @id @default(autoincrement())
-  supplier_id       Int
+  supplier_id       Int?
   food_id           Int
   quantity_received Float
   date_expected     DateTime
   date_delivered    DateTime?
 
   food                  Food                  @relation(fields: [food_id], references: [id])
-  supplier              Supplier              @relation(fields: [supplier_id], references: [id])
+  supplier              Supplier?             @relation(fields: [supplier_id], references: [id])
   delivery_subcontracts DeliverySubContract[]
 
   @@map("delivery")

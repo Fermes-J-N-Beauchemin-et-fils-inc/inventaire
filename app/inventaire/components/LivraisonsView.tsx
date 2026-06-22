@@ -58,7 +58,7 @@ export default function LivraisonsView({ deliveries, suppliers }: LivraisonsView
                           <div>
                             <h3 className={`font-black text-xl sm:text-2xl ${isPast ? 'text-zinc-400 line-through' : 'text-zinc-900'}`}>{delivery.food.name}</h3>
                             <p className="text-base text-zinc-500 font-medium capitalize mt-1 flex items-center gap-2">
-                              {delivery.supplier.name} | Contrats: {delivery.delivery_subcontracts?.map((dsc: any) => dsc.sub_contract.name).join(', ') || 'Spot / Non alloué'}
+                              {delivery.supplier?.name || 'Inconnu'} | Contrats: {delivery.delivery_subcontracts?.map((dsc: any) => dsc.sub_contract.name).join(', ') || 'Spot / Non alloué'}
                             </p>
                           </div>
                         </div>

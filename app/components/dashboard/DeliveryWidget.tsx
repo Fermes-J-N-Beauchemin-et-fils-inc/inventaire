@@ -40,11 +40,11 @@ export default async function DeliveryWidget() {
                             return (
                                 <div key={delivery.id} className="flex items-center gap-4 p-4 rounded-2xl hover:bg-zinc-50 transition-colors border border-transparent hover:border-zinc-200 bg-white shadow-sm">
                                     <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-[1.2rem] flex items-center justify-center font-black text-xl shrink-0 shadow-sm border border-indigo-100/50">
-                                        {delivery.supplier.name.substring(0, 1)}
+                                        {delivery.supplier?.name?.substring(0, 1) || '?'}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="font-black text-lg text-zinc-900 truncate">{delivery.food.name}</p>
-                                        <p className="text-sm font-bold text-zinc-500 truncate">{delivery.supplier.name} • {delivery.quantity_received.toLocaleString()} kg</p>
+                                        <p className="font-bold text-zinc-900 truncate">{delivery.food.name}</p>
+                                        <p className="text-sm font-bold text-zinc-500 truncate">{delivery.supplier?.name || 'Inconnu'} • {delivery.quantity_received.toLocaleString()} kg</p>
                                     </div>
                                     <div className="shrink-0 text-right">
                                         <p className={`text-sm font-black px-3 py-1.5 rounded-lg ${daysDiff <= 1 ? 'bg-red-50 text-red-600' : daysDiff <= 3 ? 'bg-orange-50 text-orange-600' : 'bg-zinc-100 text-zinc-600'}`}>
