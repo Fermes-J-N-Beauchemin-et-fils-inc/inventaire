@@ -151,7 +151,12 @@ export async function GET(request: Request) {
 
         if (existingFs) {
           await prisma.foodStorage.update({
-            where: { id: existingFs.id },
+            where: { 
+              food_id_storage_id: {
+                food_id: food.id,
+                storage_id: st.id
+              }
+            },
             data: { current_stock: existingFs.current_stock + tqs }
           });
         } else {
