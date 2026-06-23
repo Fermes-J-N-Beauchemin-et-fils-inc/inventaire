@@ -61,7 +61,7 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
     ...initialFournisseurs.flatMap(s => s.deliveries.map(d => ({
       ...d, type: 'livraison', partner_name: s.name, partner_id: s.id, food_id: d.food_id,
       contract_name: d.delivery_subcontracts?.map((dsc: any) => dsc.sub_contract.name).join(', ') || 'Spot / Non alloué',
-      food_name: d.food.name, unit: d.food.unit_type.name,
+      food_name: d.food.name, unit: 'kg',
       quantity: d.quantity_received,
       date: d.date_delivered || d.date_expected,
       is_completed: !!d.date_delivered
@@ -69,7 +69,7 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
     ...initialClients.flatMap(c => c.sales.map(s => ({
       ...s, type: 'vente', partner_name: c.name, partner_id: c.id, food_id: s.food_id,
       contract_name: s.sale_subcontracts?.map((dsc: any) => dsc.sale_sub_contract.name).join(', ') || 'Spot / Non alloué',
-      food_name: s.food.name, unit: s.food.unit_type.name,
+      food_name: s.food.name, unit: 'kg',
       quantity: s.quantity_sold,
       date: s.date_sold || s.date_expected,
       is_completed: !!s.date_sold

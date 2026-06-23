@@ -251,7 +251,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                   )}
                   
                   <div>
-                    <label className="block text-xs font-black text-blue-900 mb-2 uppercase tracking-widest">Quantité Reçue</label>
+                    <label className="block text-xs font-black text-blue-900 mb-2 uppercase tracking-widest">Quantité Reçue (kg)</label>
                     <input 
                       type="number" 
                       step="0.1" 
@@ -284,7 +284,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                       <div key={sc.id} className="bg-white p-5 rounded-2xl shadow-sm border border-indigo-100/50 flex flex-col gap-4 hover:border-indigo-300 transition-colors">
                         <div className="flex justify-between items-center">
                           <h4 className="font-black text-indigo-950 text-lg">{sc.name}</h4>
-                          <span className="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">Reste: {sc.kg_left_to_deliver}</span>
+                          <span className="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">Reste: {sc.kg_left_to_deliver} kg</span>
                         </div>
                         <div className="flex items-center gap-4">
                           <button 
@@ -313,7 +313,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                               className="w-32 p-3 pr-10 border-2 border-indigo-200 rounded-xl font-black text-indigo-900 text-right focus:border-indigo-500 outline-none transition-colors"
                               placeholder="0"
                             />
-                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-indigo-400"></span>
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-indigo-400">kg</span>
                           </div>
                         </div>
                       </div>
@@ -330,7 +330,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                     <div className="flex justify-between items-end mb-3">
                       <span className="text-sm font-black text-indigo-400 uppercase tracking-widest">Allocation Contrats</span>
                       <span className="text-2xl font-black text-indigo-600">
-                        {totalContractAllocated.toFixed(1)} <span className="text-sm text-indigo-300 font-medium">unités allouées</span>
+                        {totalContractAllocated.toFixed(1)} <span className="text-sm text-indigo-300 font-medium">kg alloués</span>
                       </span>
                     </div>
                   </div>
@@ -363,7 +363,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                           <div className="flex justify-between items-center mb-4">
                             <h4 className="font-black text-amber-900 text-lg">{st.name}</h4>
                             <span className="text-sm font-bold text-amber-600 bg-amber-100 px-3 py-1 rounded-full border border-amber-200">
-                              Reste: {availableNative.toFixed(1)} capacité
+                              Reste: {availableNative.toFixed(1)} kg
                             </span>
                           </div>
                           <div className="flex items-center gap-4">
@@ -394,7 +394,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                                 className="w-32 p-3 pr-10 border-2 border-amber-200 rounded-xl font-black text-amber-900 text-right focus:border-amber-500 outline-none transition-colors"
                                 placeholder="0"
                               />
-                              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-amber-400"></span>
+                              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-amber-400">kg</span>
                             </div>
                           </div>
                         </div>
@@ -406,7 +406,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                     <div className="flex justify-between items-end mb-3">
                       <span className="text-sm font-black text-amber-500 uppercase tracking-widest">Allocation Silos</span>
                       <span className={`text-3xl font-black ${Math.abs(totalStorageAllocated - totalKg) < 0.1 ? 'text-green-500' : 'text-amber-500'}`}>
-                        {totalStorageAllocated.toFixed(1)} <span className="text-lg text-amber-300 font-bold">/ {totalKg}</span>
+                        {totalStorageAllocated.toFixed(1)} <span className="text-lg text-amber-300 font-bold">/ {totalKg} kg</span>
                       </span>
                     </div>
                     <div className="w-full bg-amber-50 rounded-full h-4 overflow-hidden border border-amber-100">
