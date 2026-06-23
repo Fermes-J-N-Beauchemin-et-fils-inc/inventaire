@@ -15,8 +15,26 @@ export default function InventaireTable({ inventory }: InventaireTableProps) {
 
   const formatNum = (val: number) => new Intl.NumberFormat('fr-CA', { maximumFractionDigits: 2 }).format(val);
 
+  const [searchTerm, setSearchTerm] = React.useState('');
+
+  const filteredInventory = inventory.filter(item => {
+    const searchLower = searchTerm.toLowerCase();
+    const storageNames = item.storages.map((s: any) => s.storage.name).join(', ').toLowerCase();
+    return item.name.toLowerCase().includes(searchLower) || storageNames.includes(searchLower);
+  });
+
   return (
-    <div className="bg-white rounded-[2rem] border border-zinc-200/60 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-[2rem] border border-zinc-200/60 shadow-sm overflow-hidden flex flex-col">
+      <div className="p-6 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
+        <h3 className="text-xl font-black text-zinc-800">État des stocks</h3>
+        <input 
+          type="text" 
+          placeholder="Filtrer (ex: ensilage, foin, silo 4...)"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full max-w-sm px-5 py-3 rounded-xl border border-zinc-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none font-medium transition-all"
+        />
+      </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
@@ -29,7 +47,7 @@ export default function InventaireTable({ inventory }: InventaireTableProps) {
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 text-lg">
-            {inventory.map((item) => {
+            {filteredInventory.map((item) => {
               // Calculate daily consumption in kg MS
               const dailyConsumption = item.daily_servings.reduce((sum, serving) => sum + serving.daily_kg_serving_ms, 0);
               
@@ -46,12 +64,34 @@ export default function InventaireTable({ inventory }: InventaireTableProps) {
               const remainingDays = dailyConsumption > 0 ? Math.round(currentStockMsKg / dailyConsumption) : 999;
               const isInfinite = remainingDays > 500;
 
+              // Calculate blocked/upcoming sales
+              let upcomingSalesKg = 0;
+              let upcomingSalesMessage = '';
+              if (item.sale_contracts) {
+                const subContracts = item.sale_contracts.flatMap((c: any) => c.sub_contracts);
+                upcomingSalesKg = subContracts.reduce((sum: number, sc: any) => sum + sc.kg_left_to_deliver, 0);
+                
+                if (upcomingSalesKg > 0) {
+                  // Get the month of the first upcoming sale if available, else just show the amount
+                  const nextSale = subContracts.find((sc: any) => sc.kg_left_to_deliver > 0);
+                  const isTm = item.unit_type.name.toLowerCase() === 'tm';
+                  const displayAmt = isTm ? upcomingSalesKg / 1000 : upcomingSalesKg;
+                  const monthStr = nextSale && nextSale.name.includes(' ') ? nextSale.name : 'bientôt';
+                  upcomingSalesMessage = `${formatNum(displayAmt)} ${item.unit_type.name} doivent être vendus (${monthStr})`;
+                }
+              }
+
               return (
                 <tr key={item.id} className="hover:bg-blue-50/50 transition-colors group">
                   <td className="py-4 px-6 font-black border-r border-zinc-50">
                     <Link href={`/aliments/${item.id}`} className="text-zinc-900 group-hover:text-blue-600 transition-colors underline decoration-blue-200 underline-offset-4">
                       {item.name}
                     </Link>
+                    {upcomingSalesKg > 0 && (
+                      <div className="mt-1 text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md inline-block">
+                        ⚠️ {upcomingSalesMessage}
+                      </div>
+                    )}
                   </td>
                   <td className="py-4 px-6 text-zinc-600 text-base font-bold">
                     {storageNames}
@@ -78,7 +118,7 @@ export default function InventaireTable({ inventory }: InventaireTableProps) {
             })}
           </tbody>
         </table>
-        {inventory.length === 0 && <p className="p-6 text-center text-zinc-500">Aucun aliment dans l'inventaire.</p>}
+        {filteredInventory.length === 0 && <p className="p-6 text-center text-zinc-500">Aucun aliment correspondant.</p>}
       </div>
     </div>
   );

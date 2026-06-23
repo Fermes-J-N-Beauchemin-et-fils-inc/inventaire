@@ -313,8 +313,8 @@ export default function TractorUI({
             {group.aliments.map((aliment, idx) => {
               const val2Num = parseFloat(aliment.v2);
               const val1Num = parseFloat(aliment.v1);
-              const scaledV2 = isNaN(val2Num) ? aliment.v2 : Math.round(val2Num * indice);
-              const scaledV1 = isNaN(val1Num) ? aliment.v1 : Math.round(val1Num * indice);
+              const scaledV2 = isNaN(val2Num) ? aliment.v2 : Math.ceil(val2Num * indice);
+              const scaledV1 = isNaN(val1Num) ? aliment.v1 : Math.ceil(val1Num * indice);
 
               return (
                 <div

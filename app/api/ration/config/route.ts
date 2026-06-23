@@ -22,21 +22,29 @@ export async function GET() {
         groups.forEach(group => {
             const groupIdStr = group.id.toString();
             rationConfig[groupIdStr] = [];
+            
+            let currentRtm = 0;
 
             group.daily_servings.forEach(serving => {
                 const msPercentage = serving.food.ms_percentage || 100;
                 
-                // v1 = MS amount = Daily serving (kg) * number of animals fed
-                const v1 = serving.daily_kg_serving_ms * group.animals_fed;
+                // Base amount per cow
+                const baseMsPerCow = serving.daily_kg_serving_ms;
+                const baseTqsPerCow = baseMsPerCow / (msPercentage / 100);
+
+                // v1 = Aliment = formulation of nutrition page (serving.daily_kg_serving_ms) times number of counts (group.animals_fed), factor MS, rounded up
+                const v1 = Math.ceil(baseTqsPerCow * group.animals_fed);
                 
-                // v2 = TQS amount = MS amount / (MS % / 100)
-                const v2 = v1 / (msPercentage / 100);
+                // v2 = RTM (Balance) = total of food in mixer when distributor is at this aliment (cumulative sum)
+                currentRtm += v1;
+                const v2 = currentRtm;
 
                 rationConfig[groupIdStr].push({
                     id: serving.food.id.toString(),
                     name: serving.food.common_name || serving.food.name,
-                    v1: Number(v1.toFixed(2)),
-                    v2: Number(v2.toFixed(2)),
+                    v1: v1.toString(),
+                    v2: v2.toString(),
+                    base_tqs_per_cow: baseTqsPerCow, // Added to allow frontend recalculation
                     price_per_tqs: serving.food.price_per_tqs, // Include price for accurate snapshot
                     price_per_ms: serving.food.price_per_ms
                 });

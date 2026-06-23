@@ -5,6 +5,7 @@ export type RationAliment = {
   name: string;
   v1: string;
   v2: string;
+  base_tqs_per_cow?: number;
   highlight?: string;
   extra?: string;
   extraColor?: string;

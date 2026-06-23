@@ -1,7 +1,7 @@
 import Sidenav from "@/app/components/ui/sidenav";
 import React from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBoxOpen, faCarrot, faBuildingColumns, faWheatAwn, faSeedling, faChartLine, faTruckFast } from "@fortawesome/free-solid-svg-icons";
+import { faBoxOpen, faCarrot, faBuildingColumns, faWheatAwn, faSeedling, faChartLine, faTruckFast, faArrowRightArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import { DashboardRedirectCard } from "@/app/components/dashboard/DashboardRedirectCard";
 import { AlertCard, MessageCard } from "@/app/components/dashboard/NotificationCards";
 import RationProgressWidget from "@/app/components/dashboard/RationProgressWidget";
@@ -115,9 +115,9 @@ export default async function DashboardPage() {
                         />
 
                         <DashboardRedirectCard
-                            href="/fournisseurs"
-                            icon={<FontAwesomeIcon icon={faTruckFast} className="w-6 h-6" />}
-                            label="Fournisseurs"
+                            href="/transactions"
+                            icon={<FontAwesomeIcon icon={faArrowRightArrowLeft} className="w-6 h-6" />}
+                            label="Transactions"
                             description="Chaîne d'app."
                             color="indigo"
                         />
@@ -136,14 +136,6 @@ export default async function DashboardPage() {
                             label="Comptabilité"
                             description="Factures & état"
                             color="teal"
-                        />
-
-                        <DashboardRedirectCard
-                            href="/rapports"
-                            icon={<FontAwesomeIcon icon={faChartLine} className="w-6 h-6" />}
-                            label="Rapports"
-                            description="Analyses globales"
-                            color="purple"
                         />
                     </div>
                 </section>

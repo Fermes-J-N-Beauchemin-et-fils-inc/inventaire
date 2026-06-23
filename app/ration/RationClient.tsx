@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Sidenav from "@/app/components/ui/sidenav";
-import { GroupKey, GroupsState, Saison, PluieMode, GroupPluieMode } from "./types";
+import { GroupKey, GroupsState, Saison, PluieMode, GroupPluieMode, GroupData } from "./types";
 import RationForm from "./components/RationForm";
 import RationReport from "./components/RationReport";
 import TractorUI from "./components/TractorUI";
@@ -86,6 +86,24 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
   const [isConfigLoading, setIsConfigLoading] = useState(true);
 
   // Fetch Ration Config if no pushed ration is active
+  
+  const recalculateGroupAliments = (group: GroupData): GroupData => {
+    let currentRtm = 0;
+    const newAliments = group.aliments.map(a => {
+      let v1Num = parseFloat(a.v1) || 0;
+      if (a.base_tqs_per_cow) {
+        v1Num = Math.ceil(a.base_tqs_per_cow * group.fed);
+      }
+      currentRtm += v1Num;
+      return {
+        ...a,
+        v1: v1Num.toString(),
+        v2: currentRtm.toString()
+      };
+    });
+    return { ...group, aliments: newAliments };
+  };
+
   useEffect(() => {
     if (isLoadingPushed) return;
     if (pushedRation) {
@@ -140,13 +158,16 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
   }, [isLoadingPushed, pushedRation]);
 
   const handleGroupChange = (key: GroupKey, field: 'fed' | 'indice' | 'indiceTour2' | 'real', value: string | number) => {
-    setGroups(prev => ({
-      ...prev,
-      [key]: {
+    setGroups(prev => {
+      const updatedGroup = {
         ...prev[key],
         [field]: (field === 'fed' || field === 'real') ? parseFloat(String(value)) || 0 : String(value)
-      }
-    }));
+      };
+      return {
+        ...prev,
+        [key]: recalculateGroupAliments(updatedGroup)
+      };
+    });
   };
 
   const handleIndiceChange = (key: GroupKey, tour: 1 | 2, newIndice: string) => {
@@ -172,16 +193,16 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
   };
 
   const handleAddAliment = (groupKey: GroupKey) => {
-    setGroups(prev => ({
-      ...prev,
-      [groupKey]: {
+    setGroups(prev => {
+      const updatedGroup = {
         ...prev[groupKey],
         aliments: [
           ...prev[groupKey].aliments,
           { id: Math.random().toString(36).substr(2, 9), name: "Nouvel aliment", v1: "0", v2: "0" }
         ]
-      }
-    }));
+      };
+      return { ...prev, [groupKey]: recalculateGroupAliments(updatedGroup) };
+    });
   };
 
   const handleReorderGroups = (sourceTour: 1 | 2, destTour: 1 | 2, sourceIndex: number, destIndex: number) => {
@@ -206,25 +227,25 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
   };
 
   const handleRemoveAliment = (groupKey: GroupKey, id: string) => {
-    setGroups(prev => ({
-      ...prev,
-      [groupKey]: {
+    setGroups(prev => {
+      const updatedGroup = {
         ...prev[groupKey],
         aliments: prev[groupKey].aliments.filter(a => a.id !== id)
-      }
-    }));
+      };
+      return { ...prev, [groupKey]: recalculateGroupAliments(updatedGroup) };
+    });
   };
 
   const handleUpdateAliment = (groupKey: GroupKey, id: string, field: 'name' | 'v1' | 'v2', value: string) => {
-    setGroups(prev => ({
-      ...prev,
-      [groupKey]: {
+    setGroups(prev => {
+      const updatedGroup = {
         ...prev[groupKey],
         aliments: prev[groupKey].aliments.map(a => 
           a.id === id ? { ...a, [field]: value } : a
         )
-      }
-    }));
+      };
+      return { ...prev, [groupKey]: recalculateGroupAliments(updatedGroup) };
+    });
   };
 
   const handleReorderAliments = (groupKey: GroupKey, startIndex: number, endIndex: number) => {
@@ -232,10 +253,8 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
       const newAliments = Array.from(prev[groupKey].aliments);
       const [removed] = newAliments.splice(startIndex, 1);
       newAliments.splice(endIndex, 0, removed);
-      return {
-        ...prev,
-        [groupKey]: { ...prev[groupKey], aliments: newAliments }
-      };
+      const updatedGroup = { ...prev[groupKey], aliments: newAliments };
+      return { ...prev, [groupKey]: recalculateGroupAliments(updatedGroup) };
     });
   };
 
@@ -274,7 +293,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
       
       const consumedAliments = group.aliments.map(a => ({
           food_id: parseInt(a.id), // Send food_id integer
-          consumed_tqs: Math.round((parseFloat(a.v2) || 0) * indice)
+          consumed_tqs: Math.ceil((parseFloat(a.v2) || 0) * indice)
       }));
 
       try {

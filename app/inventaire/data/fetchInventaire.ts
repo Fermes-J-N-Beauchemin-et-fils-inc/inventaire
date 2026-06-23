@@ -10,6 +10,14 @@ export async function fetchInventoryFoods() {
       unit_type: true,
       storages: { include: { storage: true } },
       daily_servings: true,
+      sale_contracts: {
+        where: { is_active: true },
+        include: {
+          sub_contracts: {
+            where: { kg_left_to_deliver: { gt: 0 } }
+          }
+        }
+      }
     },
     orderBy: {
       name: 'asc'
@@ -84,7 +92,15 @@ export async function fetchStorages() {
         include: {
           food: {
             include: {
-              unit_type: true
+              unit_type: true,
+              sale_contracts: {
+                where: { is_active: true },
+                include: {
+                  sub_contracts: {
+                    where: { kg_left_to_deliver: { gt: 0 } }
+                  }
+                }
+              }
             }
           }
         }

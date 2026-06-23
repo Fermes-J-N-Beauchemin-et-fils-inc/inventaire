@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faDatabase, faCarrot, faHouse, faBuildingColumns, faWheatAwn, faBars, faXmark, faTruck, faFlask, faStore } from "@fortawesome/free-solid-svg-icons";
+import { faDatabase, faCarrot, faHouse, faBuildingColumns, faWheatAwn, faBars, faXmark, faTruck, faFlask, faStore, faArrowRightArrowLeft } from "@fortawesome/free-solid-svg-icons";
 
 interface NavItemProps {
     href: string;
@@ -53,7 +53,7 @@ interface SidenavProps {
 }
 
 export default function Sidenav({ children, initials = "JN" }: SidenavProps) {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false); // default closed to maximize space as requested
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
     const toggleSidebar = () => {
         setIsSidebarOpen(!isSidebarOpen);
@@ -128,50 +128,37 @@ export default function Sidenav({ children, initials = "JN" }: SidenavProps) {
                             href="/dashboard"
                             label="Tableau de bord"
                             icon={<FontAwesomeIcon icon={faHouse} />}
-                            onClick={closeSidebar}
                         />
                         <NavItem
                             href="/inventaire"
                             label="Inventaire"
                             icon={<FontAwesomeIcon icon={faDatabase} />}
-                            onClick={closeSidebar}
                         />
                         <NavItem
                             href="/ration"
                             label="Rations"
                             badge="Nouveau"
                             icon={<FontAwesomeIcon icon={faCarrot} />}
-                            onClick={closeSidebar}
                         />
                         <NavItem
                             href="/comptabilite"
                             label="Comptabilité"
                             icon={<FontAwesomeIcon icon={faBuildingColumns} />}
-                            onClick={closeSidebar}
                         />
                         <NavItem
                             href="/aliments"
                             label="Aliments"
                             icon={<FontAwesomeIcon icon={faWheatAwn} />}
-                            onClick={closeSidebar}
                         />
                         <NavItem
-                            href="/fournisseurs"
-                            label="Chaîne d'approv."
-                            icon={<FontAwesomeIcon icon={faTruck} />}
-                            onClick={closeSidebar}
-                        />
-                        <NavItem
-                            href="/ventes"
-                            label="Ventes"
-                            icon={<FontAwesomeIcon icon={faStore} />}
-                            onClick={closeSidebar}
+                            href="/transactions"
+                            label="Transactions"
+                            icon={<FontAwesomeIcon icon={faArrowRightArrowLeft} />}
                         />
                         <NavItem
                             href="/nutrition"
                             label="Nutrition"
                             icon={<FontAwesomeIcon icon={faFlask} />}
-                            onClick={closeSidebar}
                         />
                     </ul>
                 </div>

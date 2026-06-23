@@ -8,6 +8,7 @@ export async function receiveComplexDelivery(formData: FormData) {
   const food_id = parseInt(formData.get("food_id") as string, 10);
   const total_kg = parseFloat(formData.get("total_kg") as string);
   const date_delivered = formData.get("date_delivered") as string;
+  const existing_delivery_id = formData.get("existing_delivery_id") ? parseInt(formData.get("existing_delivery_id") as string, 10) : null;
   
   // sub_contracts is a JSON string of { sub_contract_id: number, quantity: number }[]
   const sub_contracts = JSON.parse(formData.get("sub_contracts") as string || "[]");
@@ -19,40 +20,60 @@ export async function receiveComplexDelivery(formData: FormData) {
   }
 
   await prisma.$transaction(async (tx) => {
-    // 1. Create the delivery record
-    const delivery = await tx.delivery.create({
-      data: {
-        supplier_id,
-        food_id,
-        quantity_received: total_kg,
-        date_expected: new Date(date_delivered),
-        date_delivered: new Date(date_delivered)
-      }
-    });
+    const food = await tx.food.findUnique({ where: { id: food_id }, include: { unit_type: true } });
+    if (!food) throw new Error("Aliment introuvable");
+    const isTm = food.unit_type.name.toLowerCase() === 'tm';
+    const native_quantity = isTm ? total_kg / 1000 : total_kg;
+
+    let delivery;
+    if (existing_delivery_id && !isNaN(existing_delivery_id)) {
+      // It's a planned delivery, we update it
+      delivery = await tx.delivery.update({
+        where: { id: existing_delivery_id },
+        data: {
+          supplier_id,
+          food_id,
+          quantity_received: native_quantity,
+          date_delivered: new Date(date_delivered)
+        }
+      });
+      // Delete existing sub-contract links since we recreate them below based on the new allocation
+      await tx.deliverySubContract.deleteMany({
+        where: { delivery_id: existing_delivery_id }
+      });
+    } else {
+      // 1. Create a new delivery record
+      delivery = await tx.delivery.create({
+        data: {
+          supplier_id,
+          food_id,
+          quantity_received: native_quantity,
+          date_expected: new Date(date_delivered),
+          date_delivered: new Date(date_delivered)
+        }
+      });
+    }
 
     // 2. Link and deduct from sub-contracts
     for (const sc of sub_contracts) {
       if (sc.quantity > 0) {
+        const scNativeQuantity = isTm ? sc.quantity / 1000 : sc.quantity;
         await tx.deliverySubContract.create({
           data: {
             delivery_id: delivery.id,
             sub_contract_id: sc.sub_contract_id,
-            quantity: sc.quantity
+            quantity: scNativeQuantity
           }
         });
 
         await tx.subContract.update({
           where: { id: sc.sub_contract_id },
-          data: { kg_left_to_deliver: { decrement: sc.quantity } }
+          data: { kg_left_to_deliver: { decrement: scNativeQuantity } }
         });
       }
     }
 
     // 3. Add to storages and create transactions
-    const food = await tx.food.findUnique({ where: { id: food_id }, include: { unit_type: true } });
-    if (!food) throw new Error("Aliment introuvable");
-    const isTm = food.unit_type.name.toLowerCase() === 'tm';
-
     for (const st of storages) {
       if (st.quantity > 0) {
         const qtyToAdd = isTm ? st.quantity / 1000 : st.quantity;
@@ -78,13 +99,14 @@ export async function receiveComplexDelivery(formData: FormData) {
   });
 
   revalidatePath('/inventaire');
-  revalidatePath('/fournisseurs');
+  revalidatePath('/transactions');
 }
 export async function createComplexSale(formData: FormData) {
   const client_id = parseInt(formData.get("client_id") as string, 10);
   const food_id = parseInt(formData.get("food_id") as string, 10);
   const total_kg = parseFloat(formData.get("total_kg") as string);
   const date_sold = formData.get("date_sold") as string;
+  const existing_sale_id = formData.get("existing_sale_id") ? parseInt(formData.get("existing_sale_id") as string, 10) : null;
   
   // sub_contracts is a JSON string of { sub_contract_id: number, quantity: number }[]
   const sub_contracts = JSON.parse(formData.get("sub_contracts") as string || "[]");
@@ -96,40 +118,58 @@ export async function createComplexSale(formData: FormData) {
   }
 
   await prisma.$transaction(async (tx) => {
-    // 1. Create the sale record
-    const sale = await tx.sale.create({
-      data: {
-        client_id,
-        food_id,
-        quantity_sold: total_kg,
-        date_expected: new Date(date_sold),
-        date_sold: new Date(date_sold)
-      }
-    });
+    const food = await tx.food.findUnique({ where: { id: food_id }, include: { unit_type: true } });
+    if (!food) throw new Error("Aliment introuvable");
+    const isTm = food.unit_type.name.toLowerCase() === 'tm';
+    const native_quantity = isTm ? total_kg / 1000 : total_kg;
+
+    let sale;
+    if (existing_sale_id && !isNaN(existing_sale_id)) {
+      sale = await tx.sale.update({
+        where: { id: existing_sale_id },
+        data: {
+          client_id,
+          food_id,
+          quantity_sold: native_quantity,
+          date_sold: new Date(date_sold)
+        }
+      });
+      await tx.saleSubContractAllocation.deleteMany({
+        where: { sale_id: existing_sale_id }
+      });
+    } else {
+      // 1. Create the sale record
+      sale = await tx.sale.create({
+        data: {
+          client_id,
+          food_id,
+          quantity_sold: native_quantity,
+          date_expected: new Date(date_sold),
+          date_sold: new Date(date_sold)
+        }
+      });
+    }
 
     // 2. Link and deduct from sub-contracts
     for (const sc of sub_contracts) {
       if (sc.quantity > 0) {
+        const scNativeQuantity = isTm ? sc.quantity / 1000 : sc.quantity;
         await tx.saleSubContractAllocation.create({
           data: {
             sale_id: sale.id,
             sale_sub_contract_id: sc.sub_contract_id,
-            quantity: sc.quantity
+            quantity: scNativeQuantity
           }
         });
 
         await tx.saleSubContract.update({
           where: { id: sc.sub_contract_id },
-          data: { kg_left_to_deliver: { decrement: sc.quantity } }
+          data: { kg_left_to_deliver: { decrement: scNativeQuantity } }
         });
       }
     }
 
     // 3. Deduct from storages and create transactions
-    const food = await tx.food.findUnique({ where: { id: food_id }, include: { unit_type: true } });
-    if (!food) throw new Error("Aliment introuvable");
-    const isTm = food.unit_type.name.toLowerCase() === 'tm';
-
     for (const st of storages) {
       if (st.quantity > 0) {
         const qtyToDeduct = isTm ? st.quantity / 1000 : st.quantity;
@@ -155,7 +195,7 @@ export async function createComplexSale(formData: FormData) {
   });
 
   revalidatePath('/inventaire');
-  revalidatePath('/ventes');
+  revalidatePath('/transactions');
   revalidatePath('/dashboard');
   revalidatePath('/comptabilite');
 }

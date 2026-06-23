@@ -115,8 +115,23 @@ export default function StockageView({ storages }: Props) {
             return sum + tmStock;
           }, 0);
           
+          // Calculate total blocked TM across all foods in this storage
+          const blockedTm = storage.food_storages.reduce((sum: number, fs: any) => {
+            const isTm = fs.food?.unit_type?.name?.toLowerCase() === 'tm';
+            if (fs.food?.sale_contracts) {
+              const subContracts = fs.food.sale_contracts.flatMap((c: any) => c.sub_contracts);
+              const totalKg = subContracts.reduce((s: number, sc: any) => s + sc.kg_left_to_deliver, 0);
+              const blocked = isTm ? totalKg / 1000 : totalKg; // Assuming totalKg is in kg actually? No, wait, expected_kg in contracts is whatever unit they used? Actually, sales are always registered in the base unit. If unit is TM, totalKg is in kg. Actually, looking at validateSale, it uses kg and converts if isTm.
+              // Wait, createSaleContract gets total_kg, so it's always in kg.
+              const blockedTmEquivalent = totalKg / 1000;
+              return sum + blockedTmEquivalent;
+            }
+            return sum;
+          }, 0);
+
           const maxTm = parseFloat(capacities[storage.id]) || 0;
           const percentage = maxTm > 0 ? Math.min(100, Math.max(0, (currentTm / maxTm) * 100)) : 0;
+          const blockedPercentage = maxTm > 0 ? Math.min(100, Math.max(0, (blockedTm / maxTm) * 100)) : 0;
           
           let progressColor = "bg-green-500";
           if (percentage > 85) progressColor = "bg-red-500";
@@ -149,14 +164,21 @@ export default function StockageView({ storages }: Props) {
                   <span>Remplissage</span>
                   <span>{percentage.toFixed(1)}%</span>
                 </div>
-                <div className="w-full bg-zinc-200 rounded-full h-4 overflow-hidden">
+                <div className="w-full bg-zinc-200 rounded-full h-4 overflow-hidden flex">
                   <div 
-                    className={`h-4 rounded-full transition-all duration-500 ${progressColor}`}
-                    style={{ width: `${percentage}%` }}
+                    className={`h-4 transition-all duration-500 ${progressColor}`}
+                    style={{ width: `${Math.max(0, percentage - blockedPercentage)}%` }}
                   ></div>
+                  {blockedPercentage > 0 && (
+                    <div 
+                      className={`h-4 bg-indigo-500 transition-all duration-500`}
+                      style={{ width: `${blockedPercentage}%` }}
+                      title={`${blockedTm.toFixed(2)} TM bloquées pour la vente`}
+                    ></div>
+                  )}
                 </div>
                 <div className="flex justify-between text-sm font-black mt-2">
-                  <span className="text-zinc-900">{currentTm.toFixed(2)} TM actuelles</span>
+                  <span className="text-zinc-900">{currentTm.toFixed(2)} TM actuelles {blockedTm > 0 && <span className="text-indigo-600 font-bold text-xs ml-2">({blockedTm.toFixed(2)} TM réservées)</span>}</span>
                   <span className="text-zinc-400">{storage.food_storages.length} aliment(s)</span>
                 </div>
               </div>

@@ -27,7 +27,7 @@ export default async function DeliveryWidget() {
                         Aperçu des 3 prochaines réceptions d'aliments planifiées selon vos contrats.
                     </p>
                 </div>
-                <Link href="/fournisseurs" className="text-sm font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors shrink-0">
+                <Link href="/transactions" className="text-sm font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors shrink-0">
                     Voir tout
                 </Link>
             </div>
