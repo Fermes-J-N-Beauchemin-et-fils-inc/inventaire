@@ -89,11 +89,17 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
     Math.abs(totalStorageAllocated - totalKg) < 0.1;
 
   const handleContractChange = (id: number, val: number) => {
-    setContractAllocations(prev => ({ ...prev, [id]: val }));
+    const sc = activeSubContracts.find(c => c.id === id);
+    const max = sc ? sc.kg_left_to_deliver : val;
+    setContractAllocations(prev => ({ ...prev, [id]: Math.min(Math.max(0, val), max) }));
   };
 
   const handleStorageChange = (id: number, val: number) => {
-    setStorageAllocations(prev => ({ ...prev, [id]: val }));
+    const st = activeStorages.find(s => s.id === id);
+    if (!st) return;
+    const currentNative = st.food_storages.reduce((sum, fs) => sum + fs.current_stock, 0);
+    const availableNative = Math.max(0, st.max_capacity - currentNative);
+    setStorageAllocations(prev => ({ ...prev, [id]: Math.min(Math.max(0, val), availableNative) }));
   };
 
   const handleAutoFillContracts = () => {
@@ -104,10 +110,6 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
       const toAllocate = Math.min(sc.kg_left_to_deliver, remaining);
       newAllocations[sc.id] = toAllocate;
       remaining -= toAllocate;
-    }
-    if (remaining > 0 && activeSubContracts.length > 0) {
-      const lastScId = activeSubContracts[activeSubContracts.length - 1].id;
-      newAllocations[lastScId] = (newAllocations[lastScId] || 0) + remaining;
     }
     setContractAllocations(newAllocations);
   };
@@ -297,7 +299,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                           <input
                             type="range"
                             min="0"
-                            max={Math.max(sc.kg_left_to_deliver, totalKg)}
+                            max={sc.kg_left_to_deliver}
                             step="0.1"
                             value={contractAllocations[sc.id] ?? 0}
                             onChange={(e) => handleContractChange(sc.id, Number(e.target.value) || 0)}
@@ -308,6 +310,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                               type="number"
                               step="0.1"
                               min="0"
+                              max={sc.kg_left_to_deliver}
                               value={contractAllocations[sc.id] ?? ''}
                               onChange={(e) => handleContractChange(sc.id, Number(e.target.value) || 0)}
                               className="w-32 p-3 pr-10 border-2 border-indigo-200 rounded-xl font-black text-indigo-900 text-right focus:border-indigo-500 outline-none transition-colors"
