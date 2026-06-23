@@ -353,8 +353,8 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
                   <div className="mt-8 bg-white p-6 rounded-2xl border border-fuchsia-100 shadow-sm">
                     <div className="flex justify-between items-end mb-3">
                       <span className="text-sm font-black text-fuchsia-400 uppercase tracking-widest">Allocation Contrats</span>
-                      <span className="text-2xl font-black text-fuchsia-600">
-                        {totalContractAllocated.toFixed(1)} <span className="text-sm text-fuchsia-300 font-medium">kg alloués</span>
+                      <span className={`text-3xl font-black ${Math.abs(totalContractAllocated - totalKg) < 0.1 ? 'text-green-500' : 'text-fuchsia-600'}`}>
+                        {totalContractAllocated.toFixed(1)} <span className="text-lg text-fuchsia-300 font-bold">/ {totalKg} kg</span>
                       </span>
                     </div>
                   </div>

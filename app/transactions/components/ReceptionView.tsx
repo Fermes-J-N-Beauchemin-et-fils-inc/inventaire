@@ -332,8 +332,8 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                   <div className="mt-8 bg-white p-6 rounded-2xl border border-indigo-100 shadow-sm">
                     <div className="flex justify-between items-end mb-3">
                       <span className="text-sm font-black text-indigo-400 uppercase tracking-widest">Allocation Contrats</span>
-                      <span className="text-2xl font-black text-indigo-600">
-                        {totalContractAllocated.toFixed(1)} <span className="text-sm text-indigo-300 font-medium">kg alloués</span>
+                      <span className={`text-3xl font-black ${Math.abs(totalContractAllocated - totalKg) < 0.1 ? 'text-green-500' : 'text-indigo-600'}`}>
+                        {totalContractAllocated.toFixed(1)} <span className="text-lg text-indigo-300 font-bold">/ {totalKg} kg</span>
                       </span>
                     </div>
                   </div>
