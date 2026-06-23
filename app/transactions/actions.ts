@@ -222,14 +222,11 @@ export async function createDelivery(formData: FormData) {
       if (firstStorage) {
         const food = await tx.food.findUnique({ where: { id: food_id }, include: { unit_type: true } });
         if (food) {
-          const isTm = food.unit_type.name.toLowerCase() === 'tm';
-          const qtyToAdd = isTm ? quantity_received / 1000 : quantity_received;
-          
           storageIdToLog = firstStorage.id;
           await tx.foodStorage.upsert({
             where: { food_id_storage_id: { food_id: food_id, storage_id: firstStorage.id } },
-            update: { current_stock: { increment: qtyToAdd } },
-            create: { food_id: food_id, storage_id: firstStorage.id, current_stock: qtyToAdd }
+            update: { current_stock: { increment: quantity_received } },
+            create: { food_id: food_id, storage_id: firstStorage.id, current_stock: quantity_received }
           });
         }
       }
@@ -456,20 +453,17 @@ export async function markDeliveryAsReceived(deliveryId: number) {
     if (firstStorage) {
       const food = await tx.food.findUnique({ where: { id: delivery.food_id }, include: { unit_type: true } });
       if (food) {
-        const isTm = food.unit_type.name.toLowerCase() === 'tm';
-        const qtyToAdd = isTm ? delivery.quantity_received / 1000 : delivery.quantity_received;
-
         await tx.foodStorage.upsert({
           where: { food_id_storage_id: { food_id: delivery.food_id, storage_id: firstStorage.id } },
-          update: { current_stock: { increment: qtyToAdd } },
-          create: { food_id: delivery.food_id, storage_id: firstStorage.id, current_stock: qtyToAdd }
+          update: { current_stock: { increment: delivery.quantity_received } },
+          create: { food_id: delivery.food_id, storage_id: firstStorage.id, current_stock: delivery.quantity_received }
         });
 
         await tx.stockTransaction.create({
           data: {
             food_id: delivery.food_id,
             storage_id: firstStorage.id,
-            quantity: qtyToAdd,
+            quantity: delivery.quantity_received,
             transaction_type: "DELIVERY",
             recorded_at: now
           }
@@ -669,8 +663,7 @@ export async function createSale(formData: FormData) {
       });
       
       const food = await tx.food.findUnique({ where: { id: food_id }, include: { unit_type: true } });
-      const isTm = food?.unit_type.name.toLowerCase() === 'tm';
-      const qtyToDeduct = isTm ? quantity_sold / 1000 : quantity_sold;
+      const qtyToDeduct = quantity_sold;
       
       const totalStock = storages.reduce((acc, s) => acc + s.current_stock, 0);
       if (totalStock < qtyToDeduct) {
@@ -978,25 +971,21 @@ export async function createQuickSpotDelivery(formData: FormData) {
       }
     });
 
-    // 3. Update Global Stock
     const firstStorage = await tx.storage.findFirst({ where: { is_active: true } });
     if (firstStorage) {
       const foodData = await tx.food.findUnique({ where: { id: food_id }, include: { unit_type: true } });
       if (foodData) {
-        const isTm = foodData.unit_type.name.toLowerCase() === 'tm';
-        const qtyToAdd = isTm ? quantity / 1000 : quantity;
-
         await tx.foodStorage.upsert({
           where: { food_id_storage_id: { food_id, storage_id: firstStorage.id } },
-          update: { current_stock: { increment: qtyToAdd } },
-          create: { food_id, storage_id: firstStorage.id, current_stock: qtyToAdd }
+          update: { current_stock: { increment: quantity } },
+          create: { food_id, storage_id: firstStorage.id, current_stock: quantity }
         });
 
         await tx.stockTransaction.create({
           data: {
             food_id,
             storage_id: firstStorage.id,
-            quantity: qtyToAdd,
+            quantity: quantity,
             transaction_type: 'DELIVERY',
             recorded_at: now
           }
@@ -1034,9 +1023,7 @@ export async function createQuickSpotSale(formData: FormData) {
       orderBy: { current_stock: 'desc' }
     });
     
-    const foodData = await tx.food.findUnique({ where: { id: food_id }, include: { unit_type: true } });
-    const isTm = foodData?.unit_type.name.toLowerCase() === 'tm';
-    const qtyToDeduct = isTm ? quantity / 1000 : quantity;
+    const qtyToDeduct = quantity;
     
     const totalStock = storages.reduce((acc, s) => acc + s.current_stock, 0);
     if (totalStock < qtyToDeduct) {
@@ -1132,25 +1119,20 @@ export async function receiveDeliveryWithDetails(
     const food_id = delivery.food_id;
 
     // Update global and specific storages based on allocation
-    const foodData = await tx.food.findUnique({ where: { id: food_id }, include: { unit_type: true } });
-    if (!foodData) throw new Error("Aliment introuvable.");
-    const isTm = foodData.unit_type.name.toLowerCase() === 'tm';
-
     for (const alloc of storageAllocations) {
       if (alloc.quantity <= 0) continue;
-      const qtyToAdd = isTm ? alloc.quantity / 1000 : alloc.quantity;
 
       await tx.foodStorage.upsert({
         where: { food_id_storage_id: { food_id, storage_id: alloc.storage_id } },
-        update: { current_stock: { increment: qtyToAdd } },
-        create: { food_id, storage_id: alloc.storage_id, current_stock: qtyToAdd }
+        update: { current_stock: { increment: alloc.quantity } },
+        create: { food_id, storage_id: alloc.storage_id, current_stock: alloc.quantity }
       });
 
       await tx.stockTransaction.create({
         data: {
           food_id,
           storage_id: alloc.storage_id,
-          quantity: qtyToAdd,
+          quantity: alloc.quantity,
           transaction_type: "DELIVERY",
           recorded_at: new Date()
         }

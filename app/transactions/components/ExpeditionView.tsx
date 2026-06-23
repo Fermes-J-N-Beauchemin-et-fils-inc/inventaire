@@ -107,10 +107,7 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
     const newAllocations: { [id: number]: number } = {};
     for (const sc of activeSubContracts) {
       if (remaining <= 0) break;
-      const food = inventory.find(f => f.id === foodId);
-      const isTm = food?.unit_type?.name?.toLowerCase() === 'tm';
-      const availableKg = isTm ? sc.kg_left_to_deliver * 1000 : sc.kg_left_to_deliver;
-      const toAllocate = Math.min(availableKg, remaining);
+      const toAllocate = Math.min(sc.kg_left_to_deliver, remaining);
       newAllocations[sc.id] = toAllocate;
       remaining -= toAllocate;
     }
@@ -130,11 +127,8 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
       const fs = (st.food_storages || []).find(f => f.food_id === foodId);
       if (!fs) continue;
 
-      const isTm = fs.food?.unit_type?.name?.toLowerCase() === 'tm';
-      const availableKg = isTm ? fs.current_stock * 1000 : fs.current_stock;
-
-      if (availableKg > 0) {
-        const toAllocate = Math.min(availableKg, remaining);
+      if (fs.current_stock > 0) {
+        const toAllocate = Math.min(fs.current_stock, remaining);
         newAllocations[st.id] = toAllocate;
         remaining -= toAllocate;
       }
@@ -158,10 +152,8 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
          toast.error("Erreur de sélection de silo.");
          return;
       }
-      const isTm = fs.food?.unit_type?.name?.toLowerCase() === 'tm';
-      const availableKg = isTm ? fs.current_stock * 1000 : fs.current_stock;
-      if (qty > availableKg + 0.1) {
-         toast.error(`Quantité excessive pour le silo ${st?.name}. Maximum: ${availableKg} kg.`);
+      if (qty > fs.current_stock + 0.1) {
+         toast.error(`Quantité excessive pour le silo ${st?.name}. Maximum: ${fs.current_stock} unité(s).`);
          return;
       }
     }
@@ -281,7 +273,7 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
                   )}
                   
                   <div>
-                    <label className="block text-xs font-black text-orange-800/70 mb-2 uppercase tracking-widest">Quantité Vendue (kg)</label>
+                    <label className="block text-xs font-black text-orange-800/70 mb-2 uppercase tracking-widest">Quantité Vendue</label>
                     <input 
                       type="number" 
                       step="0.1" 
@@ -314,7 +306,7 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
                       <div key={sc.id} className="bg-white p-5 rounded-2xl shadow-sm border border-fuchsia-100/50 flex flex-col gap-4 hover:border-fuchsia-300 transition-colors">
                         <div className="flex justify-between items-center">
                           <h4 className="font-black text-fuchsia-950 text-lg">{sc.name}</h4>
-                          <span className="text-sm font-bold text-fuchsia-600 bg-fuchsia-50 px-3 py-1 rounded-full border border-fuchsia-100">Reste: {sc.kg_left_to_deliver} kg</span>
+                          <span className="text-sm font-bold text-fuchsia-600 bg-fuchsia-50 px-3 py-1 rounded-full border border-fuchsia-100">Reste: {sc.kg_left_to_deliver}</span>
                         </div>
                         <div className="flex items-center gap-4">
                           <button 
@@ -343,7 +335,7 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
                               className="w-32 p-3 pr-10 border-2 border-fuchsia-200 rounded-xl font-black text-fuchsia-900 text-right focus:border-fuchsia-500 outline-none transition-colors"
                               placeholder="0"
                             />
-                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-fuchsia-400">kg</span>
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-fuchsia-400"></span>
                           </div>
                         </div>
                       </div>
@@ -360,7 +352,7 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
                     <div className="flex justify-between items-end mb-3">
                       <span className="text-sm font-black text-fuchsia-400 uppercase tracking-widest">Allocation Contrats</span>
                       <span className="text-2xl font-black text-fuchsia-600">
-                        {totalContractAllocated.toFixed(1)} <span className="text-sm text-fuchsia-300 font-medium">kg alloués</span>
+                        {totalContractAllocated.toFixed(1)} <span className="text-sm text-fuchsia-300 font-medium">unités allouées</span>
                       </span>
                     </div>
                   </div>
@@ -388,7 +380,7 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
                         <div key={st.id} className="bg-white p-5 rounded-2xl shadow-sm border border-amber-100/50 flex flex-col gap-4 hover:border-amber-300 transition-colors">
                           <div className="flex justify-between items-center">
                             <h4 className="font-black text-amber-950 text-lg">{st.name}</h4>
-                            <span className="text-sm font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-100">Stock: {availableKg.toFixed(1)} kg</span>
+                            <span className="text-sm font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-100">Stock: {fs.current_stock.toFixed(1)}</span>
                           </div>
                           <div className="flex items-center gap-4">
                             <button 
@@ -401,7 +393,7 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
                             <input
                               type="range"
                               min="0"
-                              max={availableKg}
+                              max={fs.current_stock}
                               step="0.1"
                               value={storageAllocations[st.id] ?? 0}
                               onChange={(e) => handleStorageChange(st.id, Number(e.target.value) || 0)}
@@ -412,13 +404,13 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
                                 type="number"
                                 step="0.1"
                                 min="0"
-                                max={availableKg}
+                                max={fs.current_stock}
                                 value={storageAllocations[st.id] ?? ''}
                                 onChange={(e) => handleStorageChange(st.id, Number(e.target.value) || 0)}
                                 className="w-32 p-3 pr-10 border-2 border-amber-200 rounded-xl font-black text-amber-900 text-right focus:border-amber-500 outline-none transition-colors"
                                 placeholder="0"
                               />
-                              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-amber-400">kg</span>
+                              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-amber-400"></span>
                             </div>
                           </div>
                         </div>
@@ -436,7 +428,7 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
                     <div className="flex justify-between items-end mb-3">
                       <span className="text-sm font-black text-amber-500 uppercase tracking-widest">Sortie Silos</span>
                       <span className={`text-3xl font-black ${Math.abs(totalStorageAllocated - totalKg) < 0.1 ? 'text-green-500' : 'text-amber-500'}`}>
-                        {totalStorageAllocated.toFixed(1)} <span className="text-lg text-amber-300 font-bold">/ {totalKg} kg</span>
+                        {totalStorageAllocated.toFixed(1)} <span className="text-lg text-amber-300 font-bold">/ {totalKg}</span>
                       </span>
                     </div>
                     <div className="w-full bg-amber-50 rounded-full h-4 overflow-hidden border border-amber-100">

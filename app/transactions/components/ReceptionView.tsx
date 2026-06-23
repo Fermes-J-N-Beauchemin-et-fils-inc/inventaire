@@ -48,8 +48,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
       if (delivery) {
         setSupplierId(delivery.partner_id);
         setFoodId(delivery.food_id);
-        const q = delivery.unit.toLowerCase() === 'tm' ? delivery.quantity * 1000 : delivery.quantity;
-        setTotalKg(q);
+        setTotalKg(delivery.quantity);
       }
     } else {
       setSupplierId('');
@@ -102,10 +101,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
     const newAllocations: { [id: number]: number } = {};
     for (const sc of activeSubContracts) {
       if (remaining <= 0) break;
-      const food = inventory.find(f => f.id === Number(foodId));
-      const isTm = food?.unit_type?.name?.toLowerCase() === 'tm';
-      const availableKg = isTm ? sc.kg_left_to_deliver * 1000 : sc.kg_left_to_deliver;
-      const toAllocate = Math.min(availableKg, remaining);
+      const toAllocate = Math.min(sc.kg_left_to_deliver, remaining);
       newAllocations[sc.id] = toAllocate;
       remaining -= toAllocate;
     }
@@ -121,17 +117,11 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
     const newAllocations: { [id: number]: number } = {};
     for (const st of activeStorages) {
       if (remaining <= 0) break;
-      const currentKg = (st.food_storages || []).reduce((sum, fs) => {
-        const isTm = fs.food?.unit_type?.name?.toLowerCase() === 'tm';
-        const kg = isTm ? fs.current_stock * 1000 : fs.current_stock;
-        return sum + kg;
-      }, 0);
-      const currentTm = currentKg / 1000;
-      const availableTm = st.max_capacity - currentTm;
-      const availableKg = availableTm * 1000;
+      const currentNative = (st.food_storages || []).reduce((sum, fs) => sum + fs.current_stock, 0);
+      const availableNative = st.max_capacity - currentNative;
 
-      if (availableKg > 0) {
-        const toAllocate = Math.min(availableKg, remaining);
+      if (availableNative > 0) {
+        const toAllocate = Math.min(availableNative, remaining);
         newAllocations[st.id] = toAllocate;
         remaining -= toAllocate;
       }
@@ -261,7 +251,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                   )}
                   
                   <div>
-                    <label className="block text-xs font-black text-blue-900 mb-2 uppercase tracking-widest">Quantité Reçue (kg)</label>
+                    <label className="block text-xs font-black text-blue-900 mb-2 uppercase tracking-widest">Quantité Reçue</label>
                     <input 
                       type="number" 
                       step="0.1" 
@@ -294,7 +284,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                       <div key={sc.id} className="bg-white p-5 rounded-2xl shadow-sm border border-indigo-100/50 flex flex-col gap-4 hover:border-indigo-300 transition-colors">
                         <div className="flex justify-between items-center">
                           <h4 className="font-black text-indigo-950 text-lg">{sc.name}</h4>
-                          <span className="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">Reste: {sc.kg_left_to_deliver} kg</span>
+                          <span className="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">Reste: {sc.kg_left_to_deliver}</span>
                         </div>
                         <div className="flex items-center gap-4">
                           <button 
@@ -323,7 +313,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                               className="w-32 p-3 pr-10 border-2 border-indigo-200 rounded-xl font-black text-indigo-900 text-right focus:border-indigo-500 outline-none transition-colors"
                               placeholder="0"
                             />
-                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-indigo-400">kg</span>
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-indigo-400"></span>
                           </div>
                         </div>
                       </div>
@@ -340,7 +330,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                     <div className="flex justify-between items-end mb-3">
                       <span className="text-sm font-black text-indigo-400 uppercase tracking-widest">Allocation Contrats</span>
                       <span className="text-2xl font-black text-indigo-600">
-                        {totalContractAllocated.toFixed(1)} <span className="text-sm text-indigo-300 font-medium">kg alloués</span>
+                        {totalContractAllocated.toFixed(1)} <span className="text-sm text-indigo-300 font-medium">unités allouées</span>
                       </span>
                     </div>
                   </div>
@@ -366,17 +356,20 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                       const currentTm = currentKg / 1000;
                       const maxTm = st.max_capacity;
                       const availableKg = Math.max(0, (maxTm - currentTm) * 1000);
+                      const availableNative = Math.max(0, maxTm - currentTm);
 
                       return (
                         <div key={st.id} className="bg-white p-5 rounded-2xl shadow-sm border border-amber-100/50 flex flex-col gap-4 hover:border-amber-300 transition-colors">
-                          <div className="flex justify-between items-center">
-                            <h4 className="font-black text-amber-950 text-lg">{st.name}</h4>
-                            <span className="text-sm font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-100">Libre: {availableKg.toFixed(1)} kg</span>
+                          <div className="flex justify-between items-center mb-4">
+                            <h4 className="font-black text-amber-900 text-lg">{st.name}</h4>
+                            <span className="text-sm font-bold text-amber-600 bg-amber-100 px-3 py-1 rounded-full border border-amber-200">
+                              Reste: {availableNative.toFixed(1)} capacité
+                            </span>
                           </div>
                           <div className="flex items-center gap-4">
                             <button 
                               type="button"
-                              onClick={() => handleStorageChange(st.id, Math.min(availableKg, (storageAllocations[st.id] || 0) + (totalKg - totalStorageAllocated)))}
+                              onClick={() => handleStorageChange(st.id, Math.min(availableNative, (storageAllocations[st.id] || 0) + (totalKg - totalStorageAllocated)))}
                               className="text-xs font-black bg-amber-100 text-amber-700 hover:bg-amber-200 px-3 py-3 rounded-xl transition-colors shrink-0"
                             >
                               MAX
@@ -384,7 +377,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                             <input
                               type="range"
                               min="0"
-                              max={availableKg}
+                              max={availableNative}
                               step="0.1"
                               value={storageAllocations[st.id] ?? 0}
                               onChange={(e) => handleStorageChange(st.id, Number(e.target.value) || 0)}
@@ -395,13 +388,13 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                                 type="number"
                                 step="0.1"
                                 min="0"
-                                max={availableKg}
+                                max={availableNative}
                                 value={storageAllocations[st.id] ?? ''}
                                 onChange={(e) => handleStorageChange(st.id, Number(e.target.value) || 0)}
                                 className="w-32 p-3 pr-10 border-2 border-amber-200 rounded-xl font-black text-amber-900 text-right focus:border-amber-500 outline-none transition-colors"
                                 placeholder="0"
                               />
-                              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-amber-400">kg</span>
+                              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-amber-400"></span>
                             </div>
                           </div>
                         </div>
@@ -413,7 +406,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                     <div className="flex justify-between items-end mb-3">
                       <span className="text-sm font-black text-amber-500 uppercase tracking-widest">Allocation Silos</span>
                       <span className={`text-3xl font-black ${Math.abs(totalStorageAllocated - totalKg) < 0.1 ? 'text-green-500' : 'text-amber-500'}`}>
-                        {totalStorageAllocated.toFixed(1)} <span className="text-lg text-amber-300 font-bold">/ {totalKg} kg</span>
+                        {totalStorageAllocated.toFixed(1)} <span className="text-lg text-amber-300 font-bold">/ {totalKg}</span>
                       </span>
                     </div>
                     <div className="w-full bg-amber-50 rounded-full h-4 overflow-hidden border border-amber-100">

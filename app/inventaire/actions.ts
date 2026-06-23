@@ -20,11 +20,6 @@ export async function receiveComplexDelivery(formData: FormData) {
   }
 
   await prisma.$transaction(async (tx) => {
-    const food = await tx.food.findUnique({ where: { id: food_id }, include: { unit_type: true } });
-    if (!food) throw new Error("Aliment introuvable");
-    const isTm = food.unit_type.name.toLowerCase() === 'tm';
-    const native_quantity = isTm ? total_kg / 1000 : total_kg;
-
     let delivery;
     if (existing_delivery_id && !isNaN(existing_delivery_id)) {
       // It's a planned delivery, we update it
@@ -33,7 +28,7 @@ export async function receiveComplexDelivery(formData: FormData) {
         data: {
           supplier_id,
           food_id,
-          quantity_received: native_quantity,
+          quantity_received: total_kg,
           date_delivered: new Date(date_delivered)
         }
       });
@@ -47,7 +42,7 @@ export async function receiveComplexDelivery(formData: FormData) {
         data: {
           supplier_id,
           food_id,
-          quantity_received: native_quantity,
+          quantity_received: total_kg,
           date_expected: new Date(date_delivered),
           date_delivered: new Date(date_delivered)
         }
@@ -57,18 +52,17 @@ export async function receiveComplexDelivery(formData: FormData) {
     // 2. Link and deduct from sub-contracts
     for (const sc of sub_contracts) {
       if (sc.quantity > 0) {
-        const scNativeQuantity = isTm ? sc.quantity / 1000 : sc.quantity;
         await tx.deliverySubContract.create({
           data: {
             delivery_id: delivery.id,
             sub_contract_id: sc.sub_contract_id,
-            quantity: scNativeQuantity
+            quantity: sc.quantity
           }
         });
 
         await tx.subContract.update({
           where: { id: sc.sub_contract_id },
-          data: { kg_left_to_deliver: { decrement: scNativeQuantity } }
+          data: { kg_left_to_deliver: { decrement: sc.quantity } }
         });
       }
     }
@@ -76,20 +70,18 @@ export async function receiveComplexDelivery(formData: FormData) {
     // 3. Add to storages and create transactions
     for (const st of storages) {
       if (st.quantity > 0) {
-        const qtyToAdd = isTm ? st.quantity / 1000 : st.quantity;
-        
         // Upsert FoodStorage
         await tx.foodStorage.upsert({
           where: { food_id_storage_id: { food_id: food_id, storage_id: st.storage_id } },
-          update: { current_stock: { increment: qtyToAdd } },
-          create: { food_id: food_id, storage_id: st.storage_id, current_stock: qtyToAdd }
+          update: { current_stock: { increment: st.quantity } },
+          create: { food_id: food_id, storage_id: st.storage_id, current_stock: st.quantity }
         });
 
         await tx.stockTransaction.create({
           data: {
             food_id: food_id,
             storage_id: st.storage_id,
-            quantity: qtyToAdd,
+            quantity: st.quantity,
             transaction_type: "DELIVERY",
             recorded_at: new Date(date_delivered)
           }
@@ -118,11 +110,6 @@ export async function createComplexSale(formData: FormData) {
   }
 
   await prisma.$transaction(async (tx) => {
-    const food = await tx.food.findUnique({ where: { id: food_id }, include: { unit_type: true } });
-    if (!food) throw new Error("Aliment introuvable");
-    const isTm = food.unit_type.name.toLowerCase() === 'tm';
-    const native_quantity = isTm ? total_kg / 1000 : total_kg;
-
     let sale;
     if (existing_sale_id && !isNaN(existing_sale_id)) {
       sale = await tx.sale.update({
@@ -130,7 +117,7 @@ export async function createComplexSale(formData: FormData) {
         data: {
           client_id,
           food_id,
-          quantity_sold: native_quantity,
+          quantity_sold: total_kg,
           date_sold: new Date(date_sold)
         }
       });
@@ -143,7 +130,7 @@ export async function createComplexSale(formData: FormData) {
         data: {
           client_id,
           food_id,
-          quantity_sold: native_quantity,
+          quantity_sold: total_kg,
           date_expected: new Date(date_sold),
           date_sold: new Date(date_sold)
         }
@@ -153,18 +140,17 @@ export async function createComplexSale(formData: FormData) {
     // 2. Link and deduct from sub-contracts
     for (const sc of sub_contracts) {
       if (sc.quantity > 0) {
-        const scNativeQuantity = isTm ? sc.quantity / 1000 : sc.quantity;
         await tx.saleSubContractAllocation.create({
           data: {
             sale_id: sale.id,
             sale_sub_contract_id: sc.sub_contract_id,
-            quantity: scNativeQuantity
+            quantity: sc.quantity
           }
         });
 
         await tx.saleSubContract.update({
           where: { id: sc.sub_contract_id },
-          data: { kg_left_to_deliver: { decrement: scNativeQuantity } }
+          data: { kg_left_to_deliver: { decrement: sc.quantity } }
         });
       }
     }
@@ -172,20 +158,18 @@ export async function createComplexSale(formData: FormData) {
     // 3. Deduct from storages and create transactions
     for (const st of storages) {
       if (st.quantity > 0) {
-        const qtyToDeduct = isTm ? st.quantity / 1000 : st.quantity;
-        
         // Update FoodStorage (we decrement)
         // We ensure there's enough stock, otherwise Prisma might throw if we have unsigned, but we just decrement here.
         await tx.foodStorage.update({
           where: { food_id_storage_id: { food_id: food_id, storage_id: st.storage_id } },
-          data: { current_stock: { decrement: qtyToDeduct } }
+          data: { current_stock: { decrement: st.quantity } }
         });
 
         await tx.stockTransaction.create({
           data: {
             food_id: food_id,
             storage_id: st.storage_id,
-            quantity: -qtyToDeduct, // negative for sale
+            quantity: -st.quantity, // negative for sale
             transaction_type: "SALE",
             recorded_at: new Date(date_sold)
           }
