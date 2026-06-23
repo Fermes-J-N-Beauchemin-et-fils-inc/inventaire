@@ -444,7 +444,7 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Quantité</label>
+                        <label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Quantité (kg)</label>
                         <input type="number" step="0.01" name={activeAction === 'reception' ? 'quantity_received' : 'quantity_sold'} required placeholder="Ex: 500" className={`w-full px-5 py-4 bg-white border border-zinc-200 rounded-xl text-zinc-900 font-bold text-lg focus:ring-2 focus:ring-${activeAction === 'reception' ? 'green' : 'indigo'}-500/20 focus:border-${activeAction === 'reception' ? 'green' : 'indigo'}-500 transition-all`} />
                       </div>
                       <div>
