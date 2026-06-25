@@ -206,7 +206,6 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                   className="w-full p-5 bg-white border-2 border-zinc-200 rounded-2xl font-black text-xl text-blue-900 shadow-sm focus:border-blue-600 focus:ring-4 focus:ring-blue-600/20 transition-all cursor-pointer appearance-none"
                 >
                   <option value="">-- Choisir une livraison attendue --</option>
-                  <option value="spot" className="text-blue-600 font-bold">Achat Spot / Non planifié</option>
                   {deliveries.map(d => (
                     <option key={d.id} value={d.id}>
                       Prévue : {d.quantity} {d.unit} de {d.food_name} ({d.partner_name})
@@ -215,52 +214,22 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                 </select>
               </div>
 
-              {selectedMode && (
+              {selectedMode && selectedMode !== 'spot' && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-top-4 duration-300">
-                  {selectedMode === 'spot' ? (
-                    <>
-                      <div>
-                        <label className="block text-xs font-black text-blue-900 mb-2 uppercase tracking-widest">Fournisseur</label>
-                        <select 
-                          value={supplierId} 
-                          onChange={(e) => { setSupplierId(Number(e.target.value) || ''); setFoodId(''); }}
-                          className="w-full p-4 bg-white border-2 border-zinc-200 rounded-xl font-bold text-blue-900 focus:border-blue-600 transition-all"
-                        >
-                          <option value="">Sélectionner</option>
-                          {suppliers.filter(s => s.is_active).map(s => (
-                            <option key={s.id} value={s.id}>{s.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-black text-blue-900 mb-2 uppercase tracking-widest">Aliment</label>
-                        <select 
-                          value={foodId} 
-                          onChange={(e) => setFoodId(Number(e.target.value) || '')}
-                          disabled={!supplierId}
-                          className="w-full p-4 bg-white border-2 border-zinc-200 rounded-xl font-bold text-blue-900 focus:border-blue-600 transition-all disabled:opacity-50"
-                        >
-                          <option value="">Sélectionner</option>
-                          {availableFoods.map(f => (
-                            <option key={f.id} value={f.id}>{f.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200 flex flex-col justify-center">
-                        <span className="text-xs font-black text-blue-600 uppercase tracking-widest mb-1">Fournisseur</span>
-                        <span className="font-black text-blue-900 text-lg">{suppliers.find(s => s.id === supplierId)?.name || '...'}</span>
-                      </div>
-                      <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200 flex flex-col justify-center">
-                        <span className="text-xs font-black text-blue-600 uppercase tracking-widest mb-1">Aliment</span>
-                        <span className="font-black text-blue-900 text-lg">{inventory.find(f => f.id === foodId)?.name || '...'}</span>
-                      </div>
-                    </>
-                  )}
+                  <div className="md:col-span-3 bg-blue-50 border border-blue-200 p-6 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-bold text-blue-600 uppercase tracking-widest mb-1">Livraison sélectionnée</p>
+                      <h4 className="text-2xl font-black text-blue-900">
+                        {deliveries.find(d => d.id.toString() === selectedMode)?.partner_name} - {deliveries.find(d => d.id.toString() === selectedMode)?.food_name}
+                      </h4>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-blue-600 uppercase tracking-widest mb-1">Quantité Prévue</p>
+                      <p className="text-3xl font-black text-blue-900">{deliveries.find(d => d.id.toString() === selectedMode)?.quantity} kg</p>
+                    </div>
+                  </div>
                   
-                  <div>
+                  <div className="md:col-span-3">
                     <label className="block text-xs font-black text-blue-900 mb-2 uppercase tracking-widest">Quantité Reçue (kg)</label>
                     <input 
                       type="number" 
