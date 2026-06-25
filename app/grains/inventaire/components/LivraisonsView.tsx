@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { DeliveryData, SupplierWithContractsData } from '../data/fetchInventaire';
-import { createDelivery } from '@/app/transactions/actions'; // Reuse the action
+import { createDelivery } from '@/app/grains/transactions/actions'; // Reuse the action
 import toast from 'react-hot-toast';
 
 interface LivraisonsViewProps {
@@ -81,7 +81,7 @@ export default function LivraisonsView({ deliveries, suppliers }: LivraisonsView
                                         <button className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl font-bold" onClick={() => toast.dismiss(t.id)}>Annuler</button>
                                         <button className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold" onClick={async () => {
                                           toast.dismiss(t.id);
-                                          const { deleteDelivery } = await import('@/app/transactions/actions');
+                                          const { deleteDelivery } = await import('@/app/grains/transactions/actions');
                                           try {
                                             await deleteDelivery(delivery.id);
                                             toast.success("Livraison planifiée supprimée.");

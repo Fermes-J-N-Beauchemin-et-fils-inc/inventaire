@@ -1,6 +1,6 @@
 import React from 'react';
 import Image from "next/image";
-import logo from '../../../public/images/logo.png';
+import logo from '@/public/images/logo.png';
 import { GroupsState, GroupKey } from '../types';
 import ReportRow from './ReportRow';
 import toast from 'react-hot-toast';

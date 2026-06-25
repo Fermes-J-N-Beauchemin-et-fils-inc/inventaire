@@ -86,7 +86,7 @@ export default function GroupsDataView({ groups, totalGroup }: GroupsDataViewPro
                   {activeGroup.aliments.filter(a => a.kgTqs > 0 || activeTab === 'total').map(aliment => (
                     <tr key={aliment.id} className="hover:bg-zinc-50 transition-colors group">
                       <td className="p-4 font-bold text-zinc-900 whitespace-nowrap border-r border-zinc-100">
-                        <Link href={`/aliments/${aliment.id}`} className="group-hover:text-blue-600 transition-colors underline decoration-blue-200 underline-offset-4">
+                        <Link href={`/grains/aliments/${aliment.id}`} className="group-hover:text-blue-600 transition-colors underline decoration-blue-200 underline-offset-4">
                           {aliment.name}
                         </Link>
                       </td>

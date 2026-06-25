@@ -42,9 +42,12 @@ export async function createContract(formData: FormData) {
   let date_end = formData.get("date_end") as string;
   const is_spot = formData.get("is_spot") === "true";
 
-  if (!name || isNaN(supplier_id) || isNaN(food_id) || isNaN(total_kg) || isNaN(price_per_kg) || !date_start) {
-    throw new Error("Veuillez remplir tous les champs obligatoires du contrat.");
-  }
+  if (!name) throw new Error("Le nom du contrat est requis.");
+  if (isNaN(supplier_id)) throw new Error("Le fournisseur est invalide.");
+  if (isNaN(food_id)) throw new Error("L'aliment est invalide.");
+  if (isNaN(total_kg)) throw new Error("La quantité totale est invalide.");
+  if (isNaN(price_per_kg)) throw new Error("Le prix est invalide.");
+  if (!date_start) throw new Error("La date de début est requise.");
   
   if (is_spot) {
     date_end = date_start;
@@ -146,7 +149,7 @@ export async function deleteContract(id: number) {
 
     const subContracts = await tx.subContract.findMany({ where: { contract_id: id } });
     for (const sc of subContracts) {
-      if (sc.kg_left_to_deliver < sc.expected_kg) {
+      if ((sc.expected_kg - sc.kg_left_to_deliver) > 0.01) {
         throw new Error("Impossible de supprimer ce contrat car des livraisons ont déjà été réceptionnées pour celui-ci.");
       }
     }
@@ -239,14 +242,6 @@ export async function createDelivery(formData: FormData) {
     }
 
     if (date_delivered) {
-      // Update food stock directly (units are matching: kg)
-      // Note: this assumes storage isn't specified, so we just add to food current_stock globally, 
-      // but in the new architecture stock is in FoodStorage. 
-      // Since this is a simple planning form, we should probably warn or just use a default storage.
-      // We will skip updating FoodStorage here because "Planifier une commande" shouldn't receive it immediately anyway, 
-      // or if it does, it's legacy. Complex Reception is done via ReceptionView.
-      
-      // Find first active storage
       const firstStorage = await tx.storage.findFirst({ where: { is_active: true } });
       let storageIdToLog = null;
 
@@ -443,7 +438,7 @@ export async function deleteSubContract(id: number) {
 
     await prisma.$transaction(async (tx) => {
       const sc = await tx.subContract.findUnique({ where: { id } });
-      if (sc && sc.kg_left_to_deliver < sc.expected_kg) {
+      if (sc && (sc.expected_kg - sc.kg_left_to_deliver) > 0.01) {
         throw new Error("Impossible de supprimer ce sous-contrat car des livraisons ont déjà été réceptionnées.");
       }
 
@@ -552,10 +547,6 @@ export async function deleteDelivery(deliveryId: number) {
   revalidatePath('/transactions');
 }
 
-
-
-
-
 export async function createClient(formData: FormData) {
   const name = formData.get("name") as string;
   const phone_number = formData.get("phone_number") as string;
@@ -591,9 +582,12 @@ export async function createSaleContract(formData: FormData) {
   let date_end = formData.get("date_end") as string;
   const is_spot = formData.get("is_spot") === "true";
 
-  if (!name || isNaN(client_id) || isNaN(food_id) || isNaN(total_kg) || isNaN(price_per_kg) || !date_start) {
-    throw new Error("Veuillez remplir tous les champs obligatoires du contrat.");
-  }
+  if (!name) throw new Error("Le nom du contrat est requis.");
+  if (isNaN(client_id)) throw new Error("Veuillez sélectionner un client.");
+  if (isNaN(food_id)) throw new Error("Veuillez sélectionner un aliment.");
+  if (isNaN(total_kg)) throw new Error("La quantité totale est invalide.");
+  if (isNaN(price_per_kg)) throw new Error("Le prix est invalide.");
+  if (!date_start) throw new Error("La date de début est requise.");
   
   if (is_spot) {
     date_end = date_start;
@@ -652,7 +646,6 @@ export async function createSaleContract(formData: FormData) {
   });
 
   revalidatePath('/transactions');
-  revalidatePath('/transactions');
 }
 
 export async function updateSaleContract(formData: FormData) {
@@ -685,7 +678,7 @@ export async function deleteSaleContract(id: number) {
   await prisma.$transaction(async (tx) => {
     const subContracts = await tx.saleSubContract.findMany({ where: { sale_contract_id: id } });
     for (const sc of subContracts) {
-      if (sc.kg_left_to_deliver < sc.expected_kg) {
+      if ((sc.expected_kg - sc.kg_left_to_deliver) > 0.01) {
         throw new Error("Impossible de supprimer ce contrat car des ventes ont déjà été validées pour celui-ci.");
       }
     }
@@ -881,7 +874,7 @@ export async function deleteSaleSubContract(id: number) {
 
     await prisma.$transaction(async (tx) => {
       const sc = await tx.saleSubContract.findUnique({ where: { id } });
-      if (sc && sc.kg_left_to_deliver < sc.expected_kg) {
+      if (sc && (sc.expected_kg - sc.kg_left_to_deliver) > 0.01) {
         throw new Error("Impossible de supprimer ce sous-contrat car des ventes ont déjà été validées.");
       }
 
@@ -955,7 +948,8 @@ export async function validateSale(saleId: number) {
     
     const food = await tx.food.findUnique({ where: { id: food_id }, include: { unit_type: true } });
     const isTm = food?.unit_type.name.toLowerCase() === 'tm';
-    const qtyToDeduct = isTm ? quantity_sold / 1000 : quantity_sold;
+    const ration_to_kg = isTm ? 1000 : (food?.unit_type.ration_to_kg || 1);
+    const qtyToDeduct = quantity_sold / ration_to_kg;
     
     const totalStock = storages.reduce((acc, s) => acc + s.current_stock, 0);
     if (totalStock < qtyToDeduct) {
@@ -1077,7 +1071,8 @@ export async function createQuickSpotDelivery(formData: FormData) {
     if (firstStorage) {
       const foodData = await tx.food.findUnique({ where: { id: food_id }, include: { unit_type: true } });
       if (foodData) {
-        const ration_to_kg = foodData.unit_type?.ration_to_kg || 1;
+        const isTm = foodData.unit_type?.name.toLowerCase() === 'tm';
+        const ration_to_kg = isTm ? 1000 : (foodData.unit_type?.ration_to_kg || 1);
         const qtyInUnit = quantity / ration_to_kg;
         await tx.foodStorage.upsert({
           where: { food_id_storage_id: { food_id, storage_id: firstStorage.id } },
@@ -1128,7 +1123,8 @@ export async function createQuickSpotSale(formData: FormData) {
       orderBy: { current_stock: 'desc' }
     });
     
-    const ration_to_kg = food.unit_type?.ration_to_kg || 1;
+    const isTm = food.unit_type?.name.toLowerCase() === 'tm';
+    const ration_to_kg = isTm ? 1000 : (food.unit_type?.ration_to_kg || 1);
     const qtyToDeduct = quantity / ration_to_kg;
     
     const totalStock = storages.reduce((acc, s) => acc + s.current_stock, 0);
@@ -1225,7 +1221,8 @@ export async function receiveDeliveryWithDetails(
     const food_id = delivery.food_id;
     const food = await tx.food.findUnique({ where: { id: food_id }, include: { unit_type: true } });
     if (!food) throw new Error("Aliment introuvable.");
-    const ration_to_kg = food.unit_type?.ration_to_kg || 1;
+    const isTm = food.unit_type?.name.toLowerCase() === 'tm';
+    const ration_to_kg = isTm ? 1000 : (food.unit_type?.ration_to_kg || 1);
 
     // Update global and specific storages based on allocation
     for (const alloc of storageAllocations) {

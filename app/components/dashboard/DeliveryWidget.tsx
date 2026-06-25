@@ -7,7 +7,10 @@ import { prisma } from "@/app/lib/db";
 export default async function DeliveryWidget() {
     // Fetch upcoming deliveries from DB
     const upcomingDeliveries = await prisma.delivery.findMany({
-        where: { date_expected: { gte: new Date() } },
+        where: { 
+            date_expected: { gte: new Date() },
+            date_delivered: null 
+        },
         include: { food: true, supplier: true },
         orderBy: { date_expected: 'asc' },
         take: 3
@@ -27,7 +30,7 @@ export default async function DeliveryWidget() {
                         Aperçu des 3 prochaines réceptions d'aliments planifiées selon vos contrats.
                     </p>
                 </div>
-                <Link href="/transactions" className="text-sm font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors shrink-0">
+                <Link href="/grains/transactions" className="text-sm font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors shrink-0">
                     Voir tout
                 </Link>
             </div>

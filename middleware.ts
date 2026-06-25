@@ -36,9 +36,9 @@ export default async function middleware(request: NextRequest) {
 
             // Protection stricte pour le rôle 'distributor'
             if (role === "distributor") {
-                // Il ne peut aller NULLE PART AILLEURS que sur /ration
-                if (request.nextUrl.pathname !== "/ration") {
-                    return NextResponse.redirect(new URL("/ration", origin));
+                // Il ne peut aller NULLE PART AILLEURS que sur /grains/rations
+                if (request.nextUrl.pathname !== "/grains/rations") {
+                    return NextResponse.redirect(new URL("/grains/rations", origin));
                 }
             } else {
                 // Pour les 'admin' (ou autres)

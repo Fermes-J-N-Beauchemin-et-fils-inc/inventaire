@@ -64,34 +64,12 @@ export default function InventaireTable({ inventory }: InventaireTableProps) {
               const remainingDays = dailyConsumption > 0 ? Math.round(currentStockMsKg / dailyConsumption) : 999;
               const isInfinite = remainingDays > 500;
 
-              // Calculate blocked/upcoming sales
-              let upcomingSalesKg = 0;
-              let upcomingSalesMessage = '';
-              if (item.sale_contracts) {
-                const subContracts = item.sale_contracts.flatMap((c: any) => c.sub_contracts);
-                upcomingSalesKg = subContracts.reduce((sum: number, sc: any) => sum + sc.kg_left_to_deliver, 0);
-                
-                if (upcomingSalesKg > 0) {
-                  // Get the month of the first upcoming sale if available, else just show the amount
-                  const nextSale = subContracts.find((sc: any) => sc.kg_left_to_deliver > 0);
-                  const isTm = item.unit_type.name.toLowerCase() === 'tm';
-                  const displayAmt = isTm ? upcomingSalesKg / 1000 : upcomingSalesKg;
-                  const monthStr = nextSale && nextSale.name.includes(' ') ? nextSale.name : 'bientôt';
-                  upcomingSalesMessage = `${formatNum(displayAmt)} ${item.unit_type.name} doivent être vendus (${monthStr})`;
-                }
-              }
-
               return (
                 <tr key={item.id} className="hover:bg-blue-50/50 transition-colors group">
                   <td className="py-4 px-6 font-black border-r border-zinc-50">
-                    <Link href={`/aliments/${item.id}`} className="text-zinc-900 group-hover:text-blue-600 transition-colors underline decoration-blue-200 underline-offset-4">
+                    <Link href={`/grains/aliments/${item.id}`} className="text-zinc-900 group-hover:text-blue-600 transition-colors underline decoration-blue-200 underline-offset-4">
                       {item.name}
                     </Link>
-                    {upcomingSalesKg > 0 && (
-                      <div className="mt-1 text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md inline-block">
-                        ⚠️ {upcomingSalesMessage}
-                      </div>
-                    )}
                   </td>
                   <td className="py-4 px-6 text-zinc-600 text-base font-bold">
                     {storageNames}

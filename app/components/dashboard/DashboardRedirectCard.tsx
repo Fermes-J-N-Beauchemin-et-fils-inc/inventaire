@@ -1,7 +1,7 @@
 import Link from "next/link";
 import React from "react";
 
-export type CardColor = "green" | "yellow" | "blue" | "red" | "purple" | "orange" | "teal" | "indigo";
+export type CardColor = "green" | "yellow" | "blue" | "red" | "purple" | "orange" | "teal" | "indigo" | "amber";
 
 const colorStyles: Record<CardColor, { container: string; title: string; desc: string; hover: string; iconBg: string; iconText: string }> = {
     green: {
@@ -11,6 +11,14 @@ const colorStyles: Record<CardColor, { container: string; title: string; desc: s
         hover: "hover:bg-green-50 hover:border-green-300 hover:shadow-md hover:-translate-y-1",
         iconBg: "bg-green-100",
         iconText: "text-green-600",
+    },
+    amber: {
+        container: "bg-white border-amber-200",
+        title: "text-amber-900",
+        desc: "text-amber-700",
+        hover: "hover:bg-amber-50 hover:border-amber-300 hover:shadow-md hover:-translate-y-1",
+        iconBg: "bg-amber-100",
+        iconText: "text-amber-600",
     },
     yellow: {
         container: "bg-white border-yellow-200",

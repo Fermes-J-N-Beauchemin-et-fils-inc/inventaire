@@ -147,18 +147,27 @@ export default async function AlimentDetailPage({ params }: { params: Promise<{ 
           )}
 
           {aliment.upcomingSales.length > 0 && (
-            <div className="bg-indigo-100 text-indigo-800 px-5 py-2.5 rounded-xl font-black flex items-center gap-3 shadow-sm border border-indigo-200 w-fit mt-4 sm:mt-0">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
-              </span>
-              {(() => {
-                const nextSale = aliment.upcomingSales[0];
-                const days = Math.ceil((nextSale.date_expected.getTime() - Date.now()) / (1000 * 3600 * 24));
-                const formattedQty = aliment.unit.toLowerCase() === 'tm' ? nextSale.quantity_sold / 1000 : (aliment.unit.toLowerCase() === 'poches' ? nextSale.quantity_sold / 25 : nextSale.quantity_sold);
-                const dayStr = days === 0 ? "aujourd'hui" : (days < 0 ? "déjà dépassée" : `dans ${days} jours`);
-                return `Il y a ${formattedQty.toLocaleString('fr-CA', { maximumFractionDigits: 2 })} ${aliment.unit} de stock prévu pour une vente ${days === 0 ? "aujourd'hui" : (days < 0 ? "déjà dépassée" : `dans ${days} jours`)}`;
-              })()}
+            <div className="bg-gradient-to-r from-indigo-50 to-indigo-100/50 border border-indigo-200 shadow-sm px-5 py-3 rounded-2xl flex items-center gap-4 w-fit mt-4 sm:mt-0">
+              <div className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center border border-indigo-100 shrink-0">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-600"></span>
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-black text-indigo-500 uppercase tracking-widest mb-0.5">Vente Prévue</span>
+                {(() => {
+                  const nextSale = aliment.upcomingSales[0];
+                  const days = Math.ceil((nextSale.date_expected.getTime() - Date.now()) / (1000 * 3600 * 24));
+                  const formattedQty = aliment.unit.toLowerCase() === 'tm' ? nextSale.quantity_sold / 1000 : (aliment.unit.toLowerCase() === 'poches' ? nextSale.quantity_sold / 25 : nextSale.quantity_sold);
+                  const dayStr = days === 0 ? "aujourd'hui" : (days < 0 ? "déjà dépassée" : `dans ${days} jours`);
+                  return (
+                    <span className="text-sm font-bold text-indigo-950">
+                      Stock bloqué : <span className="font-black text-indigo-700">{formattedQty.toLocaleString('fr-CA', { maximumFractionDigits: 2 })} {aliment.unit}</span> ({dayStr})
+                    </span>
+                  );
+                })()}
+              </div>
             </div>
           )}
         </div>

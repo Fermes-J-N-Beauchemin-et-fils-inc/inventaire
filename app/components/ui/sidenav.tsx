@@ -123,44 +123,97 @@ export default function Sidenav({ children, initials = "JN" }: SidenavProps) {
                 aria-label="Sidebar"
             >
                 <div className="h-full px-5 pb-4 overflow-y-auto bg-white pt-6">
-                    <ul className="space-y-2 font-medium">
-                        <NavItem
-                            href="/dashboard"
-                            label="Tableau de bord"
-                            icon={<FontAwesomeIcon icon={faHouse} />}
-                        />
-                        <NavItem
-                            href="/inventaire"
-                            label="Inventaire"
-                            icon={<FontAwesomeIcon icon={faDatabase} />}
-                        />
-                        <NavItem
-                            href="/ration"
-                            label="Rations"
-                            badge="Nouveau"
-                            icon={<FontAwesomeIcon icon={faCarrot} />}
-                        />
-                        <NavItem
-                            href="/comptabilite"
-                            label="Comptabilité"
-                            icon={<FontAwesomeIcon icon={faBuildingColumns} />}
-                        />
-                        <NavItem
-                            href="/aliments"
-                            label="Aliments"
-                            icon={<FontAwesomeIcon icon={faWheatAwn} />}
-                        />
-                        <NavItem
-                            href="/transactions"
-                            label="Transactions"
-                            icon={<FontAwesomeIcon icon={faArrowRightArrowLeft} />}
-                        />
-                        <NavItem
-                            href="/nutrition"
-                            label="Nutrition"
-                            icon={<FontAwesomeIcon icon={faFlask} />}
-                        />
-                    </ul>
+                    <div className="space-y-6">
+                        {/* Section: Tableau de bord */}
+                        <ul className="space-y-2 font-medium">
+                            <NavItem
+                                href="/dashboard"
+                                label="Tableau de bord"
+                                icon={<FontAwesomeIcon icon={faHouse} />}
+                            />
+                        </ul>
+
+                        {/* Section: Grains */}
+                        <div>
+                            <h3 className="px-4 text-xs font-black text-amber-500 uppercase tracking-widest mb-3">Grains</h3>
+                            <ul className="space-y-2 font-medium">
+                                <NavItem
+                                    href="/grains/aliments"
+                                    label="Aliments"
+                                    icon={<FontAwesomeIcon icon={faWheatAwn} />}
+                                />
+                                <NavItem
+                                    href="/grains/inventaire"
+                                    label="Inventaire"
+                                    icon={<FontAwesomeIcon icon={faDatabase} />}
+                                />
+                                <NavItem
+                                    href="/grains/rations"
+                                    label="Rations"
+                                    icon={<FontAwesomeIcon icon={faCarrot} />}
+                                />
+                                <NavItem
+                                    href="/grains/transactions"
+                                    label="Transactions"
+                                    icon={<FontAwesomeIcon icon={faArrowRightArrowLeft} />}
+                                />
+                            </ul>
+                        </div>
+
+                        {/* Section: Laitier */}
+                        <div>
+                            <h3 className="px-4 text-xs font-black text-blue-500 uppercase tracking-widest mb-3">Laitier</h3>
+                            <ul className="space-y-2 font-medium">
+                                <NavItem
+                                    href="/laitier/nutrition"
+                                    label="Nutrition"
+                                    icon={<FontAwesomeIcon icon={faFlask} />}
+                                />
+                                <NavItem
+                                    href="/laitier/transactions"
+                                    label="Transactions laitières"
+                                    icon={<FontAwesomeIcon icon={faTruck} />}
+                                />
+                                <NavItem
+                                    href="/laitier/sommaire"
+                                    label="Sommaire du troupeau"
+                                    icon={<FontAwesomeIcon icon={faHouse} />} // Or any suitable icon
+                                />
+                            </ul>
+                        </div>
+
+                        {/* Section: Comptabilité */}
+                        <div>
+                            <h3 className="px-4 text-xs font-black text-teal-500 uppercase tracking-widest mb-3">Comptabilité</h3>
+                            <ul className="space-y-2 font-medium">
+                                <NavItem
+                                    href="/comptabilite/rations"
+                                    label="Rations"
+                                    icon={<FontAwesomeIcon icon={faBuildingColumns} />}
+                                />
+                                <NavItem
+                                    href="/comptabilite/laitier"
+                                    label="Laitier"
+                                    icon={<FontAwesomeIcon icon={faBuildingColumns} />}
+                                />
+                                <NavItem
+                                    href="/comptabilite/globale"
+                                    label="Globale"
+                                    icon={<FontAwesomeIcon icon={faBuildingColumns} />}
+                                />
+                                <NavItem
+                                    href="/comptabilite/archives"
+                                    label="Archives"
+                                    icon={<FontAwesomeIcon icon={faBuildingColumns} />}
+                                />
+                                <NavItem
+                                    href="/comptabilite/metrics"
+                                    label="Métriques"
+                                    icon={<FontAwesomeIcon icon={faBuildingColumns} />}
+                                />
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </aside>
 

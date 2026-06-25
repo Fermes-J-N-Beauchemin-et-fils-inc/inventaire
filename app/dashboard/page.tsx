@@ -97,46 +97,117 @@ export default async function DashboardPage() {
                         </h2>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                        <DashboardRedirectCard
-                            href="/inventaire"
-                            icon={<FontAwesomeIcon icon={faBoxOpen} className="w-6 h-6" />}
-                            label="Inventaire"
-                            description="Gérez les silos"
-                            color="green"
-                        />
+                    <div className="space-y-12">
+                        {/* Grains Section */}
+                        <div>
+                            <h3 className="text-lg font-black text-amber-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <FontAwesomeIcon icon={faWheatAwn} /> Grains
+                            </h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                <DashboardRedirectCard
+                                    href="/grains/aliments"
+                                    icon={<FontAwesomeIcon icon={faWheatAwn} className="w-6 h-6" />}
+                                    label="Aliments"
+                                    description="Analyses nut."
+                                    color="amber"
+                                />
+                                <DashboardRedirectCard
+                                    href="/grains/inventaire"
+                                    icon={<FontAwesomeIcon icon={faBoxOpen} className="w-6 h-6" />}
+                                    label="Inventaire"
+                                    description="Gérez les silos"
+                                    color="amber"
+                                />
+                                <DashboardRedirectCard
+                                    href="/grains/rations"
+                                    icon={<FontAwesomeIcon icon={faCarrot} className="w-6 h-6" />}
+                                    label="Rations"
+                                    description="Calcul & dist."
+                                    color="amber"
+                                />
+                                <DashboardRedirectCard
+                                    href="/grains/transactions"
+                                    icon={<FontAwesomeIcon icon={faArrowRightArrowLeft} className="w-6 h-6" />}
+                                    label="Transactions"
+                                    description="Chaîne d'app."
+                                    color="amber"
+                                />
+                            </div>
+                        </div>
 
-                        <DashboardRedirectCard
-                            href="/ration"
-                            icon={<FontAwesomeIcon icon={faCarrot} className="w-6 h-6" />}
-                            label="Rations"
-                            description="Calcul & dist."
-                            color="orange"
-                        />
+                        {/* Laitier Section */}
+                        <div>
+                            <h3 className="text-lg font-black text-blue-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <FontAwesomeIcon icon={faChartLine} /> Laitier
+                            </h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                <DashboardRedirectCard
+                                    href="/laitier/nutrition"
+                                    icon={<FontAwesomeIcon icon={faSeedling} className="w-6 h-6" />}
+                                    label="Nutrition"
+                                    description="Suivi laitier"
+                                    color="blue"
+                                />
+                                <DashboardRedirectCard
+                                    href="/laitier/transactions"
+                                    icon={<FontAwesomeIcon icon={faTruckFast} className="w-6 h-6" />}
+                                    label="Transactions"
+                                    description="Laitières"
+                                    color="blue"
+                                />
+                                <DashboardRedirectCard
+                                    href="/laitier/sommaire"
+                                    icon={<FontAwesomeIcon icon={faChartLine} className="w-6 h-6" />}
+                                    label="Sommaire"
+                                    description="Troupeau"
+                                    color="blue"
+                                />
+                            </div>
+                        </div>
 
-                        <DashboardRedirectCard
-                            href="/transactions"
-                            icon={<FontAwesomeIcon icon={faArrowRightArrowLeft} className="w-6 h-6" />}
-                            label="Transactions"
-                            description="Chaîne d'app."
-                            color="indigo"
-                        />
-
-                        <DashboardRedirectCard
-                            href="/aliments"
-                            icon={<FontAwesomeIcon icon={faWheatAwn} className="w-6 h-6" />}
-                            label="Aliments"
-                            description="Analyses nut."
-                            color="blue"
-                        />
-
-                        <DashboardRedirectCard
-                            href="/comptabilite"
-                            icon={<FontAwesomeIcon icon={faBuildingColumns} className="w-6 h-6" />}
-                            label="Comptabilité"
-                            description="Factures & état"
-                            color="teal"
-                        />
+                        {/* Comptabilite Section */}
+                        <div>
+                            <h3 className="text-lg font-black text-teal-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <FontAwesomeIcon icon={faBuildingColumns} /> Comptabilité
+                            </h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                                <DashboardRedirectCard
+                                    href="/comptabilite/rations"
+                                    icon={<FontAwesomeIcon icon={faCarrot} className="w-6 h-6" />}
+                                    label="Rations"
+                                    description="Coûts"
+                                    color="teal"
+                                />
+                                <DashboardRedirectCard
+                                    href="/comptabilite/laitier"
+                                    icon={<FontAwesomeIcon icon={faChartLine} className="w-6 h-6" />}
+                                    label="Laitier"
+                                    description="Revenus"
+                                    color="teal"
+                                />
+                                <DashboardRedirectCard
+                                    href="/comptabilite/globale"
+                                    icon={<FontAwesomeIcon icon={faBuildingColumns} className="w-6 h-6" />}
+                                    label="Globale"
+                                    description="Aperçu global"
+                                    color="teal"
+                                />
+                                <DashboardRedirectCard
+                                    href="/comptabilite/archives"
+                                    icon={<FontAwesomeIcon icon={faBoxOpen} className="w-6 h-6" />}
+                                    label="Archives"
+                                    description="Historique"
+                                    color="teal"
+                                />
+                                <DashboardRedirectCard
+                                    href="/comptabilite/metrics"
+                                    icon={<FontAwesomeIcon icon={faChartLine} className="w-6 h-6" />}
+                                    label="Métriques"
+                                    description="Indicateurs"
+                                    color="teal"
+                                />
+                            </div>
+                        </div>
                     </div>
                 </section>
             </div>

@@ -72,7 +72,8 @@ export async function receiveComplexDelivery(formData: FormData) {
       include: { unit_type: true }
     });
     if (!food) throw new Error("Aliment introuvable.");
-    const ration_to_kg = food.unit_type?.ration_to_kg || 1;
+    const isTm = food.unit_type?.name.toLowerCase() === 'tm';
+    const ration_to_kg = isTm ? 1000 : (food.unit_type?.ration_to_kg || 1);
 
     // 3. Add to storages and create transactions
     for (const st of storages) {
@@ -168,7 +169,8 @@ export async function createComplexSale(formData: FormData) {
       include: { unit_type: true }
     });
     if (!food) throw new Error("Aliment introuvable.");
-    const ration_to_kg = food.unit_type?.ration_to_kg || 1;
+    const isTm = food.unit_type?.name.toLowerCase() === 'tm';
+    const ration_to_kg = isTm ? 1000 : (food.unit_type?.ration_to_kg || 1);
 
     // 3. Deduct from storages and create transactions
     for (const st of storages) {

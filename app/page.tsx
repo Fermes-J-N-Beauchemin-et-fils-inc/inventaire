@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "@/app/lib/client-auth";
-import logo from '../public/images/logo.png';
+import logo from '@/public/images/logo.png';
 
 export default function LoginPage() {
   const router = useRouter();

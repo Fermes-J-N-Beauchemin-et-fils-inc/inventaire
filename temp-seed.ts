@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { mockAlimentsDetails } from './app/aliments/data/mockAliments';
+import { mockAlimentsDetails } from './app/grains/aliments/data/mockAliments';
 const prisma = new PrismaClient();
 
 async function main() {

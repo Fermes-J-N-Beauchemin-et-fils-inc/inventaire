@@ -91,7 +91,7 @@ export default function ComptabilitePage() {
             </div>
             <div>
               <h2 className="text-2xl font-black tracking-tight">
-                <Link href="/aliments/8" className="text-amber-900 hover:text-amber-700 underline decoration-amber-300 underline-offset-4">
+                <Link href="/grains/aliments/8" className="text-amber-900 hover:text-amber-700 underline decoration-amber-300 underline-offset-4">
                   Foin sec nourri (à part)
                 </Link>
               </h2>

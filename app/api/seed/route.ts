@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
-import { mockAlimentsDetails } from '@/app/aliments/data/mockAliments';
+import { mockAlimentsDetails } from '@/app/grains/aliments/data/mockAliments';
 
 export const dynamic = 'force-dynamic';
 

@@ -581,11 +581,11 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
                         <option value="">Choisir...</option>
                         {activeAction === 'reception'
                           ? initialFournisseurs.find(f => f.id.toString() === selectedPartnerId)?.contracts.map(c => {
-                              const kgLeft = Math.round(c.sub_contracts?.reduce((sum: number, sc: any) => sum + sc.kg_left_to_deliver, 0) || 0);
+                              const kgLeft = Math.ceil(c.sub_contracts?.reduce((sum: number, sc: any) => sum + sc.kg_left_to_deliver, 0) || 0);
                               return <option key={c.id} value={c.id}>{c.name} - {c.food.name} ({kgLeft}kg restants)</option>;
                             })
                           : initialClients.find(c => c.id.toString() === selectedPartnerId)?.contracts.map(c => {
-                              const kgLeft = Math.round(c.sub_contracts?.reduce((sum: number, sc: any) => sum + sc.kg_left_to_deliver, 0) || 0);
+                              const kgLeft = Math.ceil(c.sub_contracts?.reduce((sum: number, sc: any) => sum + sc.kg_left_to_deliver, 0) || 0);
                               return <option key={c.id} value={c.id}>{c.name} - {c.food.name} ({kgLeft}kg restants)</option>;
                             })
                         }
@@ -784,8 +784,8 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
                         <span className="bg-blue-50/50 px-3 py-1 rounded-lg border border-blue-100 inline-block whitespace-nowrap">{c.food.name}</span>
                       </td>
                       <td className="p-6">
-                        <span className="font-black text-zinc-900">{Math.round(c.total_kg_left)}</span>
-                        <span className="text-zinc-400 text-sm"> / {Math.round(c.total_kg)}</span>
+                        <span className="font-black text-zinc-900">{Math.ceil(c.total_kg_left)}</span>
+                        <span className="text-zinc-400 text-sm"> / {Math.ceil(c.total_kg)}</span>
                       </td>
                       <td className="p-6 font-bold text-zinc-700">{c.price_per_kg} $ / kg</td>
                       <td className="p-6 text-right">
@@ -864,7 +864,7 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
                                     </div>
                                   </div>
                                   <div className="mt-auto">
-                                    <p className="text-sm text-zinc-500 mb-1">Reste à traiter: <span className="font-black text-zinc-900">{Math.round(sc.kg_left_to_deliver)} kg</span></p>
+                                    <p className="text-sm text-zinc-500 mb-1">Reste à traiter: <span className="font-black text-zinc-900">{Math.ceil(sc.kg_left_to_deliver)} kg</span></p>
                                     <div className="w-full bg-zinc-100 rounded-full h-2">
                                       <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${Math.max(0, 100 - (sc.kg_left_to_deliver / sc.expected_kg) * 100)}%` }}></div>
                                     </div>
@@ -1141,7 +1141,7 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Quantité prévue (kg)</label>
-                      <input type="number" step="0.01" name="expected_kg" required defaultValue={editingPartner.expected_kg} className="w-full px-5 py-4 bg-white border border-zinc-200 rounded-xl text-zinc-900 font-bold focus:ring-2 focus:ring-[#5143f5]/20 focus:border-[#5143f5] transition-all" />
+                      <input type="number" step="1" name="expected_kg" required defaultValue={Math.ceil(editingPartner.expected_kg)} className="w-full px-5 py-4 bg-white border border-zinc-200 rounded-xl text-zinc-900 font-bold focus:ring-2 focus:ring-[#5143f5]/20 focus:border-[#5143f5] transition-all" />
                     </div>
                     <button type="submit" disabled={isPending} className="w-full py-4 mt-4 bg-[#5143f5] hover:bg-[#4035c9] text-white font-black text-xl rounded-xl transition-all disabled:opacity-50">Sauvegarder</button>
                   </form>
