@@ -27,7 +27,19 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
         const res = await fetch('/api/ration/active');
         if (res.ok) {
           const data = await res.json();
-          setPushedRation(data.activeRation);
+          setPushedRation((prev: any) => {
+            if (!prev && !data.activeRation) return prev;
+            if (!prev) return data.activeRation;
+            if (!data.activeRation) return null;
+            if (
+              prev.id === data.activeRation.id && 
+              prev.status === data.activeRation.status && 
+              JSON.stringify(prev.completed_keys) === JSON.stringify(data.activeRation.completed_keys)
+            ) {
+              return prev;
+            }
+            return data.activeRation;
+          });
           
           if (data.activeRation && data.activeRation.status === 'EN_COURS' && view === 'form') {
               setView('tractor');
@@ -43,7 +55,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
     fetchActiveRation();
     const interval = setInterval(fetchActiveRation, 5000); // poll every 5s
     return () => clearInterval(interval);
-  }, []); // Only run once on mount
+  }, [view]); // Include view since we use it inside
 
   useEffect(() => {
     if (isDistributor && view === 'form' && !isLoadingPushed) {
