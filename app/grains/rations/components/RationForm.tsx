@@ -22,7 +22,7 @@ interface RationFormProps {
   handleNoteChange: (groupKey: GroupKey, value: string) => void;
   handleSystemNoteChange: (groupKey: GroupKey, value: string) => void;
   handleAddAliment: (groupKey: GroupKey) => void;
-  handleUpdateAliment: (groupKey: GroupKey, id: string, field: 'name' | 'v1' | 'v2' | 'base_tqs_per_cow', value: string) => void;
+  handleUpdateAliment: (groupKey: GroupKey, id: string, field: 'name' | 'v1' | 'v2', value: string) => void;
   handleRemoveAliment: (groupKey: GroupKey, id: string) => void;
   handleReorderAliments: (groupKey: GroupKey, startIndex: number, endIndex: number) => void;
   onGenerate: () => void;
@@ -247,17 +247,6 @@ export default function RationForm({
                               <option key={name} value={name}>{name}</option>
                             ))}
                           </select>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={aliment.base_tqs_per_cow || ''}
-                              onChange={(e) => handleUpdateAliment(key, aliment.id, 'base_tqs_per_cow', e.target.value)}
-                              placeholder="0.00"
-                              className="w-20 px-2 py-2 text-base font-bold text-black border-2 border-zinc-400 hover:border-black focus:border-blue-600 rounded-lg focus:outline-none text-right shadow-sm"
-                            />
-                            <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">kg/v</span>
-                          </div>
                           <button 
                             onClick={() => handleRemoveAliment(key, aliment.id)}
                             className="w-8 h-8 flex-shrink-0 flex items-center justify-center text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
