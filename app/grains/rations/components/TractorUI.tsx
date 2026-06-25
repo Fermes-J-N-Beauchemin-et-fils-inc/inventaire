@@ -63,8 +63,7 @@ export default function TractorUI({
 
   const handleAttemptFinishGroup = (key: GroupKey, tour: 1 | 2) => {
     if (isGroupCompleted(key, tour)) {
-      // Un-complete
-      onToggleGroupCompletion(key, tour);
+      // Just close the view, do not un-complete it!
       setActiveGroup(null);
       return;
     }

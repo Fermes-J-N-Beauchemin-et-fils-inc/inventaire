@@ -397,3 +397,29 @@ model PushedRation {
 
   @@map("pushed_ration")
 }
+
+// ---------------------------------------------------------
+// 3. Financials & Comptabilité (New additions)
+// ---------------------------------------------------------
+
+model MilkSale {
+  id              Int      @id @default(autoincrement())
+  date            DateTime
+  liters          Float
+  total_revenue   Float
+  fat_percent     Float?
+  protein_percent Float?
+
+  @@map("milk_sale")
+}
+
+model FinancialTransaction {
+  id          Int      @id @default(autoincrement())
+  date        DateTime
+  type        String   // "IN" (Revenu) ou "OUT" (Dépense)
+  category    String   // ex: "Vétérinaire", "Électricité", "Vente Animaux"
+  amount      Float
+  description String?
+
+  @@map("financial_transaction")
+}
