@@ -96,6 +96,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
   const [tour2Keys, setTour2Keys] = useState<GroupKey[]>([]);
   const [groups, setGroups] = useState<GroupsState>({});
   const [isConfigLoading, setIsConfigLoading] = useState(true);
+  const [originalConfig, setOriginalConfig] = useState<Record<string, any[]>>({});
 
   // Fetch Ration Config if no pushed ration is active
   
@@ -135,6 +136,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
         const res = await fetch('/api/ration/config');
         if (res.ok) {
           const data = await res.json();
+          setOriginalConfig(data.rationConfig);
           const initialGroups: GroupsState = {};
           const keys: GroupKey[] = [];
           
@@ -258,11 +260,12 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
           if (field === 'change_food') {
             const foundFood = availableAliments?.find(f => f.id === value);
             if (foundFood) {
+              const cachedFood = originalConfig[groupKey]?.find(c => c.id === foundFood.id);
               return {
                 ...a,
                 id: foundFood.id,
-                name: foundFood.name
-                // base_tqs_per_cow remains undefined unless we had it cached
+                name: foundFood.name,
+                base_tqs_per_cow: cachedFood ? cachedFood.base_tqs_per_cow : undefined
               };
             }
             return a;

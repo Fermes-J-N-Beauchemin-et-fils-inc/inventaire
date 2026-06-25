@@ -27,7 +27,7 @@ export default async function RationPage() {
     // Map the Prisma data to the format expected by RationClient
     const mappedAliments = availableAliments.map(a => ({
         id: a.id.toString(),
-        name: a.common_name || a.name
+        name: a.name
     }));
     
     return <RationClient isDistributor={isDistributor} availableAliments={mappedAliments} />;

@@ -41,7 +41,7 @@ export async function GET() {
 
                 rationConfig[groupIdStr].push({
                     id: serving.food.id.toString(),
-                    name: serving.food.common_name || serving.food.name,
+                    name: serving.food.name,
                     v1: v1.toString(),
                     v2: v2.toString(),
                     base_tqs_per_cow: baseTqsPerCow, // Added to allow frontend recalculation
@@ -52,7 +52,7 @@ export async function GET() {
                 // Add to available aliments just in case
                 availableAliments[serving.food.id.toString()] = {
                     id: serving.food.id.toString(),
-                    name: serving.food.common_name || serving.food.name,
+                    name: serving.food.name,
                     msPercentage: msPercentage
                 };
             });
@@ -64,7 +64,7 @@ export async function GET() {
         });
         const mappedAliments = allFoods.map(f => ({
             id: f.id.toString(),
-            name: f.common_name || f.name,
+            name: f.name,
             msPercentage: f.ms_percentage
         }));
 
