@@ -10,6 +10,11 @@ export const auth = betterAuth({
     emailAndPassword: {
         enabled: true,
     },
+    trustedOrigins: ["https://inventaire-production-30e5.up.railway.app"],
+    session: {
+        expiresIn: 60 * 60 * 24 * 30, // 30 days
+        updateAge: 60 * 60 * 24, // Update session expiration every day
+    },
     user: {
         additionalFields: {
             role: {

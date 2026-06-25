@@ -16,6 +16,7 @@ interface AlimentFormProps {
     price_per_ms: number;
     price_per_tqs: number;
     ms_percentage: number;
+    storage_id?: number;
   };
   action: (formData: FormData) => void;
 }
@@ -84,6 +85,22 @@ export default function AlimentForm({ units, storages, initialData, action }: Al
                   <option value="" disabled>Sélectionner une unité</option>
                   {units.map((u) => (
                     <option key={u.id} value={u.id}>{u.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="storage_id" className="block text-sm font-bold text-zinc-700 mb-2">Emplacement (Silo/Entrepôt) *</label>
+                <select
+                  id="storage_id"
+                  name="storage_id"
+                  defaultValue={initialData?.storage_id || ""}
+                  required
+                  className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm appearance-none"
+                >
+                  <option value="" disabled>Sélectionner un emplacement</option>
+                  {storages.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
               </div>

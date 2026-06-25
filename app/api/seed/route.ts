@@ -121,6 +121,23 @@ export async function GET() {
       }
     }
 
+    // 6. Insert default Groups
+    const defaultGroups = [
+      { name: "Ration groupe 1", real_animal_count: 48, animals_fed: 48, performance_index: 1 },
+      { name: "Ration groupe 2", real_animal_count: 100, animals_fed: 99, performance_index: 1 },
+      { name: "Ration groupe 3", real_animal_count: 77, animals_fed: 77, performance_index: 1 },
+      { name: "Ration groupe 4", real_animal_count: 61, animals_fed: 61, performance_index: 1 },
+      { name: "Ration Taures Gr 4", real_animal_count: 16, animals_fed: 16, performance_index: 1 },
+      { name: "Ration Taures Gr 3", real_animal_count: 14, animals_fed: 14, performance_index: 1 },
+      { name: "Ration Taures Gr 2", real_animal_count: 12, animals_fed: 12, performance_index: 1 },
+      { name: "Ration Taures Gr 1", real_animal_count: 12, animals_fed: 12, performance_index: 1 },
+      { name: "Ration Taries normales", real_animal_count: 33, animals_fed: 33, performance_index: 1 }
+    ];
+
+    for (const g of defaultGroups) {
+      await prisma.group.create({ data: g });
+    }
+
     return NextResponse.json({ message: "Database successfully seeded with new schema data!" });
   } catch (error) {
     console.error("Seeding error:", error);

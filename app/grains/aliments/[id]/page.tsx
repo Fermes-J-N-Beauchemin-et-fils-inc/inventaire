@@ -55,6 +55,116 @@ export default async function AlimentDetailPage({ params }: { params: Promise<{ 
   const currentStock = food.storages.reduce((sum: number, s: any) => sum + s.current_stock, 0);
   const storageLocation = food.storages.map((s: any) => s.storage.name).join(', ') || 'Aucun silo';
 
+  // Fetch transactions to compute historical stock
+  const transactions = await prisma.stockTransaction.findMany({
+    where: { food_id: id },
+    orderBy: { recorded_at: 'desc' }
+  });
+
+  const getLocalDateStr = (date: Date) => {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Montreal', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+  };
+
+  const txByDate = new Map<string, number>();
+  for (const tx of transactions) {
+    const dStr = getLocalDateStr(tx.recorded_at);
+    txByDate.set(dStr, (txByDate.get(dStr) || 0) + tx.quantity);
+  }
+
+  const stockHistoryData = [];
+  let runningStock = currentStock;
+  const today = new Date();
+  
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const dStr = getLocalDateStr(d);
+    
+    const label = new Intl.DateTimeFormat('fr-CA', { timeZone: 'America/Montreal', day: 'numeric', month: 'short' }).format(d).replace('.', '');
+    
+    stockHistoryData.push({ date: label, value: Number(runningStock.toFixed(2)), fullDate: dStr });
+
+    const txSumOnThisDay = txByDate.get(dStr) || 0;
+    runningStock = runningStock - txSumOnThisDay;
+    if (runningStock < 0) runningStock = 0; 
+  }
+  
+  const stockHistory = stockHistoryData.reverse();
+
+  // --- New Logic for Consumption, MS, and Price History ---
+
+  // 1. Consumption by date
+  const consumptionByDate = new Map<string, number>();
+  for (const tx of transactions) {
+    if (tx.transaction_type === "CONSUMPTION") {
+      const dStr = getLocalDateStr(tx.recorded_at);
+      consumptionByDate.set(dStr, (consumptionByDate.get(dStr) || 0) + Math.abs(tx.quantity));
+    }
+  }
+
+  // 2. Fetch Snapshots
+  const snapshots = await prisma.foodSnapshot.findMany({
+    where: { food_id: id },
+    orderBy: { recorded_at: 'asc' }
+  });
+
+  const snapshotByDate = new Map<string, any>();
+  for (const snap of snapshots) {
+    const dStr = getLocalDateStr(snap.recorded_at);
+    snapshotByDate.set(dStr, snap);
+  }
+
+  // 3. Current values fallback
+  const thirtyDaysAgo = new Date(today);
+  thirtyDaysAgo.setDate(today.getDate() - 29);
+  const thirtyDaysAgoStr = getLocalDateStr(thirtyDaysAgo);
+
+  let currentMS = food.ms_percentage;
+  let currentPriceMS = food.price_per_ms;
+  let currentPriceTQS = food.price_per_tqs;
+
+  let latestOldSnap = null;
+  for (const snap of snapshots) {
+    if (getLocalDateStr(snap.recorded_at) < thirtyDaysAgoStr) {
+      latestOldSnap = snap;
+    }
+  }
+  if (latestOldSnap) {
+    currentMS = latestOldSnap.ms_percentage;
+    currentPriceMS = latestOldSnap.price_per_ms;
+    currentPriceTQS = latestOldSnap.price_per_tqs;
+  }
+
+  const consumptionHistoryData = [];
+  const msHistoryData = [];
+  const priceHistoryData = [];
+
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const dStr = getLocalDateStr(d);
+    const label = new Intl.DateTimeFormat('fr-CA', { timeZone: 'America/Montreal', day: 'numeric', month: 'short' }).format(d).replace('.', '');
+
+    const consumed = consumptionByDate.get(dStr) || 0;
+    consumptionHistoryData.push({ date: label, value: consumed });
+
+    const daySnap = snapshotByDate.get(dStr);
+    if (daySnap) {
+      currentMS = daySnap.ms_percentage;
+      currentPriceMS = daySnap.price_per_ms;
+      currentPriceTQS = daySnap.price_per_tqs;
+    }
+
+    msHistoryData.push({ date: label, value: currentMS });
+    priceHistoryData.push({ date: label, priceMs: currentPriceMS, priceTqs: currentPriceTQS });
+  }
+
+  let last7DaysConsumption = 0;
+  for (let i = 23; i < 30; i++) { 
+    last7DaysConsumption += consumptionHistoryData[i]?.value || 0;
+  }
+  const consumptionRate = Number((last7DaysConsumption / 7).toFixed(2));
+
   // Construct view model
   const aliment = {
     id: food.id,
@@ -74,11 +184,11 @@ export default async function AlimentDetailPage({ params }: { params: Promise<{ 
     
     // Dummy fields for charts and conversions that rely on mock data structure
     kgPerBag: food.unit_type.name.toLowerCase() === 'poches' ? 25 : undefined,
-    consumptionRate: 0,
-    consumptionHistory: [{ date: 'Auj.', value: 0 }],
-    msHistory: [{ date: 'Auj.', value: food.ms_percentage }],
-    stockHistory: [{ date: 'Auj.', value: currentStock }],
-    priceHistory: [{ date: 'Auj.', priceMS: food.price_per_ms, priceTQS: food.price_per_tqs }],
+    consumptionRate: consumptionRate,
+    consumptionHistory: consumptionHistoryData,
+    msHistory: msHistoryData,
+    stockHistory: stockHistory,
+    priceHistory: priceHistoryData,
     nutritionalValues: {
       MAT: 0,
       NDF: 0,
@@ -306,6 +416,31 @@ export default async function AlimentDetailPage({ params }: { params: Promise<{ 
 
           {/* Column 2 & 3: Consumption & Pricing */}
           <div className="xl:col-span-2 space-y-8">
+
+            {/* Historique de Stock */}
+            <div className="bg-white rounded-[2rem] p-8 border border-zinc-200 shadow-sm">
+              <div className="flex justify-between items-start mb-6">
+                <h2 className="text-2xl font-black text-zinc-900 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
+                    <FontAwesomeIcon icon={faChartLine} />
+                  </div>
+                  Historique du Stock (30 jours)
+                </h2>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Actuel</p>
+                  <p className="text-3xl font-black text-green-600">{aliment.currentStock.toLocaleString('fr-CA', { maximumFractionDigits: 1 })} <span className="text-lg text-zinc-500">{aliment.unit}</span></p>
+                </div>
+              </div>
+
+              <SingleLineChart
+                data={aliment.stockHistory}
+                dataKey="value"
+                color="#16A34A"
+                label="Stock"
+                unit={aliment.unit}
+                isArea={true}
+              />
+            </div>
 
             {/* Consommation */}
             <div className="bg-white rounded-[2rem] p-8 border border-zinc-200 shadow-sm">
