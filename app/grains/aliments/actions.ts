@@ -23,7 +23,7 @@ export async function createAliment(formData: FormData) {
       price_per_ms,
       price_per_tqs,
       ms_percentage,
-      storage_records: {
+      storages: {
         create: {
           storage_id: storage_id,
           current_stock: 0

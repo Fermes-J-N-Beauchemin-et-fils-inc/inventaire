@@ -20,7 +20,7 @@ export default async function ModifierAlimentPage({ params }: { params: Promise<
     prisma.storage.findMany({ select: { id: true, name: true } }),
     prisma.food.findUnique({ 
       where: { id },
-      include: { storage_records: true }
+      include: { storages: true }
     })
   ]);
 
@@ -44,7 +44,7 @@ export default async function ModifierAlimentPage({ params }: { params: Promise<
             price_per_ms: food.price_per_ms,
             price_per_tqs: food.price_per_tqs,
             ms_percentage: food.ms_percentage,
-            storage_id: food.storage_records?.[0]?.storage_id,
+            storage_id: food.storages?.[0]?.storage_id,
           }}
           action={updateAlimentWithId}
         />
