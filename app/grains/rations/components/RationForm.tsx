@@ -22,7 +22,7 @@ interface RationFormProps {
   handleNoteChange: (groupKey: GroupKey, value: string) => void;
   handleSystemNoteChange: (groupKey: GroupKey, value: string) => void;
   handleAddAliment: (groupKey: GroupKey) => void;
-  handleUpdateAliment: (groupKey: GroupKey, id: string, field: 'name' | 'v1' | 'v2', value: string) => void;
+  handleUpdateAliment: (groupKey: GroupKey, id: string, field: 'name' | 'v1' | 'v2' | 'change_food', value: string) => void;
   handleRemoveAliment: (groupKey: GroupKey, id: string) => void;
   handleReorderAliments: (groupKey: GroupKey, startIndex: number, endIndex: number) => void;
   onGenerate: () => void;
@@ -236,15 +236,13 @@ export default function RationForm({
                             <FontAwesomeIcon icon={faGripVertical} className="text-lg" />
                           </div>
                           <select 
-                            value={aliment.name} 
-                            onChange={(e) => handleUpdateAliment(key, aliment.id, 'name', e.target.value)}
+                            value={aliment.id} 
+                            onChange={(e) => handleUpdateAliment(key, aliment.id, 'change_food', e.target.value)}
                             className="flex-1 px-3 py-2 text-base font-black text-black border-2 border-zinc-400 hover:border-black focus:border-blue-600 rounded-lg focus:outline-none bg-zinc-100 shadow-sm cursor-pointer"
                           >
-                            {Array.from(new Set([
-                              ...availableAliments.map(a => a.name),
-                              aliment.name
-                            ])).sort().map(name => (
-                              <option key={name} value={name}>{name}</option>
+                            <option value={aliment.id} disabled hidden>{aliment.name}</option>
+                            {availableAliments.map(a => (
+                              <option key={a.id} value={a.id}>{a.name}</option>
                             ))}
                           </select>
                           <button 

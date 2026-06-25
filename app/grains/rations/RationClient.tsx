@@ -236,13 +236,28 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
     });
   };
 
-  const handleUpdateAliment = (groupKey: GroupKey, id: string, field: 'name' | 'v1' | 'v2', value: string) => {
+  const handleUpdateAliment = (groupKey: GroupKey, id: string, field: 'name' | 'v1' | 'v2' | 'change_food', value: string) => {
     setGroups(prev => {
       const updatedGroup = {
         ...prev[groupKey],
-        aliments: prev[groupKey].aliments.map(a => 
-          a.id === id ? { ...a, [field]: value } : a
-        )
+        aliments: prev[groupKey].aliments.map(a => {
+          if (a.id !== id) return a;
+          
+          if (field === 'change_food') {
+            const foundFood = availableAliments?.find(f => f.id === value);
+            if (foundFood) {
+              return {
+                ...a,
+                id: foundFood.id,
+                name: foundFood.name
+                // base_tqs_per_cow remains undefined unless we had it cached
+              };
+            }
+            return a;
+          }
+          
+          return { ...a, [field]: value };
+        })
       };
       return { ...prev, [groupKey]: recalculateGroupAliments(updatedGroup) };
     });
