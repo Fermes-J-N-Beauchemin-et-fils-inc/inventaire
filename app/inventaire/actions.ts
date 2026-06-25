@@ -67,21 +67,29 @@ export async function receiveComplexDelivery(formData: FormData) {
       }
     }
 
+    const food = await tx.food.findUnique({
+      where: { id: food_id },
+      include: { unit_type: true }
+    });
+    if (!food) throw new Error("Aliment introuvable.");
+    const ration_to_kg = food.unit_type?.ration_to_kg || 1;
+
     // 3. Add to storages and create transactions
     for (const st of storages) {
       if (st.quantity > 0) {
+        const qtyInUnit = st.quantity / ration_to_kg;
         // Upsert FoodStorage
         await tx.foodStorage.upsert({
           where: { food_id_storage_id: { food_id: food_id, storage_id: st.storage_id } },
-          update: { current_stock: { increment: st.quantity } },
-          create: { food_id: food_id, storage_id: st.storage_id, current_stock: st.quantity }
+          update: { current_stock: { increment: qtyInUnit } },
+          create: { food_id: food_id, storage_id: st.storage_id, current_stock: qtyInUnit }
         });
 
         await tx.stockTransaction.create({
           data: {
             food_id: food_id,
             storage_id: st.storage_id,
-            quantity: st.quantity,
+            quantity: qtyInUnit,
             transaction_type: "DELIVERY",
             recorded_at: new Date(date_delivered)
           }
@@ -155,21 +163,29 @@ export async function createComplexSale(formData: FormData) {
       }
     }
 
+    const food = await tx.food.findUnique({
+      where: { id: food_id },
+      include: { unit_type: true }
+    });
+    if (!food) throw new Error("Aliment introuvable.");
+    const ration_to_kg = food.unit_type?.ration_to_kg || 1;
+
     // 3. Deduct from storages and create transactions
     for (const st of storages) {
       if (st.quantity > 0) {
+        const qtyInUnit = st.quantity / ration_to_kg;
         // Update FoodStorage (we decrement)
         // We ensure there's enough stock, otherwise Prisma might throw if we have unsigned, but we just decrement here.
         await tx.foodStorage.update({
           where: { food_id_storage_id: { food_id: food_id, storage_id: st.storage_id } },
-          data: { current_stock: { decrement: st.quantity } }
+          data: { current_stock: { decrement: qtyInUnit } }
         });
 
         await tx.stockTransaction.create({
           data: {
             food_id: food_id,
             storage_id: st.storage_id,
-            quantity: -st.quantity, // negative for sale
+            quantity: -qtyInUnit, // negative for sale
             transaction_type: "SALE",
             recorded_at: new Date(date_sold)
           }

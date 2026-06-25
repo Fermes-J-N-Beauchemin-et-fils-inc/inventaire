@@ -97,9 +97,13 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
   const handleStorageChange = (id: number, val: number) => {
     const st = activeStorages.find(s => s.id === id);
     if (!st) return;
-    const currentNative = st.food_storages.reduce((sum, fs) => sum + fs.current_stock, 0);
-    const availableNative = Math.max(0, st.max_capacity - currentNative);
-    setStorageAllocations(prev => ({ ...prev, [id]: Math.min(Math.max(0, val), availableNative) }));
+    const usedCapacityTm = (st.food_storages || []).reduce((sum, fs) => {
+      const isTm = fs.food?.unit_type?.name?.toLowerCase() === 'tm';
+      return sum + (isTm ? fs.current_stock : fs.current_stock / 1000);
+    }, 0);
+    const availableTm = Math.max(0, st.max_capacity - usedCapacityTm);
+    const availableKg = availableTm * 1000;
+    setStorageAllocations(prev => ({ ...prev, [id]: Math.min(Math.max(0, val), availableKg) }));
   };
 
   const handleAutoFillContracts = () => {
@@ -119,11 +123,15 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
     const newAllocations: { [id: number]: number } = {};
     for (const st of activeStorages) {
       if (remaining <= 0) break;
-      const currentNative = (st.food_storages || []).reduce((sum, fs) => sum + fs.current_stock, 0);
-      const availableNative = st.max_capacity - currentNative;
+      const usedCapacityTm = (st.food_storages || []).reduce((sum, fs) => {
+        const isTm = fs.food?.unit_type?.name?.toLowerCase() === 'tm';
+        return sum + (isTm ? fs.current_stock : fs.current_stock / 1000);
+      }, 0);
+      const availableTm = Math.max(0, st.max_capacity - usedCapacityTm);
+      const availableKg = availableTm * 1000;
 
-      if (availableNative > 0) {
-        const toAllocate = Math.min(availableNative, remaining);
+      if (availableKg > 0) {
+        const toAllocate = Math.min(availableKg, remaining);
         newAllocations[st.id] = toAllocate;
         remaining -= toAllocate;
       }
@@ -286,7 +294,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                       <div key={sc.id} className="bg-white p-5 rounded-2xl shadow-sm border border-indigo-100/50 flex flex-col gap-4 hover:border-indigo-300 transition-colors">
                         <div className="flex justify-between items-center">
                           <h4 className="font-black text-indigo-950 text-lg">{sc.name}</h4>
-                          <span className="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">Reste: {sc.kg_left_to_deliver} kg</span>
+                          <span className="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">Reste: {Math.round(sc.kg_left_to_deliver)} kg</span>
                         </div>
                         <div className="flex items-center gap-4">
                           <button 
@@ -351,28 +359,25 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
 
                   <div className="space-y-4 flex-1">
                     {activeStorages.map(st => {
-                      const currentKg = (st.food_storages || []).reduce((sum, fs) => {
+                      const usedCapacityTm = (st.food_storages || []).reduce((sum, fs) => {
                         const isTm = fs.food?.unit_type?.name?.toLowerCase() === 'tm';
-                        const kg = isTm ? fs.current_stock * 1000 : fs.current_stock;
-                        return sum + kg;
+                        return sum + (isTm ? fs.current_stock : fs.current_stock / 1000);
                       }, 0);
-                      const currentTm = currentKg / 1000;
-                      const maxTm = st.max_capacity;
-                      const availableKg = Math.max(0, (maxTm - currentTm) * 1000);
-                      const availableNative = Math.max(0, maxTm - currentTm);
+                      const availableTm = Math.max(0, st.max_capacity - usedCapacityTm);
+                      const availableKg = availableTm * 1000;
 
                       return (
                         <div key={st.id} className="bg-white p-5 rounded-2xl shadow-sm border border-amber-100/50 flex flex-col gap-4 hover:border-amber-300 transition-colors">
                           <div className="flex justify-between items-center mb-4">
                             <h4 className="font-black text-amber-900 text-lg">{st.name}</h4>
                             <span className="text-sm font-bold text-amber-600 bg-amber-100 px-3 py-1 rounded-full border border-amber-200">
-                              Reste: {availableNative.toFixed(1)} kg
+                              Reste: {Math.round(availableKg)} kg
                             </span>
                           </div>
                           <div className="flex items-center gap-4">
                             <button 
                               type="button"
-                              onClick={() => handleStorageChange(st.id, Math.min(availableNative, (storageAllocations[st.id] || 0) + (totalKg - totalStorageAllocated)))}
+                              onClick={() => handleStorageChange(st.id, Math.min(availableKg, (storageAllocations[st.id] || 0) + (totalKg - totalStorageAllocated)))}
                               className="text-xs font-black bg-amber-100 text-amber-700 hover:bg-amber-200 px-3 py-3 rounded-xl transition-colors shrink-0"
                             >
                               MAX
@@ -380,7 +385,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                             <input
                               type="range"
                               min="0"
-                              max={availableNative}
+                              max={availableKg}
                               step="0.1"
                               value={storageAllocations[st.id] ?? 0}
                               onChange={(e) => handleStorageChange(st.id, Number(e.target.value) || 0)}
@@ -391,7 +396,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                                 type="number"
                                 step="0.1"
                                 min="0"
-                                max={availableNative}
+                                max={availableKg}
                                 value={storageAllocations[st.id] ?? ''}
                                 onChange={(e) => handleStorageChange(st.id, Number(e.target.value) || 0)}
                                 className="w-32 p-3 pr-10 border-2 border-amber-200 rounded-xl font-black text-amber-900 text-right focus:border-amber-500 outline-none transition-colors"

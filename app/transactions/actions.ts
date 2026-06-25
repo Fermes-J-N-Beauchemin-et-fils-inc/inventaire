@@ -102,6 +102,7 @@ export async function createContract(formData: FormData) {
         });
       }
     }
+    await updateFoodAveragePrice(food_id, tx);
   });
 
   revalidatePath('/transactions');
@@ -119,14 +120,18 @@ export async function updateContract(formData: FormData) {
     throw new Error("Veuillez remplir tous les champs obligatoires du contrat.");
   }
 
-  await prisma.contract.update({
-    where: { id },
-    data: {
-      name,
-      supplier_id,
-      food_id,
-      price_per_kg,
-    }
+  await prisma.$transaction(async (tx) => {
+    await tx.contract.update({
+      where: { id },
+      data: {
+        name,
+        supplier_id,
+        food_id,
+        price_per_kg,
+      }
+    });
+
+    await updateFoodAveragePrice(food_id, tx);
   });
 
   revalidatePath('/transactions');
@@ -136,13 +141,39 @@ export async function deleteContract(id: number) {
   if (isNaN(id)) throw new Error("ID de contrat invalide.");
 
   await prisma.$transaction(async (tx) => {
+    const contract = await tx.contract.findUnique({ where: { id }, select: { food_id: true } });
+    if (!contract) throw new Error("Contrat introuvable.");
+
     const subContracts = await tx.subContract.findMany({ where: { contract_id: id } });
     for (const sc of subContracts) {
       if (sc.kg_left_to_deliver < sc.expected_kg) {
         throw new Error("Impossible de supprimer ce contrat car des livraisons ont déjà été réceptionnées pour celui-ci.");
       }
     }
+    
+    const scIds = subContracts.map(sc => sc.id);
+    
+    // Find delivery links
+    const links = await tx.deliverySubContract.findMany({ where: { sub_contract_id: { in: scIds } } });
+    const deliveryIds = links.map(l => l.delivery_id);
+    
+    // Delete links
+    await tx.deliverySubContract.deleteMany({ where: { sub_contract_id: { in: scIds } } });
+    
+    // Delete planned deliveries
+    if (deliveryIds.length > 0) {
+      await tx.delivery.deleteMany({
+        where: {
+          id: { in: deliveryIds },
+          date_delivered: null
+        }
+      });
+    }
+    
+    await tx.subContract.deleteMany({ where: { contract_id: id } });
     await tx.contract.delete({ where: { id } });
+
+    await updateFoodAveragePrice(contract.food_id, tx);
   });
 
   revalidatePath('/transactions');
@@ -223,23 +254,26 @@ export async function createDelivery(formData: FormData) {
         const food = await tx.food.findUnique({ where: { id: food_id }, include: { unit_type: true } });
         if (food) {
           storageIdToLog = firstStorage.id;
+          const ration_to_kg = food.unit_type?.ration_to_kg || 1;
+          const qtyInUnit = quantity_received / ration_to_kg;
+          
           await tx.foodStorage.upsert({
             where: { food_id_storage_id: { food_id: food_id, storage_id: firstStorage.id } },
-            update: { current_stock: { increment: quantity_received } },
-            create: { food_id: food_id, storage_id: firstStorage.id, current_stock: quantity_received }
+            update: { current_stock: { increment: qtyInUnit } },
+            create: { food_id: food_id, storage_id: firstStorage.id, current_stock: qtyInUnit }
+          });
+
+          await tx.stockTransaction.create({
+            data: {
+              food_id: food_id,
+              storage_id: storageIdToLog,
+              quantity: qtyInUnit,
+              transaction_type: "DELIVERY",
+              recorded_at: new Date(date_delivered)
+            }
           });
         }
       }
-      
-      await tx.stockTransaction.create({
-        data: {
-          food_id: food_id,
-          storage_id: storageIdToLog,
-          quantity: quantity_received,
-          transaction_type: "DELIVERY",
-          recorded_at: new Date(date_delivered)
-        }
-      });
     }
   });
 
@@ -407,15 +441,36 @@ export async function deleteSubContract(id: number) {
       throw new Error("ID invalide.");
     }
 
-    await prisma.subContract.delete({
-      where: { id }
+    await prisma.$transaction(async (tx) => {
+      const sc = await tx.subContract.findUnique({ where: { id } });
+      if (sc && sc.kg_left_to_deliver < sc.expected_kg) {
+        throw new Error("Impossible de supprimer ce sous-contrat car des livraisons ont déjà été réceptionnées.");
+      }
+
+      // Find delivery links
+      const links = await tx.deliverySubContract.findMany({ where: { sub_contract_id: id } });
+      const deliveryIds = links.map(l => l.delivery_id);
+
+      // Delete links
+      await tx.deliverySubContract.deleteMany({ where: { sub_contract_id: id } });
+
+      // Delete planned deliveries
+      if (deliveryIds.length > 0) {
+        await tx.delivery.deleteMany({
+          where: {
+            id: { in: deliveryIds },
+            date_delivered: null
+          }
+        });
+      }
+
+      await tx.subContract.delete({
+        where: { id }
+      });
     });
 
     revalidatePath('/transactions');
   } catch (error: any) {
-    if (error.code === 'P2003') {
-      throw new Error("Impossible de supprimer ce sous-contrat car il est lié à des livraisons.");
-    }
     throw new Error(error.message || "Erreur lors de la suppression du sous-contrat.");
   }
 }
@@ -453,17 +508,20 @@ export async function markDeliveryAsReceived(deliveryId: number) {
     if (firstStorage) {
       const food = await tx.food.findUnique({ where: { id: delivery.food_id }, include: { unit_type: true } });
       if (food) {
+        const ration_to_kg = food.unit_type?.ration_to_kg || 1;
+        const qtyInUnit = delivery.quantity_received / ration_to_kg;
+        
         await tx.foodStorage.upsert({
           where: { food_id_storage_id: { food_id: delivery.food_id, storage_id: firstStorage.id } },
-          update: { current_stock: { increment: delivery.quantity_received } },
-          create: { food_id: delivery.food_id, storage_id: firstStorage.id, current_stock: delivery.quantity_received }
+          update: { current_stock: { increment: qtyInUnit } },
+          create: { food_id: delivery.food_id, storage_id: firstStorage.id, current_stock: qtyInUnit }
         });
 
         await tx.stockTransaction.create({
           data: {
             food_id: delivery.food_id,
             storage_id: firstStorage.id,
-            quantity: delivery.quantity_received,
+            quantity: qtyInUnit,
             transaction_type: "DELIVERY",
             recorded_at: now
           }
@@ -525,7 +583,7 @@ export async function createClient(formData: FormData) {
 
 export async function createSaleContract(formData: FormData) {
   const name = formData.get("name") as string;
-  const client_id = parseInt(formData.get("supplier_id") as string, 10); // Note: form might pass supplier_id field name, we parse it as client_id
+  const client_id = parseInt((formData.get("client_id") || formData.get("supplier_id")) as string, 10);
   const food_id = parseInt(formData.get("food_id") as string, 10);
   const total_kg = parseFloat(formData.get("total_kg") as string);
   const price_per_kg = parseFloat(formData.get("price_per_kg") as string);
@@ -631,6 +689,27 @@ export async function deleteSaleContract(id: number) {
         throw new Error("Impossible de supprimer ce contrat car des ventes ont déjà été validées pour celui-ci.");
       }
     }
+
+    const scIds = subContracts.map(sc => sc.id);
+
+    // Find sale links
+    const links = await tx.saleSubContractAllocation.findMany({ where: { sale_sub_contract_id: { in: scIds } } });
+    const saleIds = links.map(l => l.sale_id);
+
+    // Delete links
+    await tx.saleSubContractAllocation.deleteMany({ where: { sale_sub_contract_id: { in: scIds } } });
+
+    // Delete planned sales
+    if (saleIds.length > 0) {
+      await tx.sale.deleteMany({
+        where: {
+          id: { in: saleIds },
+          date_sold: null
+        }
+      });
+    }
+
+    await tx.saleSubContract.deleteMany({ where: { sale_contract_id: id } });
     await tx.saleContract.delete({ where: { id } });
   });
 
@@ -663,11 +742,13 @@ export async function createSale(formData: FormData) {
       });
       
       const food = await tx.food.findUnique({ where: { id: food_id }, include: { unit_type: true } });
-      const qtyToDeduct = quantity_sold;
+      if (!food) throw new Error("Aliment introuvable.");
+      const ration_to_kg = food.unit_type?.ration_to_kg || 1;
+      const qtyToDeduct = quantity_sold / ration_to_kg;
       
       const totalStock = storages.reduce((acc, s) => acc + s.current_stock, 0);
       if (totalStock < qtyToDeduct) {
-         throw new Error(`Stock insuffisant ! Stock actuel: ${totalStock.toFixed(2)}, Quantité demandée: ${qtyToDeduct.toFixed(2)}.`);
+         throw new Error(`Stock insuffisant ! Stock actuel: ${totalStock.toFixed(2)} ${food.unit_type.name}, Quantité demandée: ${quantity_sold.toFixed(2)} kg.`);
       }
 
       // Deduct from storages sequentially
@@ -798,15 +879,36 @@ export async function deleteSaleSubContract(id: number) {
       throw new Error("ID invalide.");
     }
 
-    await prisma.saleSubContract.delete({
-      where: { id }
+    await prisma.$transaction(async (tx) => {
+      const sc = await tx.saleSubContract.findUnique({ where: { id } });
+      if (sc && sc.kg_left_to_deliver < sc.expected_kg) {
+        throw new Error("Impossible de supprimer ce sous-contrat car des ventes ont déjà été validées.");
+      }
+
+      // Find sale links
+      const links = await tx.saleSubContractAllocation.findMany({ where: { sale_sub_contract_id: id } });
+      const saleIds = links.map(l => l.sale_id);
+
+      // Delete links
+      await tx.saleSubContractAllocation.deleteMany({ where: { sale_sub_contract_id: id } });
+
+      // Delete planned sales
+      if (saleIds.length > 0) {
+        await tx.sale.deleteMany({
+          where: {
+            id: { in: saleIds },
+            date_sold: null
+          }
+        });
+      }
+
+      await tx.saleSubContract.delete({
+        where: { id }
+      });
     });
 
     revalidatePath('/transactions');
   } catch (error: any) {
-    if (error.code === 'P2003') {
-      throw new Error("Impossible de supprimer ce sous-contrat car il est lié à des ventes.");
-    }
     throw new Error(error.message || "Erreur lors de la suppression du sous-contrat.");
   }
 }
@@ -975,23 +1077,26 @@ export async function createQuickSpotDelivery(formData: FormData) {
     if (firstStorage) {
       const foodData = await tx.food.findUnique({ where: { id: food_id }, include: { unit_type: true } });
       if (foodData) {
+        const ration_to_kg = foodData.unit_type?.ration_to_kg || 1;
+        const qtyInUnit = quantity / ration_to_kg;
         await tx.foodStorage.upsert({
           where: { food_id_storage_id: { food_id, storage_id: firstStorage.id } },
-          update: { current_stock: { increment: quantity } },
-          create: { food_id, storage_id: firstStorage.id, current_stock: quantity }
+          update: { current_stock: { increment: qtyInUnit } },
+          create: { food_id, storage_id: firstStorage.id, current_stock: qtyInUnit }
         });
 
         await tx.stockTransaction.create({
           data: {
             food_id,
             storage_id: firstStorage.id,
-            quantity: quantity,
+            quantity: qtyInUnit,
             transaction_type: 'DELIVERY',
             recorded_at: now
           }
         });
       }
     }
+    await updateFoodAveragePrice(food_id, tx);
   });
 
   const { revalidatePath } = require('next/cache');
@@ -1012,7 +1117,7 @@ export async function createQuickSpotSale(formData: FormData) {
 
   const now = new Date(dateStr);
 
-  const food = await prisma.food.findUnique({ where: { id: food_id } });
+  const food = await prisma.food.findUnique({ where: { id: food_id }, include: { unit_type: true } });
   if (!food) throw new Error('Aliment introuvable.');
 
   await prisma.$transaction(async (tx) => {
@@ -1023,11 +1128,12 @@ export async function createQuickSpotSale(formData: FormData) {
       orderBy: { current_stock: 'desc' }
     });
     
-    const qtyToDeduct = quantity;
+    const ration_to_kg = food.unit_type?.ration_to_kg || 1;
+    const qtyToDeduct = quantity / ration_to_kg;
     
     const totalStock = storages.reduce((acc, s) => acc + s.current_stock, 0);
     if (totalStock < qtyToDeduct) {
-       throw new Error(`Stock insuffisant ! Stock actuel: ${totalStock.toFixed(2)}, Quantité demandée: ${qtyToDeduct.toFixed(2)}.`);
+       throw new Error(`Stock insuffisant ! Stock actuel: ${totalStock.toFixed(2)} ${food.unit_type.name}, Quantité demandée: ${quantity.toFixed(2)} kg.`);
     }
 
     // Deduct stock sequentially
@@ -1117,22 +1223,27 @@ export async function receiveDeliveryWithDetails(
     if (delivery.date_delivered) throw new Error("Cette livraison a déjà été reçue.");
 
     const food_id = delivery.food_id;
+    const food = await tx.food.findUnique({ where: { id: food_id }, include: { unit_type: true } });
+    if (!food) throw new Error("Aliment introuvable.");
+    const ration_to_kg = food.unit_type?.ration_to_kg || 1;
 
     // Update global and specific storages based on allocation
     for (const alloc of storageAllocations) {
       if (alloc.quantity <= 0) continue;
 
+      const qtyInUnit = alloc.quantity / ration_to_kg;
+
       await tx.foodStorage.upsert({
         where: { food_id_storage_id: { food_id, storage_id: alloc.storage_id } },
-        update: { current_stock: { increment: alloc.quantity } },
-        create: { food_id, storage_id: alloc.storage_id, current_stock: alloc.quantity }
+        update: { current_stock: { increment: qtyInUnit } },
+        create: { food_id, storage_id: alloc.storage_id, current_stock: qtyInUnit }
       });
 
       await tx.stockTransaction.create({
         data: {
           food_id,
           storage_id: alloc.storage_id,
-          quantity: alloc.quantity,
+          quantity: qtyInUnit,
           transaction_type: "DELIVERY",
           recorded_at: new Date()
         }
@@ -1173,3 +1284,41 @@ export async function receiveDeliveryWithDetails(
   revalidatePath('/transactions');
   revalidatePath('/inventaire');
 }
+
+async function updateFoodAveragePrice(foodId: number, tx: any) {
+  // 1. Get all contracts for this food
+  const contracts = await tx.contract.findMany({
+    where: { food_id: foodId }
+  });
+
+  if (contracts.length === 0) return;
+
+  // 2. Calculate average price_per_kg
+  const sumPrice = contracts.reduce((sum: number, c: any) => sum + c.price_per_kg, 0);
+  const avgPricePerKg = sumPrice / contracts.length;
+
+  // 3. Get food to check unit_type and ms_percentage
+  const food = await tx.food.findUnique({
+    where: { id: foodId },
+    include: { unit_type: true }
+  });
+
+  if (!food) return;
+
+  const ration_to_kg = food.unit_type.ration_to_kg || 1;
+  const ms_percentage = food.ms_percentage || 0;
+
+  // 4. Calculate new price_per_tqs and price_per_ms
+  const price_per_tqs = avgPricePerKg * ration_to_kg;
+  const price_per_ms = ms_percentage > 0 ? (price_per_tqs / (ms_percentage / 100)) : 0;
+
+  // 5. Update food
+  await tx.food.update({
+    where: { id: foodId },
+    data: {
+      price_per_tqs,
+      price_per_ms
+    }
+  });
+}
+

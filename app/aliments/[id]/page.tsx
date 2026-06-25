@@ -29,6 +29,10 @@ export default async function AlimentDetailPage({ params }: { params: Promise<{ 
       },
       deliveries: {
         where: { date_expected: { gte: new Date() } }
+      },
+      sales: {
+        where: { date_sold: null },
+        orderBy: { date_expected: 'asc' }
       }
     }
   });
@@ -66,6 +70,7 @@ export default async function AlimentDetailPage({ params }: { params: Promise<{ 
     pricePerTQS: food.price_per_tqs,
     hasActiveOrder: food.deliveries.length > 0,
     expectedDeliveryDays: food.deliveries.length > 0 ? Math.ceil((food.deliveries[0].date_expected.getTime() - Date.now()) / (1000 * 3600 * 24)) : null,
+    upcomingSales: food.sales || [],
     
     // Dummy fields for charts and conversions that rely on mock data structure
     kgPerBag: food.unit_type.name.toLowerCase() === 'poches' ? 25 : undefined,
@@ -140,6 +145,22 @@ export default async function AlimentDetailPage({ params }: { params: Promise<{ 
               En cours de livraison {aliment.expectedDeliveryDays ? `(prévu dans ${aliment.expectedDeliveryDays} jours)` : ''}
             </div>
           )}
+
+          {aliment.upcomingSales.length > 0 && (
+            <div className="bg-indigo-100 text-indigo-800 px-5 py-2.5 rounded-xl font-black flex items-center gap-3 shadow-sm border border-indigo-200 w-fit mt-4 sm:mt-0">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
+              </span>
+              {(() => {
+                const nextSale = aliment.upcomingSales[0];
+                const days = Math.ceil((nextSale.date_expected.getTime() - Date.now()) / (1000 * 3600 * 24));
+                const formattedQty = aliment.unit.toLowerCase() === 'tm' ? nextSale.quantity_sold / 1000 : (aliment.unit.toLowerCase() === 'poches' ? nextSale.quantity_sold / 25 : nextSale.quantity_sold);
+                const dayStr = days === 0 ? "aujourd'hui" : (days < 0 ? "déjà dépassée" : `dans ${days} jours`);
+                return `Il y a ${formattedQty.toLocaleString('fr-CA', { maximumFractionDigits: 2 })} ${aliment.unit} de stock prévu pour une vente ${days === 0 ? "aujourd'hui" : (days < 0 ? "déjà dépassée" : `dans ${days} jours`)}`;
+              })()}
+            </div>
+          )}
         </div>
 
         {/* Main Title Section */}
@@ -212,6 +233,34 @@ export default async function AlimentDetailPage({ params }: { params: Promise<{ 
                 {Math.round(stockPercentage)}% de la capacité maximale
               </p>
             </div>
+
+            {aliment.upcomingSales.length > 0 && (
+              <div className="mb-6 space-y-3">
+                <h3 className="text-xs font-black text-zinc-400 uppercase tracking-widest">Ventes Planifiées</h3>
+                <div className="space-y-2">
+                  {aliment.upcomingSales.map((sale: any) => {
+                    const days = Math.ceil((sale.date_expected.getTime() - Date.now()) / (1000 * 3600 * 24));
+                    const formattedQty = aliment.unit.toLowerCase() === 'tm' ? sale.quantity_sold / 1000 : (aliment.unit.toLowerCase() === 'poches' ? sale.quantity_sold / 25 : sale.quantity_sold);
+                    const dayStr = days < 0 
+                      ? "en retard" 
+                      : (days === 0 ? "aujourd'hui" : (days === 1 ? "dans 1 jour" : `dans ${days} jours`));
+                    return (
+                      <div key={sale.id} className="bg-indigo-50 border border-indigo-100 p-3.5 rounded-xl flex items-start gap-3">
+                        <span className="text-indigo-600 text-lg leading-none">📋</span>
+                        <div className="flex-1">
+                          <p className="text-sm font-black text-indigo-950">
+                            {formattedQty.toLocaleString('fr-CA', { maximumFractionDigits: 2 })} {aliment.unit} prévu pour vente
+                          </p>
+                          <p className="text-xs font-bold text-indigo-500 mt-0.5">
+                            {new Date(sale.date_expected).toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })} ({dayStr})
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="bg-zinc-50 rounded-2xl p-5 border border-zinc-200 flex-1">
               <h3 className="text-sm font-black text-zinc-400 uppercase tracking-widest mb-4">Conversions en temps réel</h3>

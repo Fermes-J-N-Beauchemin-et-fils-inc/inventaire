@@ -103,8 +103,10 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
   const handleStorageChange = (id: number, val: number) => {
     const st = activeStoragesWithFood.find(s => s.id === id);
     const fs = (st?.food_storages || []).find(f => f.food_id === foodId);
-    const available = fs ? fs.current_stock : 0;
-    setStorageAllocations(prev => ({ ...prev, [id]: Math.min(Math.max(0, val), available) }));
+    if (!fs) return;
+    const isTm = fs.food?.unit_type?.name?.toLowerCase() === 'tm';
+    const availableKg = isTm ? fs.current_stock * 1000 : fs.current_stock;
+    setStorageAllocations(prev => ({ ...prev, [id]: Math.min(Math.max(0, val), availableKg) }));
   };
 
   const handleAutoFillContracts = () => {
@@ -128,8 +130,11 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
       const fs = (st.food_storages || []).find(f => f.food_id === foodId);
       if (!fs) continue;
 
-      if (fs.current_stock > 0) {
-        const toAllocate = Math.min(fs.current_stock, remaining);
+      const isTm = fs.food?.unit_type?.name?.toLowerCase() === 'tm';
+      const availableKg = isTm ? fs.current_stock * 1000 : fs.current_stock;
+
+      if (availableKg > 0) {
+        const toAllocate = Math.min(availableKg, remaining);
         newAllocations[st.id] = toAllocate;
         remaining -= toAllocate;
       }
@@ -153,8 +158,10 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
          toast.error("Erreur de sélection de silo.");
          return;
       }
-      if (qty > fs.current_stock + 0.1) {
-         toast.error(`Quantité excessive pour le silo ${st?.name}. Maximum: ${fs.current_stock} unité(s).`);
+      const isTm = fs.food?.unit_type?.name?.toLowerCase() === 'tm';
+      const availableKg = isTm ? fs.current_stock * 1000 : fs.current_stock;
+      if (qty > availableKg + 0.1) {
+         toast.error(`Quantité excessive pour le silo ${st?.name}. Maximum: ${Math.round(availableKg)} kg.`);
          return;
       }
     }
@@ -307,7 +314,7 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
                       <div key={sc.id} className="bg-white p-5 rounded-2xl shadow-sm border border-fuchsia-100/50 flex flex-col gap-4 hover:border-fuchsia-300 transition-colors">
                         <div className="flex justify-between items-center">
                           <h4 className="font-black text-fuchsia-950 text-lg">{sc.name}</h4>
-                          <span className="text-sm font-bold text-fuchsia-600 bg-fuchsia-50 px-3 py-1 rounded-full border border-fuchsia-100">Reste: {sc.kg_left_to_deliver} kg</span>
+                          <span className="text-sm font-bold text-fuchsia-600 bg-fuchsia-50 px-3 py-1 rounded-full border border-fuchsia-100">Reste: {Math.round(sc.kg_left_to_deliver)} kg</span>
                         </div>
                         <div className="flex items-center gap-4">
                           <button 
@@ -382,7 +389,7 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
                         <div key={st.id} className="bg-white p-5 rounded-2xl shadow-sm border border-amber-100/50 flex flex-col gap-4 hover:border-amber-300 transition-colors">
                           <div className="flex justify-between items-center">
                             <h4 className="font-black text-amber-950 text-lg">{st.name}</h4>
-                            <span className="text-sm font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-100">Stock: {fs.current_stock.toFixed(1)} kg</span>
+                            <span className="text-sm font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-100">Stock: {Math.round(availableKg)} kg</span>
                           </div>
                           <div className="flex items-center gap-4">
                             <button 
@@ -395,7 +402,7 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
                             <input
                               type="range"
                               min="0"
-                              max={fs.current_stock}
+                              max={availableKg}
                               step="0.1"
                               value={storageAllocations[st.id] ?? 0}
                               onChange={(e) => handleStorageChange(st.id, Number(e.target.value) || 0)}
@@ -406,7 +413,7 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
                                 type="number"
                                 step="0.1"
                                 min="0"
-                                max={fs.current_stock}
+                                max={availableKg}
                                 value={storageAllocations[st.id] ?? ''}
                                 onChange={(e) => handleStorageChange(st.id, Number(e.target.value) || 0)}
                                 className="w-32 p-3 pr-10 border-2 border-amber-200 rounded-xl font-black text-amber-900 text-right focus:border-amber-500 outline-none transition-colors"

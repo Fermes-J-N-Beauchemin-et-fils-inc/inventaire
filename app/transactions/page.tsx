@@ -11,7 +11,14 @@ export default async function TransactionsPage() {
   const clients = await fetchClients();
   const aliments = await prisma.food.findMany({ 
     where: { is_active: true },
-    select: { id: true, name: true, unit_type: { select: { name: true } } } 
+    select: { 
+      id: true, 
+      name: true, 
+      price_per_tqs: true, 
+      price_per_ms: true, 
+      ms_percentage: true, 
+      unit_type: { select: { name: true, ration_to_kg: true } } 
+    }
   });
   const storages = await prisma.storage.findMany({
     where: { is_active: true },

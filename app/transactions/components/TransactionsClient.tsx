@@ -11,7 +11,14 @@ import ExpeditionView from './ExpeditionView';
 interface Props {
   initialFournisseurs: TransactionSupplier[];
   initialClients: TransactionClient[];
-  aliments: { id: number; name: string; unit_type: { name: string } }[];
+  aliments: { 
+    id: number; 
+    name: string; 
+    price_per_tqs: number;
+    price_per_ms: number;
+    ms_percentage: number;
+    unit_type: { name: string; ration_to_kg: number } 
+  }[];
   storages: { id: number; name: string }[];
 }
 
@@ -19,6 +26,14 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
   const [activeTab, setActiveTab] = useState<'mouvements' | 'reception' | 'expedition' | 'contrats' | 'fournisseurs' | 'clients'>('mouvements');
   const [activeAction, setActiveAction] = useState<'reception' | 'vente'>('reception');
   const [showModal, setShowModal] = useState<'fournisseur' | 'client' | 'edit-fournisseur' | 'edit-client' | 'contract' | 'sale-contract' | 'edit-contract' | 'edit-sale-contract' | 'edit-subcontract' | 'new-subcontract' | 'delivery' | 'sale' | null>(null);
+  
+  const [spotFoodId, setSpotFoodId] = useState<string>('');
+  const [spotQuantity, setSpotQuantity] = useState<string>('');
+  const [spotPricePerKg, setSpotPricePerKg] = useState<string>('');
+
+  const [contractFoodId, setContractFoodId] = useState<string>('');
+  const [contractQuantity, setContractQuantity] = useState<string>('');
+  const [contractPricePerKg, setContractPricePerKg] = useState<string>('');
 
   // Search & Filter States
   const [searchSupplier, setSearchSupplier] = useState('');
@@ -32,10 +47,81 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
   const [expandedContracts, setExpandedContracts] = useState<Set<number>>(new Set());
 
   const [selectedPartnerId, setSelectedPartnerId] = useState<string>('');
-  const [formMode, setFormMode] = useState<'rapide' | 'planifier'>('planifier');
+  const [formMode, setFormMode] = useState<'spot' | 'planifier'>('planifier');
   const [showRightPanel, setShowRightPanel] = useState(false);
 
   const [isPending, startTransition] = React.useTransition();
+
+  React.useEffect(() => {
+    setContractFoodId('');
+    setContractQuantity('');
+    setContractPricePerKg('');
+  }, [showModal]);
+
+  React.useEffect(() => {
+    setSpotFoodId('');
+    setSpotQuantity('');
+    setSpotPricePerKg('');
+  }, [activeAction, formMode]);
+
+  const getFoodAvgPricePerKg = (foodIdStr: string) => {
+    const foodId = parseInt(foodIdStr, 10);
+    if (isNaN(foodId)) return null;
+    const food = aliments.find(a => a.id === foodId);
+    if (!food) return null;
+    const ration_to_kg = food.unit_type?.ration_to_kg || 1;
+    return food.price_per_tqs / ration_to_kg;
+  };
+
+  const renderAveragePriceBadge = (foodIdStr: string) => {
+    const avgPrice = getFoodAvgPricePerKg(foodIdStr);
+    return (
+      <div className="mt-2 text-xs font-bold text-zinc-500 flex items-center gap-1.5 bg-zinc-50 px-3 py-2 rounded-lg border border-zinc-200/60 w-fit">
+        <span>Prix moyen actuel :</span>
+        <span className="text-[#5143f5]">
+          {avgPrice !== null && avgPrice > 0 
+            ? `${avgPrice.toFixed(2)} $ / kg (normalement ${avgPrice.toFixed(2)} $ / kg)` 
+            : 'N/A (aucun achat enregistré)'}
+        </span>
+      </div>
+    );
+  };
+
+  const renderProfitLossEstimation = (foodIdStr: string, quantityStr: string, priceStr: string, isAchat: boolean) => {
+    const avgPrice = getFoodAvgPricePerKg(foodIdStr);
+    const qty = parseFloat(quantityStr);
+    const enteredPrice = parseFloat(priceStr);
+    if (avgPrice === null || isNaN(qty) || isNaN(enteredPrice)) return null;
+
+    const diff = isAchat ? (avgPrice - enteredPrice) : (enteredPrice - avgPrice);
+    const totalDiff = diff * qty;
+    const isGain = totalDiff >= 0;
+
+    return (
+      <div className={`p-4 rounded-2xl border transition-all duration-300 ${
+        isGain 
+          ? 'bg-emerald-50 border-emerald-200/80 text-emerald-800' 
+          : 'bg-rose-50 border-rose-200/80 text-rose-800'
+      }`}>
+        <div className="flex items-center gap-3">
+          <span className="text-xl">
+            {isGain ? '📈' : '📉'}
+          </span>
+          <div>
+            <p className="text-xs font-black uppercase tracking-wider opacity-75">
+              {isGain 
+                ? (isAchat ? 'Économie estimée' : 'Profit estimé') 
+                : (isAchat ? 'Surcoût estimé' : 'Perte estimée')
+              }
+            </p>
+            <p className="text-lg font-black tracking-tight">
+              {isGain ? '+' : ''}{totalDiff.toLocaleString('fr-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // ----- Data Derivation -----
   
@@ -136,6 +222,34 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
     ));
   };
 
+  const handleDeleteSubContract = async (id: number, type: 'achat' | 'vente') => {
+    toast((t) => (
+      <div className="flex flex-col gap-3">
+        <p className="font-bold text-zinc-800">Supprimer cette ligne de planification ?</p>
+        <div className="flex justify-end gap-2 mt-2">
+          <button className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl font-bold" onClick={() => toast.dismiss(t.id)}>Annuler</button>
+          <button className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold" onClick={async () => {
+            toast.dismiss(t.id);
+            startTransition(async () => {
+              try {
+                if (type === 'achat') {
+                  const { deleteSubContract } = await import('../actions');
+                  await deleteSubContract(id);
+                } else {
+                  const { deleteSaleSubContract } = await import('../actions');
+                  await deleteSaleSubContract(id);
+                }
+                toast.success("Ligne de planification supprimée.");
+              } catch(e: any) {
+                toast.error(e.message || "Erreur.");
+              }
+            });
+          }}>Confirmer</button>
+        </div>
+      </div>
+    ));
+  };
+
 
   return (
     <div className="animate-in fade-in duration-500">
@@ -152,26 +266,6 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
           <p className="text-xl text-zinc-500 font-medium mt-4 max-w-3xl">
             Gérez vos fournisseurs, clients, contrats et suivez l'ensemble de vos mouvements.
           </p>
-        </div>
-        <div className="flex gap-4">
-          <button 
-            onClick={() => setActiveTab('reception')}
-            className="px-6 py-4 rounded-2xl font-black bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/30 transition-all flex items-center gap-3 active:scale-95"
-          >
-            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-              <FontAwesomeIcon icon={faTractor} />
-            </div>
-            Recevoir une Livraison
-          </button>
-          <button 
-            onClick={() => setActiveTab('expedition')}
-            className="px-6 py-4 rounded-2xl font-black bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-600/30 transition-all flex items-center gap-3 active:scale-95"
-          >
-            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-              <FontAwesomeIcon icon={faArrowRightFromBracket} />
-            </div>
-            Expédier une Vente
-          </button>
         </div>
       </div>
 
@@ -215,7 +309,7 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
               <div className={`w-12 h-12 rounded-full flex items-center justify-center ${activeAction === 'reception' ? 'bg-white/20' : 'bg-blue-100'}`}>
                 <FontAwesomeIcon icon={faTractor} />
               </div>
-              Entrée Bon Livraison
+              Achat
             </button>
             
             <button 
@@ -225,7 +319,7 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
               <div className={`w-12 h-12 rounded-full flex items-center justify-center ${activeAction === 'vente' ? 'bg-white/20' : 'bg-orange-100'}`}>
                 <FontAwesomeIcon icon={faArrowRightFromBracket} />
               </div>
-              Sortie Bon de Vente
+              Vente
             </button>
           </div>
 
@@ -235,7 +329,7 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
               onClick={() => setShowRightPanel(!showRightPanel)}
               className="bg-white border border-zinc-200 px-6 py-3 rounded-xl font-black text-zinc-700 shadow-sm flex items-center gap-2 hover:bg-zinc-50"
             >
-              {showRightPanel ? 'Masquer la planification' : 'Planifier / Mouvement Rapide'}
+              {showRightPanel ? 'Masquer la planification' : 'Planifier / Mouvement Spot'}
             </button>
           </div>
 
@@ -246,16 +340,41 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
                 <div className={`absolute top-0 right-0 w-[40rem] h-[40rem] rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none ${activeAction === 'reception' ? 'bg-blue-500/5' : 'bg-orange-500/5'}`}></div>
                 
                 <div className="relative z-10">
-                  <div className="mb-10">
-                    <h2 className="text-3xl sm:text-4xl font-black text-zinc-900 mb-3 tracking-tight flex items-center gap-4">
-                      <span className={`flex items-center justify-center w-12 h-12 rounded-full shadow-sm text-2xl ${activeAction === 'reception' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
-                        📅
-                      </span>
-                      {activeAction === 'reception' ? 'Prochaines Livraisons' : 'Prochaines Ventes'}
-                    </h2>
-                    <p className="text-lg text-zinc-500 font-medium max-w-2xl">
-                      Suivi chronologique de vos {activeAction === 'reception' ? 'réceptions' : 'sorties'} planifiées et terminées.
-                    </p>
+                  <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div>
+                      <h2 className="text-3xl sm:text-4xl font-black text-zinc-900 mb-3 tracking-tight flex items-center gap-4">
+                        <span className={`flex items-center justify-center w-12 h-12 rounded-full shadow-sm text-2xl ${activeAction === 'reception' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                          📅
+                        </span>
+                        {activeAction === 'reception' ? 'Prochaines Livraisons' : 'Prochaines Ventes'}
+                      </h2>
+                      <p className="text-lg text-zinc-500 font-medium max-w-2xl">
+                        Suivi chronologique de vos {activeAction === 'reception' ? 'réceptions' : 'sorties'} planifiées et terminées.
+                      </p>
+                    </div>
+                    <div>
+                      {activeAction === 'reception' ? (
+                        <button 
+                          onClick={() => setActiveTab('reception')}
+                          className="px-6 py-4 rounded-2xl font-black bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/30 transition-all flex items-center gap-3 active:scale-95 whitespace-nowrap"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                            <FontAwesomeIcon icon={faTractor} />
+                          </div>
+                          Recevoir une Livraison
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={() => setActiveTab('expedition')}
+                          className="px-6 py-4 rounded-2xl font-black bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-600/30 transition-all flex items-center gap-3 active:scale-95 whitespace-nowrap"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                            <FontAwesomeIcon icon={faArrowRightFromBracket} />
+                          </div>
+                          Expédier une Vente
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="bg-zinc-50/50 rounded-3xl border border-zinc-200/60 overflow-hidden">
@@ -323,19 +442,19 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
                   <div className="flex justify-between items-center mb-8">
                     <h2 className="text-3xl font-black text-zinc-900 flex items-center gap-4 tracking-tight">
                       <span className={`flex items-center justify-center w-12 h-12 rounded-full shadow-sm text-xl ${activeAction === 'reception' ? 'bg-green-100 text-green-700' : 'bg-indigo-100 text-indigo-700'}`}>
-                        {formMode === 'rapide' ? '⚡' : '📅'}
+                        {formMode === 'spot' ? '⚡' : '📅'}
                       </span>
-                      {activeAction === 'reception' ? (formMode === 'rapide' ? 'Achat Rapide' : 'Planifier une livraison') : (formMode === 'rapide' ? 'Vente Rapide' : 'Planifier une vente')}
+                      {activeAction === 'reception' ? (formMode === 'spot' ? 'Achat Spot' : 'Planifier une livraison') : (formMode === 'spot' ? 'Vente Spot' : 'Planifier une vente')}
                     </h2>
                     <div className="flex bg-zinc-100 p-1 rounded-xl">
-                      <button type="button" onClick={() => setFormMode('rapide')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${formMode === 'rapide' ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:text-zinc-700'}`}>Rapide</button>
+                      <button type="button" onClick={() => setFormMode('spot')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${formMode === 'spot' ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:text-zinc-700'}`}>Spot</button>
                       <button type="button" onClick={() => setFormMode('planifier')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${formMode === 'planifier' ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:text-zinc-700'}`}>Planifier</button>
                     </div>
                   </div>
 
-                  {formMode === 'rapide' ? (
+                  {formMode === 'spot' ? (
 
-                  <form onSubmit={async (e) => {
+                  <form key="spot-form" onSubmit={async (e) => {
                     e.preventDefault();
                     const fd = new FormData(e.currentTarget);
                     startTransition(async () => {
@@ -350,6 +469,9 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
                           toast.success("Vente Spot ajoutée !");
                         }
                         (e.target as HTMLFormElement).reset();
+                        setSpotFoodId('');
+                        setSpotQuantity('');
+                        setSpotPricePerKg('');
                       } catch (err: any) {
                         toast.error(err.message || "Erreur.");
                       }
@@ -368,22 +490,50 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
 
                     <div>
                       <label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Aliment</label>
-                      <select name="food_id" required className={`w-full px-5 py-4 bg-white border border-zinc-200 rounded-xl text-zinc-900 font-bold text-lg focus:ring-2 focus:ring-${activeAction === 'reception' ? 'green' : 'indigo'}-500/20 focus:border-${activeAction === 'reception' ? 'green' : 'indigo'}-500 transition-all appearance-none cursor-pointer`}>
+                      <select 
+                        name="food_id" 
+                        required 
+                        value={spotFoodId}
+                        onChange={(e) => setSpotFoodId(e.target.value)}
+                        className={`w-full px-5 py-4 bg-white border border-zinc-200 rounded-xl text-zinc-900 font-bold text-lg focus:ring-2 focus:ring-${activeAction === 'reception' ? 'green' : 'indigo'}-500/20 focus:border-${activeAction === 'reception' ? 'green' : 'indigo'}-500 transition-all appearance-none cursor-pointer`}
+                      >
                         <option value="">Choisir...</option>
                         {aliments.map(a => <option key={a.id} value={a.id}>{a.name} ({a.unit_type.name})</option>)}
                       </select>
+                      {spotFoodId && renderAveragePriceBadge(spotFoodId)}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Quantité</label>
-                        <input type="number" step="0.01" name="quantity" required placeholder="Ex: 500" className={`w-full px-5 py-4 bg-white border border-zinc-200 rounded-xl text-zinc-900 font-bold text-lg focus:ring-2 focus:ring-${activeAction === 'reception' ? 'green' : 'indigo'}-500/20 focus:border-${activeAction === 'reception' ? 'green' : 'indigo'}-500 transition-all`} />
+                        <input 
+                          type="number" 
+                          step="0.01" 
+                          name="quantity" 
+                          required 
+                          placeholder="Ex: 500" 
+                          value={spotQuantity}
+                          onChange={(e) => setSpotQuantity(e.target.value)}
+                          className={`w-full px-5 py-4 bg-white border border-zinc-200 rounded-xl text-zinc-900 font-bold text-lg focus:ring-2 focus:ring-${activeAction === 'reception' ? 'green' : 'indigo'}-500/20 focus:border-${activeAction === 'reception' ? 'green' : 'indigo'}-500 transition-all`} 
+                        />
                       </div>
                       <div>
                         <label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Prix/kg ($)</label>
-                        <input type="number" step="0.01" name="price_per_kg" required placeholder="Ex: 0.25" className={`w-full px-5 py-4 bg-white border border-zinc-200 rounded-xl text-zinc-900 font-bold text-lg focus:ring-2 focus:ring-${activeAction === 'reception' ? 'green' : 'indigo'}-500/20 focus:border-${activeAction === 'reception' ? 'green' : 'indigo'}-500 transition-all`} />
+                        <input 
+                          type="number" 
+                          step="0.01" 
+                          name="price_per_kg" 
+                          required 
+                          placeholder="Ex: 0.25" 
+                          value={spotPricePerKg}
+                          onChange={(e) => setSpotPricePerKg(e.target.value)}
+                          className={`w-full px-5 py-4 bg-white border border-zinc-200 rounded-xl text-zinc-900 font-bold text-lg focus:ring-2 focus:ring-${activeAction === 'reception' ? 'green' : 'indigo'}-500/20 focus:border-${activeAction === 'reception' ? 'green' : 'indigo'}-500 transition-all`} 
+                        />
                       </div>
                     </div>
+
+                    {spotFoodId && spotQuantity && spotPricePerKg && renderProfitLossEstimation(spotFoodId, spotQuantity, spotPricePerKg, activeAction === 'reception')}
+
                     <input type="hidden" name="date_delivered" value={new Date().toISOString().split('T')[0]} />
                     <button
                       disabled={isPending}
@@ -394,7 +544,7 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
                     </button>
                   </form>
                   ) : (
-                  <form onSubmit={async (e) => {
+                  <form key="planifier-form" onSubmit={async (e) => {
                     e.preventDefault();
                     const fd = new FormData(e.currentTarget);
                     startTransition(async () => {
@@ -431,11 +581,11 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
                         <option value="">Choisir...</option>
                         {activeAction === 'reception'
                           ? initialFournisseurs.find(f => f.id.toString() === selectedPartnerId)?.contracts.map(c => {
-                              const kgLeft = c.sub_contracts?.reduce((sum: number, sc: any) => sum + sc.kg_left_to_deliver, 0) || 0;
+                              const kgLeft = Math.round(c.sub_contracts?.reduce((sum: number, sc: any) => sum + sc.kg_left_to_deliver, 0) || 0);
                               return <option key={c.id} value={c.id}>{c.name} - {c.food.name} ({kgLeft}kg restants)</option>;
                             })
                           : initialClients.find(c => c.id.toString() === selectedPartnerId)?.contracts.map(c => {
-                              const kgLeft = c.sub_contracts?.reduce((sum: number, sc: any) => sum + sc.kg_left_to_deliver, 0) || 0;
+                              const kgLeft = Math.round(c.sub_contracts?.reduce((sum: number, sc: any) => sum + sc.kg_left_to_deliver, 0) || 0);
                               return <option key={c.id} value={c.id}>{c.name} - {c.food.name} ({kgLeft}kg restants)</option>;
                             })
                         }
@@ -631,13 +781,13 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
                       </td>
                       <td className="p-6 font-bold text-zinc-600">{c.partner_name}</td>
                       <td className="p-6 font-bold text-blue-600">
-                        <span className="bg-blue-50/50 px-3 py-1 rounded-lg border border-blue-100">{c.food.name}</span>
+                        <span className="bg-blue-50/50 px-3 py-1 rounded-lg border border-blue-100 inline-block whitespace-nowrap">{c.food.name}</span>
                       </td>
                       <td className="p-6">
-                        <span className="font-black text-zinc-900">{c.total_kg_left}</span>
-                        <span className="text-zinc-400 text-sm"> / {c.total_kg}</span>
+                        <span className="font-black text-zinc-900">{Math.round(c.total_kg_left)}</span>
+                        <span className="text-zinc-400 text-sm"> / {Math.round(c.total_kg)}</span>
                       </td>
-                      <td className="p-6 font-bold text-zinc-700">{c.price_per_kg}$</td>
+                      <td className="p-6 font-bold text-zinc-700">{c.price_per_kg} $ / kg</td>
                       <td className="p-6 text-right">
                         {c.is_active ? <span className="text-green-500 font-bold">Actif</span> : <span className="text-red-500 font-bold">Inactif</span>}
                       </td>
@@ -706,7 +856,7 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
                                         <FontAwesomeIcon icon={faPen} />
                                       </button>
                                       <button 
-                                        onClick={(e) => { e.stopPropagation(); handleDeleteMovement(sc.id, 'subcontract'); }} // Needs custom delete action if I really implement it, but keeping it simple
+                                        onClick={(e) => { e.stopPropagation(); handleDeleteSubContract(sc.id, c.type as 'achat' | 'vente'); }}
                                         className="w-8 h-8 flex justify-center items-center rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"
                                       >
                                         <FontAwesomeIcon icon={faTrash} />
@@ -714,7 +864,7 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
                                     </div>
                                   </div>
                                   <div className="mt-auto">
-                                    <p className="text-sm text-zinc-500 mb-1">Reste à traiter: <span className="font-black text-zinc-900">{sc.kg_left_to_deliver} kg</span></p>
+                                    <p className="text-sm text-zinc-500 mb-1">Reste à traiter: <span className="font-black text-zinc-900">{Math.round(sc.kg_left_to_deliver)} kg</span></p>
                                     <div className="w-full bg-zinc-100 rounded-full h-2">
                                       <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${Math.max(0, 100 - (sc.kg_left_to_deliver / sc.expected_kg) * 100)}%` }}></div>
                                     </div>
@@ -805,7 +955,7 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
                     <span className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-lg"><FontAwesomeIcon icon={faFileContract} /></span>
                     {showModal.startsWith('edit-') ? 'Modifier le Contrat' : 'Nouveau Contrat'}
                   </h2>
-                  <form onSubmit={async (e) => {
+                  <form key={showModal} onSubmit={async (e) => {
                     e.preventDefault();
                     const fd = new FormData(e.currentTarget);
                     startTransition(async () => {
@@ -851,16 +1001,53 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
                       </div>
                       <div>
                         <label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Aliment</label>
-                        <select name="food_id" required defaultValue={showModal.startsWith('edit-') ? editingPartner?.food_id : ''} className="w-full px-5 py-4 bg-white border border-zinc-200 rounded-xl text-zinc-900 font-bold focus:ring-2 focus:ring-[#5143f5]/20 focus:border-[#5143f5] transition-all appearance-none cursor-pointer">
+                        <select 
+                          name="food_id" 
+                          required 
+                          {...(showModal.startsWith('edit-') 
+                            ? { defaultValue: editingPartner?.food_id } 
+                            : { value: contractFoodId, onChange: (e) => setContractFoodId(e.target.value) }
+                          )}
+                          className="w-full px-5 py-4 bg-white border border-zinc-200 rounded-xl text-zinc-900 font-bold focus:ring-2 focus:ring-[#5143f5]/20 focus:border-[#5143f5] transition-all appearance-none cursor-pointer"
+                        >
                           <option value="">Choisir...</option>
                           {aliments.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                         </select>
+                        {!showModal.startsWith('edit-') && contractFoodId && renderAveragePriceBadge(contractFoodId)}
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                      <div><label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Quantité totale (kg)</label><input type="number" step="0.01" name="total_kg" required disabled={showModal.startsWith('edit-')} defaultValue={showModal.startsWith('edit-') ? editingPartner?.total_kg : ''} className="w-full px-5 py-4 bg-white border border-zinc-200 rounded-xl text-zinc-900 font-bold focus:ring-2 focus:ring-[#5143f5]/20 focus:border-[#5143f5] transition-all disabled:bg-zinc-100 disabled:text-zinc-500" /></div>
-                      <div><label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Prix par kg ($)</label><input type="number" step="0.01" name="price_per_kg" required defaultValue={showModal.startsWith('edit-') ? editingPartner?.price_per_kg : ''} className="w-full px-5 py-4 bg-white border border-zinc-200 rounded-xl text-zinc-900 font-bold focus:ring-2 focus:ring-[#5143f5]/20 focus:border-[#5143f5] transition-all" /></div>
+                      <div>
+                        <label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Quantité totale (kg)</label>
+                        <input 
+                          type="number" 
+                          step="0.01" 
+                          name="total_kg" 
+                          required 
+                          disabled={showModal.startsWith('edit-')} 
+                          {...(showModal.startsWith('edit-') 
+                            ? { defaultValue: editingPartner?.total_kg } 
+                            : { value: contractQuantity, onChange: (e) => setContractQuantity(e.target.value) }
+                          )}
+                          className="w-full px-5 py-4 bg-white border border-zinc-200 rounded-xl text-zinc-900 font-bold focus:ring-2 focus:ring-[#5143f5]/20 focus:border-[#5143f5] transition-all disabled:bg-zinc-100 disabled:text-zinc-500" 
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Prix par kg ($)</label>
+                        <input 
+                          type="number" 
+                          step="0.01" 
+                          name="price_per_kg" 
+                          required 
+                          {...(showModal.startsWith('edit-') 
+                            ? { defaultValue: editingPartner?.price_per_kg } 
+                            : { value: contractPricePerKg, onChange: (e) => setContractPricePerKg(e.target.value) }
+                          )}
+                          className="w-full px-5 py-4 bg-white border border-zinc-200 rounded-xl text-zinc-900 font-bold focus:ring-2 focus:ring-[#5143f5]/20 focus:border-[#5143f5] transition-all" 
+                        />
+                      </div>
                     </div>
+                    {!showModal.startsWith('edit-') && contractFoodId && contractQuantity && contractPricePerKg && renderProfitLossEstimation(contractFoodId, contractQuantity, contractPricePerKg, showModal === 'contract')}
                     {!showModal.startsWith('edit-') && (
                       <div className="grid grid-cols-2 gap-4">
                         <div><label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Date début</label><input type="date" name="date_start" required className="w-full px-5 py-4 bg-white border border-zinc-200 rounded-xl text-zinc-900 font-bold focus:ring-2 focus:ring-[#5143f5]/20 focus:border-[#5143f5] transition-all" /></div>
