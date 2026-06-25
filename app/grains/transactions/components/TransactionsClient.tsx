@@ -311,6 +311,16 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
               </div>
               Achat
             </button>
+            
+            <button 
+              onClick={() => setActiveAction('vente')}
+              className={`flex-1 p-6 rounded-3xl border-2 font-black text-xl flex flex-col sm:flex-row items-center justify-center gap-3 transition-all ${activeAction === 'vente' ? 'bg-orange-600 border-orange-600 text-white shadow-lg shadow-orange-600/30' : 'bg-white border-orange-200 text-orange-600 hover:bg-orange-50'}`}
+            >
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${activeAction === 'vente' ? 'bg-white/20' : 'bg-orange-100'}`}>
+                <FontAwesomeIcon icon={faArrowRightFromBracket} />
+              </div>
+              Vente
+            </button>
           </div>
 
           {/* Toggle button for right panel on mobile */}
@@ -319,7 +329,7 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
               onClick={() => setShowRightPanel(!showRightPanel)}
               className="bg-white border border-zinc-200 px-6 py-3 rounded-xl font-black text-zinc-700 shadow-sm flex items-center gap-2 hover:bg-zinc-50"
             >
-              {showRightPanel ? 'Masquer la planification' : 'Planifier Mouvement'}
+              {showRightPanel ? 'Masquer la planification' : 'Planifier / Mouvement Spot'}
             </button>
           </div>
 
@@ -353,7 +363,17 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
                           </div>
                           Recevoir une Livraison
                         </button>
-                      ) : null}
+                      ) : (
+                        <button 
+                          onClick={() => setActiveTab('expedition')}
+                          className="px-6 py-4 rounded-2xl font-black bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-600/30 transition-all flex items-center gap-3 active:scale-95 whitespace-nowrap"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                            <FontAwesomeIcon icon={faArrowRightFromBracket} />
+                          </div>
+                          Expédier une Vente
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -422,12 +442,108 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
                   <div className="flex justify-between items-center mb-8">
                     <h2 className="text-3xl font-black text-zinc-900 flex items-center gap-4 tracking-tight">
                       <span className={`flex items-center justify-center w-12 h-12 rounded-full shadow-sm text-xl ${activeAction === 'reception' ? 'bg-green-100 text-green-700' : 'bg-indigo-100 text-indigo-700'}`}>
-                        📅
+                        {formMode === 'spot' ? '⚡' : '📅'}
                       </span>
-                      {activeAction === 'reception' ? 'Planifier une livraison' : 'Planifier une vente'}
+                      {activeAction === 'reception' ? (formMode === 'spot' ? 'Achat Spot' : 'Planifier une livraison') : (formMode === 'spot' ? 'Vente Spot' : 'Planifier une vente')}
                     </h2>
+                    <div className="flex bg-zinc-100 p-1 rounded-xl">
+                      <button type="button" onClick={() => setFormMode('spot')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${formMode === 'spot' ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:text-zinc-700'}`}>Spot</button>
+                      <button type="button" onClick={() => setFormMode('planifier')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${formMode === 'planifier' ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:text-zinc-700'}`}>Planifier</button>
+                    </div>
                   </div>
 
+                  {formMode === 'spot' ? (
+
+                  <form key="spot-form" onSubmit={async (e) => {
+                    e.preventDefault();
+                    const fd = new FormData(e.currentTarget);
+                    startTransition(async () => {
+                      try {
+                        if (activeAction === 'reception') {
+                          const { createQuickSpotDelivery } = await import('../actions');
+                          await createQuickSpotDelivery(fd);
+                          toast.success("Achat Spot ajouté !");
+                        } else {
+                          const { createQuickSpotSale } = await import('../actions');
+                          await createQuickSpotSale(fd);
+                          toast.success("Vente Spot ajoutée !");
+                        }
+                        (e.target as HTMLFormElement).reset();
+                        setSpotFoodId('');
+                        setSpotQuantity('');
+                        setSpotPricePerKg('');
+                      } catch (err: any) {
+                        toast.error(err.message || "Erreur.");
+                      }
+                    });
+                  }} className="space-y-6">
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">{activeAction === 'reception' ? 'Fournisseur' : 'Client'}</label>
+                      <select name={activeAction === 'reception' ? 'supplier_id' : 'client_id'} required className={`w-full px-5 py-4 bg-white border border-zinc-200 rounded-xl text-zinc-900 font-bold text-lg focus:ring-2 focus:ring-${activeAction === 'reception' ? 'green' : 'indigo'}-500/20 focus:border-${activeAction === 'reception' ? 'green' : 'indigo'}-500 transition-all appearance-none cursor-pointer`}>
+                        <option value="">Sélectionner...</option>
+                        {activeAction === 'reception' 
+                          ? initialFournisseurs.filter(f => f.is_active).map(f => <option key={f.id} value={f.id}>{f.name}</option>)
+                          : initialClients.filter(c => c.is_active).map(c => <option key={c.id} value={c.id}>{c.name}</option>)
+                        }
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Aliment</label>
+                      <select 
+                        name="food_id" 
+                        required 
+                        value={spotFoodId}
+                        onChange={(e) => setSpotFoodId(e.target.value)}
+                        className={`w-full px-5 py-4 bg-white border border-zinc-200 rounded-xl text-zinc-900 font-bold text-lg focus:ring-2 focus:ring-${activeAction === 'reception' ? 'green' : 'indigo'}-500/20 focus:border-${activeAction === 'reception' ? 'green' : 'indigo'}-500 transition-all appearance-none cursor-pointer`}
+                      >
+                        <option value="">Choisir...</option>
+                        {aliments.map(a => <option key={a.id} value={a.id}>{a.name} ({a.unit_type.name})</option>)}
+                      </select>
+                      {spotFoodId && renderAveragePriceBadge(spotFoodId)}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Quantité</label>
+                        <input 
+                          type="number" 
+                          step="0.01" 
+                          name="quantity" 
+                          required 
+                          placeholder="Ex: 500" 
+                          value={spotQuantity}
+                          onChange={(e) => setSpotQuantity(e.target.value)}
+                          className={`w-full px-5 py-4 bg-white border border-zinc-200 rounded-xl text-zinc-900 font-bold text-lg focus:ring-2 focus:ring-${activeAction === 'reception' ? 'green' : 'indigo'}-500/20 focus:border-${activeAction === 'reception' ? 'green' : 'indigo'}-500 transition-all`} 
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Prix/kg ($)</label>
+                        <input 
+                          type="number" 
+                          step="0.01" 
+                          name="price_per_kg" 
+                          required 
+                          placeholder="Ex: 0.25" 
+                          value={spotPricePerKg}
+                          onChange={(e) => setSpotPricePerKg(e.target.value)}
+                          className={`w-full px-5 py-4 bg-white border border-zinc-200 rounded-xl text-zinc-900 font-bold text-lg focus:ring-2 focus:ring-${activeAction === 'reception' ? 'green' : 'indigo'}-500/20 focus:border-${activeAction === 'reception' ? 'green' : 'indigo'}-500 transition-all`} 
+                        />
+                      </div>
+                    </div>
+
+                    {spotFoodId && spotQuantity && spotPricePerKg && renderProfitLossEstimation(spotFoodId, spotQuantity, spotPricePerKg, activeAction === 'reception')}
+
+                    <input type="hidden" name="date_delivered" value={new Date().toISOString().split('T')[0]} />
+                    <button
+                      disabled={isPending}
+                      type="submit"
+                      className={`w-full mt-4 py-4 px-6 font-black text-xl text-white rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 ${activeAction === 'reception' ? 'bg-[#10a342] hover:bg-green-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+                    >
+                      Valider {activeAction === 'reception' ? "l'Achat" : "la Vente"}
+                    </button>
+                  </form>
+                  ) : (
                   <form key="planifier-form" onSubmit={async (e) => {
                     e.preventDefault();
                     const fd = new FormData(e.currentTarget);
@@ -482,7 +598,7 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
                         <input type="number" step="0.01" name={activeAction === 'reception' ? 'quantity_received' : 'quantity_sold'} required placeholder="Ex: 500" className={`w-full px-5 py-4 bg-white border border-zinc-200 rounded-xl text-zinc-900 font-bold text-lg focus:ring-2 focus:ring-${activeAction === 'reception' ? 'green' : 'indigo'}-500/20 focus:border-${activeAction === 'reception' ? 'green' : 'indigo'}-500 transition-all`} />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Date Prévue</label>
+                        <label className="block text-xs font-bold text-zinc-500 mb-2 uppercase tracking-wider">Date prévue</label>
                         <input type="date" name="date_expected" required className={`w-full px-5 py-4 bg-white border border-zinc-200 rounded-xl text-zinc-900 font-bold text-lg focus:ring-2 focus:ring-${activeAction === 'reception' ? 'green' : 'indigo'}-500/20 focus:border-${activeAction === 'reception' ? 'green' : 'indigo'}-500 transition-all`} />
                       </div>
                     </div>
@@ -495,6 +611,7 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
                       Planifier
                     </button>
                   </form>
+                  )}
                 </div>
               </div>
             </div>
