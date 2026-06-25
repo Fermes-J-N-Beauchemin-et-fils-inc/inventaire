@@ -226,7 +226,6 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
                   className="w-full p-5 bg-white border-2 border-orange-200 rounded-2xl font-black text-xl text-orange-900 shadow-sm focus:border-orange-500 focus:ring-4 focus:ring-orange-500/20 transition-all cursor-pointer appearance-none"
                 >
                   <option value="">-- Choisir une vente attendue --</option>
-                  <option value="spot" className="text-orange-600 font-bold">Vente Spot / Non planifiée</option>
                   {sales.map(s => (
                     <option key={s.id} value={s.id}>
                       Prévue : {s.quantity} {s.unit} de {s.food_name} ({s.partner_name})
@@ -235,50 +234,18 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
                 </select>
               </div>
 
-              {selectedMode && (
+              {selectedMode && selectedMode !== 'spot' && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-top-4 duration-300">
-                  {selectedMode === 'spot' ? (
-                    <>
-                      <div>
-                        <label className="block text-xs font-black text-orange-800/70 mb-2 uppercase tracking-widest">Client</label>
-                        <select 
-                          value={clientId} 
-                          onChange={(e) => { setClientId(Number(e.target.value) || ''); setFoodId(''); }}
-                          className="w-full p-4 bg-white border-2 border-orange-100 rounded-xl font-bold text-orange-900 focus:border-orange-500 transition-all"
-                        >
-                          <option value="">Sélectionner</option>
-                          {clients.filter(c => c.is_active).map(c => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-black text-orange-800/70 mb-2 uppercase tracking-widest">Aliment</label>
-                        <select 
-                          value={foodId} 
-                          onChange={(e) => setFoodId(Number(e.target.value) || '')}
-                          disabled={!clientId}
-                          className="w-full p-4 bg-white border-2 border-orange-100 rounded-xl font-bold text-orange-900 focus:border-orange-500 transition-all disabled:opacity-50"
-                        >
-                          <option value="">Sélectionner</option>
-                          {availableFoods.map(f => (
-                            <option key={f.id} value={f.id}>{f.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="bg-white p-4 rounded-xl border border-orange-100 flex flex-col justify-center">
-                        <span className="text-xs font-black text-orange-400 uppercase tracking-widest mb-1">Client</span>
-                        <span className="font-black text-orange-900 text-lg">{clients.find(c => c.id === clientId)?.name || '...'}</span>
-                      </div>
-                      <div className="bg-white p-4 rounded-xl border border-orange-100 flex flex-col justify-center">
-                        <span className="text-xs font-black text-orange-400 uppercase tracking-widest mb-1">Aliment</span>
-                        <span className="font-black text-orange-900 text-lg">{inventory.find(f => f.id === foodId)?.name || '...'}</span>
-                      </div>
-                    </>
-                  )}
+                  <>
+                    <div className="bg-white p-4 rounded-xl border border-orange-100 flex flex-col justify-center">
+                      <span className="text-xs font-black text-orange-400 uppercase tracking-widest mb-1">Client</span>
+                      <span className="font-black text-orange-900 text-lg">{clients.find(c => c.id === clientId)?.name || '...'}</span>
+                    </div>
+                    <div className="bg-white p-4 rounded-xl border border-orange-100 flex flex-col justify-center">
+                      <span className="text-xs font-black text-orange-400 uppercase tracking-widest mb-1">Aliment</span>
+                      <span className="font-black text-orange-900 text-lg">{inventory.find(f => f.id === foodId)?.name || '...'}</span>
+                    </div>
+                  </>
                   
                   <div>
                     <label className="block text-xs font-black text-orange-800/70 mb-2 uppercase tracking-widest">Quantité Vendue (kg)</label>
