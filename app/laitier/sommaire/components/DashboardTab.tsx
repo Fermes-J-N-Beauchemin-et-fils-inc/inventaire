@@ -101,6 +101,8 @@ export default function DashboardTab({ mocks, setActiveTab }: DashboardTabProps)
               label="Coût Total"
               unit="$"
               isArea={true}
+              referenceValue={3900}
+              referenceLabel="Moyenne"
             />
           </div>
         </div>

@@ -3,7 +3,7 @@
 import React from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  AreaChart, Area
+  AreaChart, Area, ReferenceLine
 } from 'recharts';
 
 interface ChartProps {
@@ -13,6 +13,8 @@ interface ChartProps {
   label: string;
   unit: string;
   isArea?: boolean;
+  referenceValue?: number;
+  referenceLabel?: string;
 }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -37,7 +39,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 
-export function SingleLineChart({ data, dataKey, color, label, unit, isArea = false }: ChartProps) {
+export function SingleLineChart({ data, dataKey, color, label, unit, isArea = false, referenceValue, referenceLabel }: ChartProps) {
   const chartData = data.map(d => ({ ...d, unit }));
 
   return (
@@ -55,6 +57,9 @@ export function SingleLineChart({ data, dataKey, color, label, unit, isArea = fa
             <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#71717A', fontWeight: 'bold' }} dy={10} />
             <YAxis axisLine={false} tickLine={false} tick={{ fill: '#71717A', fontWeight: 'bold' }} dx={-10} />
             <Tooltip content={<CustomTooltip />} />
+            {referenceValue !== undefined && (
+              <ReferenceLine y={referenceValue} stroke="#10B981" strokeDasharray="3 3" label={{ position: 'top', value: referenceLabel || 'Moyenne', fill: '#10B981', fontWeight: 'bold' }} />
+            )}
             <Area type="monotone" dataKey={dataKey} name={label} stroke={color} strokeWidth={4} fillOpacity={1} fill={`url(#color-${dataKey})`} />
           </AreaChart>
         ) : (
@@ -63,6 +68,9 @@ export function SingleLineChart({ data, dataKey, color, label, unit, isArea = fa
             <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#71717A', fontWeight: 'bold' }} dy={10} />
             <YAxis axisLine={false} tickLine={false} tick={{ fill: '#71717A', fontWeight: 'bold' }} dx={-10} />
             <Tooltip content={<CustomTooltip />} />
+            {referenceValue !== undefined && (
+              <ReferenceLine y={referenceValue} stroke="#10B981" strokeDasharray="3 3" label={{ position: 'top', value: referenceLabel || 'Moyenne', fill: '#10B981', fontWeight: 'bold' }} />
+            )}
             <Line type="monotone" dataKey={dataKey} name={label} stroke={color} strokeWidth={4} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 8 }} />
           </LineChart>
         )}

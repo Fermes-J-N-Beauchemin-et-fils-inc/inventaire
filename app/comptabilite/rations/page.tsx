@@ -10,6 +10,7 @@ import ComptabiliteGraph from '../components/ComptabiliteGraph';
 import GroupsDataView from '../components/GroupsDataView';
 import { SingleLineChart } from '@/app/grains/aliments/components/AlimentCharts';
 import { faChartLine } from '@fortawesome/free-solid-svg-icons';
+import DateNavigator from '@/app/components/ui/DateNavigator';
 
 export default function RationsComptabilitePage() {
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -69,17 +70,11 @@ export default function RationsComptabilitePage() {
             </p>
           </div>
           
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <FontAwesomeIcon icon={faCalendarDays} className="text-zinc-400 text-lg" />
-            </div>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="block w-full pl-12 pr-4 py-4 bg-white border-2 border-zinc-200/60 rounded-[1.5rem] text-lg font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm cursor-pointer"
-            />
-          </div>
+          <DateNavigator 
+            selectedDate={selectedDate}
+            onChange={(dateStr) => setSelectedDate(dateStr)}
+            maxDate={new Date().toISOString().split('T')[0]}
+          />
         </div>
 
         {/* Bilan Cards (Details of the day at the top) */}
@@ -136,6 +131,8 @@ export default function RationsComptabilitePage() {
               label="Coût Total"
               unit="$"
               isArea={true}
+              referenceValue={data.annualBilan.averageCostPerDay}
+              referenceLabel="Moyenne (Année)"
             />
           </div>
         </div>

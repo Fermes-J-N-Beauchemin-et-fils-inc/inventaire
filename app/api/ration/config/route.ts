@@ -15,7 +15,9 @@ export async function GET() {
                 id: 'asc'
             }
         });
+        
 
+        
         const rationConfig: Record<string, any[]> = {};
         const availableAliments: Record<string, any> = {};
 
