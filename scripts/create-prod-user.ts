@@ -17,6 +17,7 @@ async function main() {
     if (!url) {
       console.error("L'URL est requise.");
       process.exit(1);
+      console.log("URL ")
     }
 
     rl.question("Email du compte admin (ex: admin@synagri.com): ", async (email) => {
