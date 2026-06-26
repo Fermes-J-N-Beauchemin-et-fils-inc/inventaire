@@ -90,7 +90,7 @@ export default function DashboardTab({ mocks, setActiveTab }: DashboardTabProps)
             </h3>
             <div className="text-right">
               <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Actuel</p>
-              <p className="text-3xl font-black text-red-600">{mocks.global.grandTotalAlim.toLocaleString('fr-CA')} <span className="text-lg text-zinc-500">$</span></p>
+              <p className="text-3xl font-black text-red-600">{mocks.global.grandTotalAlim.toLocaleString('fr-CA', { maximumFractionDigits: 1 })} <span className="text-lg text-zinc-500">$</span></p>
             </div>
           </div>
           <div className="flex-1 min-h-[300px]">

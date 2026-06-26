@@ -125,7 +125,7 @@ export default function RationsComptabilitePage() {
             </h3>
             <div className="text-right">
               <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Aujourd'hui</p>
-              <p className="text-3xl font-black text-red-600">{new Intl.NumberFormat('fr-CA').format(data.dailySummary.totalCostToday)} <span className="text-lg text-zinc-500">$</span></p>
+              <p className="text-3xl font-black text-red-600">{new Intl.NumberFormat('fr-CA', { maximumFractionDigits: 1 }).format(data.dailySummary.totalCostToday)} <span className="text-lg text-zinc-500">$</span></p>
             </div>
           </div>
           <div className="h-80 w-full">

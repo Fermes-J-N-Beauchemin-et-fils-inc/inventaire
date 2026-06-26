@@ -20,11 +20,16 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return (
       <div className="bg-white p-4 border-2 border-zinc-200 rounded-xl shadow-xl">
         <p className="font-bold text-zinc-500 mb-1">{label}</p>
-        {payload.map((entry: any, index: number) => (
-          <p key={index} className="font-black text-lg" style={{ color: entry.color }}>
-            {entry.name} : {entry.value} {entry.payload.unit || ''}
-          </p>
-        ))}
+        {payload.map((entry: any, index: number) => {
+          const formattedValue = typeof entry.value === 'number' 
+            ? entry.value.toLocaleString('fr-CA', { maximumFractionDigits: 1 }) 
+            : entry.value;
+          return (
+            <p key={index} className="font-black text-lg" style={{ color: entry.color }}>
+              {entry.name} : {formattedValue} {entry.payload.unit || ''}
+            </p>
+          );
+        })}
       </div>
     );
   }
