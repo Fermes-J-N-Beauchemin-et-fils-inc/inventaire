@@ -508,8 +508,8 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
   }
 
   if (view === 'tractor') {
-    // Determine which groups to use (from DB or local state if not pushed)
-    const displayGroups = pushedRation ? pushedRation.payload : groups;
+    // Determine which groups to use. Prioritize local groups state if populated so we see dynamic Adjustments.
+    const displayGroups = Object.keys(groups).length > 0 ? groups : (pushedRation ? pushedRation.payload : {});
     return renderLayout(
         <TractorUI 
           groups={displayGroups}
