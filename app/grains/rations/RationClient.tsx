@@ -152,6 +152,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
               time: "", // Could be added to DB later
               note: "",
               systemNote: "",
+              foinSec: "0",
               aliments: data.rationConfig[key] || []
             };
           });
@@ -171,7 +172,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
     fetchConfig();
   }, [isLoadingPushed, pushedRation]);
 
-  const handleGroupChange = (key: GroupKey, field: 'fed' | 'indice' | 'indiceTour2' | 'real', value: string | number) => {
+  const handleGroupChange = (key: GroupKey, field: 'fed' | 'indice' | 'indiceTour2' | 'real' | 'foinSec', value: string | number) => {
     setGroups(prev => {
       const updatedGroup = {
         ...prev[key],

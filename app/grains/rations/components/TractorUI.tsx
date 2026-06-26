@@ -307,6 +307,16 @@ export default function TractorUI({
             </div>
           )}
 
+          {/* Foin Sec */}
+          {group.foinSec && (
+            <div className="mb-8 bg-orange-50 border-4 border-orange-400 rounded-2xl p-6 shadow-md">
+              <h3 className="text-orange-800 font-black text-2xl mb-2 flex items-center gap-3">
+                <FontAwesomeIcon icon={faTractor} /> FOIN SEC À PART
+              </h3>
+              <p className="text-orange-900 font-bold text-4xl">{group.foinSec} kg / total</p>
+            </div>
+          )}
+
           {/* Huge List of Aliments */}
           <div className="space-y-4 mb-12">
             {group.aliments.map((aliment, idx) => {

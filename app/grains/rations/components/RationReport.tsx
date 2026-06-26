@@ -79,6 +79,11 @@ export default function RationReport({ groups, notes, tour1Keys, tour2Keys, onMo
               </div>
               <span>{groups.g1.time}</span>
             </div>
+            {groups.g1.foinSec && (
+              <div className="text-center bg-orange-100 text-orange-900 font-black border-b-[3px] border-black py-1">
+                 Foin sec à part : {groups.g1.foinSec} kg
+              </div>
+            )}
             <div className="grid grid-cols-[1fr_60px_60px] sm:grid-cols-[1fr_80px_80px] print:grid-cols-[1fr_60px_60px] text-center border-b-[3px] border-black text-xs sm:text-sm">
               <div className="border-r-[3px] border-black flex flex-col justify-end p-1">
                 <span className="text-left font-bold text-black">Thursday, June 4, 2026</span>
@@ -117,6 +122,11 @@ export default function RationReport({ groups, notes, tour1Keys, tour2Keys, onMo
               </div>
               <span>{groups.g2.time}</span>
             </div>
+            {groups.g2.foinSec && (
+              <div className="text-center bg-orange-100 text-orange-900 font-black border-b-[3px] border-black py-1">
+                 Foin sec à part : {groups.g2.foinSec} kg
+              </div>
+            )}
             <div className="grid grid-cols-[1fr_60px_60px] sm:grid-cols-[1fr_80px_80px] print:grid-cols-[1fr_60px_60px] text-center border-b-[3px] border-black text-xs sm:text-sm">
               <div className="border-r-[3px] border-black flex flex-col justify-end p-1">
                 <span className="text-left font-bold text-black">Thursday, June 4, 2026</span>
@@ -168,6 +178,11 @@ export default function RationReport({ groups, notes, tour1Keys, tour2Keys, onMo
               </div>
               <span>{groups.g3.time}</span>
             </div>
+            {groups.g3.foinSec && (
+              <div className="text-center bg-orange-100 text-orange-900 font-black border-b-[3px] border-black py-1">
+                 Foin sec à part : {groups.g3.foinSec} kg
+              </div>
+            )}
             <div className="grid grid-cols-[1fr_60px_60px] sm:grid-cols-[1fr_80px_80px] print:grid-cols-[1fr_60px_60px] text-center border-b-[3px] border-black text-xs sm:text-sm">
               <div className="border-r-[3px] border-black flex flex-col justify-end p-1">
                 <span className="text-left font-bold text-black">Thursday, June 4, 2026</span>
@@ -204,6 +219,11 @@ export default function RationReport({ groups, notes, tour1Keys, tour2Keys, onMo
               </div>
               <span>{groups.g4.time}</span>
             </div>
+            {groups.g4.foinSec && (
+              <div className="text-center bg-orange-100 text-orange-900 font-black border-b-[3px] border-black py-1">
+                 Foin sec à part : {groups.g4.foinSec} kg
+              </div>
+            )}
             <div className="grid grid-cols-[1fr_60px_60px] sm:grid-cols-[1fr_80px_80px] print:grid-cols-[1fr_60px_60px] text-center border-b-[3px] border-black text-xs sm:text-sm">
               <div className="border-r-[3px] border-black flex flex-col justify-end p-1">
                 <span className="text-left font-bold text-black">Thursday, June 4, 2026</span>

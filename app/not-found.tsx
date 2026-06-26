@@ -29,7 +29,7 @@ export default function NotFound() {
                     </h1>
                     
                     <h2 className="text-3xl md:text-4xl font-black text-zinc-900 mb-6 tracking-tight">
-                        Oups ! Page introuvable.
+                        Oups ! Page introuvable. 
                     </h2>
                     
                     <p className="text-lg md:text-xl font-medium text-zinc-500 mb-10 max-w-lg mx-auto">

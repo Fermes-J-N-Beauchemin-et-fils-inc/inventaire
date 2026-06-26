@@ -23,6 +23,7 @@ export type GroupData = {
   time: string;
   note?: string;
   systemNote?: string;
+  foinSec?: string;
   pluieMode?: GroupPluieMode;
   aliments: RationAliment[];
   completedAt?: string;

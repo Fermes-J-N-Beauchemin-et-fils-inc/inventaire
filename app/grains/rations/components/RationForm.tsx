@@ -18,7 +18,7 @@ interface RationFormProps {
   handleGroupPluieChange: (k: GroupKey, m: GroupPluieMode) => void;
   notes: string;
   setNotes: (v: string) => void;
-  handleGroupChange: (groupKey: GroupKey, field: 'indice' | 'indiceTour2' | 'fed' | 'real', value: string | number) => void;
+  handleGroupChange: (groupKey: GroupKey, field: 'indice' | 'indiceTour2' | 'fed' | 'real' | 'foinSec', value: string | number) => void;
   handleNoteChange: (groupKey: GroupKey, value: string) => void;
   handleSystemNoteChange: (groupKey: GroupKey, value: string) => void;
   handleAddAliment: (groupKey: GroupKey) => void;
@@ -178,6 +178,17 @@ export default function RationForm({
           )}
 
           <div className="pt-4 border-t-2 border-zinc-200">
+            <label className="block text-sm font-bold text-black mb-1">Foin sec à part (kg / total) :</label>
+            <input
+              type="number"
+              value={group.foinSec || ""}
+              onChange={(e) => handleGroupChange(key, 'foinSec', e.target.value)}
+              placeholder="Ex: 41"
+              className="w-full px-3 py-2 border-2 border-orange-300 rounded-md text-base font-black text-orange-800 focus:ring-2 focus:ring-orange-500 bg-orange-50 shadow-sm"
+            />
+          </div>
+
+          <div className="pt-4 mt-4 border-t-2 border-zinc-200">
             <label className="block text-sm font-bold text-black mb-1">Note de distribution :</label>
             <input
               type="text"
