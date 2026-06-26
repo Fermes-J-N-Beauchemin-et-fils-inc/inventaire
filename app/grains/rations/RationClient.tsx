@@ -90,6 +90,26 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
     }
   };
 
+  const handleAdminAction = async (action: 'cancel' | 'finish') => {
+    if (!pushedRation) return;
+    try {
+      const res = await fetch('/api/ration/admin-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: pushedRation.id, action })
+      });
+      if (res.ok) {
+        toast.success(action === 'cancel' ? "Distribution annulée." : "Distribution terminée.");
+        setPushedRation(null);
+        setView('form');
+      } else {
+        toast.error("Erreur lors de l'opération.");
+      }
+    } catch (err) {
+      toast.error("Erreur serveur.");
+    }
+  };
+
   // Form State
   const [notes, setNotes] = useState("");
   const [tour1Keys, setTour1Keys] = useState<GroupKey[]>([]);
@@ -550,6 +570,8 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
           pushedRationId={pushedRation?.id}
           completedKeys={pushedRation?.completed_keys || []}
           isReadOnly={!isDistributor}
+          onForceCancel={() => handleAdminAction('cancel')}
+          onForceFinish={() => handleAdminAction('finish')}
         />
     );
   }

@@ -19,12 +19,14 @@ interface TractorUIProps {
   pushedRationId?: number;
   completedKeys?: string[];
   isReadOnly?: boolean;
+  onForceCancel?: () => void;
+  onForceFinish?: () => void;
 }
 
 export default function TractorUI({
   groups, saison, tour1Keys, tour2Keys, globalPluie, handleReorderGroups,
   onToggleGroupCompletion, onFinishAll, onAdjustAlimentWeight, onIndiceChange, onGroupPluieChange,
-  pushedRationId, completedKeys, isReadOnly
+  pushedRationId, completedKeys, isReadOnly, onForceCancel, onForceFinish
 }: TractorUIProps) {
   const [mounted, setMounted] = useState(false);
   React.useEffect(() => setMounted(true), []);
@@ -512,6 +514,36 @@ export default function TractorUI({
   // --- GRID VIEW ---
   return (
     <div className="max-w-[1400px] mx-auto min-h-screen pb-12 pt-4 px-4 sm:px-8">
+      {isReadOnly && (
+        <div className="mb-8 p-6 bg-zinc-800 rounded-3xl flex flex-col md:flex-row justify-between items-center gap-4 border border-zinc-700 shadow-xl">
+          <div className="text-white">
+            <h3 className="text-2xl font-black">Mode Administrateur</h3>
+            <p className="text-zinc-400 font-medium">Vous observez la distribution en cours.</p>
+          </div>
+          <div className="flex gap-4 w-full md:w-auto">
+            <button 
+              onClick={() => {
+                if(window.confirm("Êtes-vous sûr de vouloir annuler cette distribution ?")) {
+                  onForceCancel?.();
+                }
+              }}
+              className="flex-1 md:flex-none px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-colors shadow-sm"
+            >
+              Forcer l'Annulation
+            </button>
+            <button 
+              onClick={() => {
+                if(window.confirm("Êtes-vous sûr de vouloir terminer la distribution immédiatement ? (Ceci va compléter le status)")) {
+                  onForceFinish?.();
+                }
+              }}
+              className="flex-1 md:flex-none px-6 py-3 bg-[#15803D] hover:bg-green-700 text-white font-bold rounded-xl transition-colors shadow-sm"
+            >
+              Forcer la Fin
+            </button>
+          </div>
+        </div>
+      )}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
         <div>
           <h1 className="text-5xl sm:text-6xl font-black text-zinc-900 tracking-tight flex items-center gap-6">
