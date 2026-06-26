@@ -323,7 +323,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
       
       const consumedAliments = group.aliments.map(a => ({
           food_id: parseInt(a.id), // Send food_id integer
-          consumed_tqs: Math.ceil((parseFloat(a.v2) || 0) * indice)
+          consumed_tqs: Math.ceil((parseFloat(a.v1) || 0) * indice)
       }));
 
       try {

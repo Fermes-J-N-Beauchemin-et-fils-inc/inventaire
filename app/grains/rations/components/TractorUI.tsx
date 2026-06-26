@@ -248,7 +248,7 @@ export default function TractorUI({
               </h2>
               <div className="text-2xl text-zinc-700 font-bold mt-4 flex flex-wrap items-center gap-4">
                 <span>Vaches: <span className="text-blue-600">{group.fed}</span> / {group.real}</span>
-                {!isReadOnly && !pushedRationId && (
+                {!isReadOnly && (
                     <>
                         <button
                           onClick={() => { setIndiceModal({ key, tour, currentIndice: indiceStr }); setIndiceValue(indiceStr); }}
@@ -272,7 +272,7 @@ export default function TractorUI({
                         </div>
                     </>
                 )}
-                {(isReadOnly || pushedRationId) && (
+                {isReadOnly && (
                     <span className="bg-yellow-100 text-yellow-900 px-3 py-1 rounded-lg text-lg font-black border border-yellow-300 shadow-sm">
                         Indice: {indiceStr}
                     </span>
@@ -348,7 +348,7 @@ export default function TractorUI({
                       <span className="text-4xl sm:text-5xl font-black text-blue-700">{scaledV2} <span className="text-2xl sm:text-3xl font-bold text-blue-500/70">kg</span></span>
                     </div>
                     {/* Ajuster button */}
-                    {typeof scaledV2 === 'number' && !isReadOnly && !pushedRationId && (
+                    {typeof scaledV2 === 'number' && !isReadOnly && (
                       <button
                         onClick={() => { setAdjustModal({ key, tour, alimentId: aliment.id, alimentName: aliment.name, targetV2: scaledV2 }); setAdjustValue(""); }}
                         className="ml-0 sm:ml-4 mt-4 sm:mt-0 w-full sm:w-auto shrink-0 bg-blue-100 hover:bg-blue-200 text-blue-900 px-4 py-3 rounded-xl border border-blue-300 font-bold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-sm"
