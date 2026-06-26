@@ -32,21 +32,33 @@ export default async function middleware(request: NextRequest) {
                 return NextResponse.next();
             }
 
+            let res = NextResponse.next();
             const role = session.user.role;
 
             // Protection stricte pour le rôle 'distributor'
             if (role === "distributor") {
                 // Il ne peut aller NULLE PART AILLEURS que sur /grains/rations
                 if (request.nextUrl.pathname !== "/grains/rations") {
-                    return NextResponse.redirect(new URL("/grains/rations", origin));
+                    res = NextResponse.redirect(new URL("/grains/rations", origin));
                 }
             } else {
                 // Pour les 'admin' (ou autres)
                 if (isAuthRoute) {
                     // S'ils sont sur / on les envoie au dashboard
-                    return NextResponse.redirect(new URL("/dashboard", origin));
+                    res = NextResponse.redirect(new URL("/dashboard", origin));
                 }
             }
+
+            // Propagate the set-cookie header if Better Auth rotated the session
+            const setCookieHeaders = response.headers.getSetCookie 
+                ? response.headers.getSetCookie() 
+                : response.headers.get("set-cookie")?.split(',') || [];
+                
+            for (const cookie of setCookieHeaders) {
+                res.headers.append("set-cookie", cookie);
+            }
+
+            return res;
         } catch (error) {
             console.error("Erreur middleware:", error);
             if (!isAuthRoute) return NextResponse.redirect(new URL("/", origin));
