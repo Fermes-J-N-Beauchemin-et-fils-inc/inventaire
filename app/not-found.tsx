@@ -42,7 +42,7 @@ export default function NotFound() {
                             className="w-full sm:w-auto px-8 py-4 bg-green-700 hover:bg-green-800 text-white rounded-full font-bold text-lg shadow-lg shadow-green-700/30 transition-all hover:scale-105 flex items-center justify-center gap-3"
                         >
                             <FontAwesomeIcon icon={faHouse} className="w-5 h-5" />
-                            Retour au tableau de bord
+                            Retour au tableau de bord 
                         </Link>
                         
                         <button 

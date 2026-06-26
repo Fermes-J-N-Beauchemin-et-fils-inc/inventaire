@@ -20,6 +20,8 @@ export const metadata: Metadata = {
   description: "logiciel de gestion agricole ",
 };
 
+
+
 export default function RootLayout({
   children,
 }: Readonly<{
