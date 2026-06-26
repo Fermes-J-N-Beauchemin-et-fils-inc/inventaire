@@ -225,10 +225,52 @@ export async function GET(request: Request) {
             dailySummary.costPerCow = totalCows > 0 ? dailySummary.totalCostToday / totalCows : 0;
         }
 
+        // Calculate Daily Graph Data (last 30 days)
+        const thirtyDaysAgo = new Date(startOfDay);
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
+        
+        const thirtyDaysTransactions = await prisma.stockTransaction.findMany({
+            where: {
+                recorded_at: {
+                    gte: thirtyDaysAgo,
+                    lte: endOfDay
+                },
+                transaction_type: 'CONSUMPTION'
+            },
+            include: { food: true }
+        });
+
+        // Group by day string 'YYYY-MM-DD'
+        const dailyCostsMap: Record<string, number> = {};
+        for (let i = 0; i < 30; i++) {
+            const d = new Date(thirtyDaysAgo);
+            d.setDate(d.getDate() + i);
+            const dateStr = d.toISOString().split('T')[0];
+            dailyCostsMap[dateStr] = 0;
+        }
+
+        thirtyDaysTransactions.forEach(t => {
+            const dateStr = t.recorded_at.toISOString().split('T')[0];
+            if (dailyCostsMap[dateStr] !== undefined) {
+                const consumedKg = Math.abs(t.quantity);
+                const cost = consumedKg * ((t.food?.price_per_tqs || 0) / 1000);
+                dailyCostsMap[dateStr] += cost;
+            }
+        });
+
+        const dailyGraphData = Object.keys(dailyCostsMap).sort().map(dateStr => {
+            const d = new Date(dateStr + 'T12:00:00'); // avoid timezone offset issues
+            return {
+                date: d.toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }),
+                value: dailyCostsMap[dateStr]
+            };
+        });
+
         return NextResponse.json({
             dailySummary,
             annualBilan,
             graphData,
+            dailyGraphData,
             groups,
             totalGroup
         });

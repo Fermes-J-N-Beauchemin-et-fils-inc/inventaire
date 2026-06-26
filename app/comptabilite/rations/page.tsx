@@ -8,6 +8,8 @@ import { faBuildingColumns, faCalendarDays } from '@fortawesome/free-solid-svg-i
 import BilanCards from '../components/BilanCards';
 import ComptabiliteGraph from '../components/ComptabiliteGraph';
 import GroupsDataView from '../components/GroupsDataView';
+import { SingleLineChart } from '@/app/grains/aliments/components/AlimentCharts';
+import { faChartLine } from '@fortawesome/free-solid-svg-icons';
 
 export default function RationsComptabilitePage() {
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -109,6 +111,32 @@ export default function RationsComptabilitePage() {
                 {new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD' }).format((data.dailySummary.foinSecNourrisKg / 1000) * 200)}
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* Historique 30 jours Graph */}
+        <div className="bg-white p-6 sm:p-8 rounded-[2rem] border border-zinc-200/60 shadow-sm mb-10">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-2xl font-black text-zinc-900 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
+                <FontAwesomeIcon icon={faChartLine} />
+              </div>
+              Historique du Coût Total (30 jours)
+            </h3>
+            <div className="text-right">
+              <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Aujourd'hui</p>
+              <p className="text-3xl font-black text-red-600">{new Intl.NumberFormat('fr-CA').format(data.dailySummary.totalCostToday)} <span className="text-lg text-zinc-500">$</span></p>
+            </div>
+          </div>
+          <div className="h-80 w-full">
+            <SingleLineChart
+              data={data.dailyGraphData || []}
+              dataKey="value"
+              color="#DC2626"
+              label="Coût Total"
+              unit="$"
+              isArea={true}
+            />
           </div>
         </div>
 

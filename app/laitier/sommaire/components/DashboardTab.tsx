@@ -5,6 +5,7 @@ import StatCard from './ui/StatCard';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import ProgressBar from './ui/ProgressBar';
+import { SingleLineChart } from '@/app/grains/aliments/components/AlimentCharts';
 
 interface DashboardTabProps {
   mocks: any;
@@ -78,6 +79,32 @@ export default function DashboardTab({ mocks, setActiveTab }: DashboardTabProps)
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
+        {/* Groups Summary Overview */}
+        <div className="lg:col-span-2 bg-white p-8 rounded-[2rem] border-2 border-zinc-100 shadow-sm flex flex-col">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-2xl font-black text-zinc-900 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
+                <FontAwesomeIcon icon={faChartLine} />
+              </div>
+              Historique du Coût Total (30 jours)
+            </h3>
+            <div className="text-right">
+              <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Actuel</p>
+              <p className="text-3xl font-black text-red-600">{mocks.global.grandTotalAlim.toLocaleString('fr-CA')} <span className="text-lg text-zinc-500">$</span></p>
+            </div>
+          </div>
+          <div className="flex-1 min-h-[300px]">
+            <SingleLineChart
+              data={mocks.global.costHistory}
+              dataKey="value"
+              color="#DC2626" // red-600
+              label="Coût Total"
+              unit="$"
+              isArea={true}
+            />
+          </div>
+        </div>
+
         {/* Cost Breakdown Chart */}
         <div className="lg:col-span-1 bg-white p-8 rounded-[2rem] border-2 border-zinc-100 shadow-sm flex flex-col">
           <div className="flex justify-between items-center mb-6">

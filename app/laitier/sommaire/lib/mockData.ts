@@ -2,6 +2,17 @@ export const globalMocks = {
   revenuTotal: 12562.74,
   revenuVache: 43.62,
   grandTotalAlim: 3999.76,
+  costHistory: Array.from({ length: 30 }).map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (29 - i));
+    const isRecent = i > 25;
+    // Base cost around 3900, recent days slightly higher
+    const value = isRecent ? 3950 + Math.random() * 50 : 3800 + Math.random() * 100;
+    return {
+      date: d.toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }),
+      value: value
+    };
+  }),
   rsaMoyen: 11.08, // RSA/va/jr en moyenne
   totalCows: 525,
   laitReservoir: 24000,
