@@ -26,7 +26,21 @@ export async function POST(request: Request) {
         const foods = await prisma.food.findMany();
         const groupsData = await prisma.group.findMany();
 
-        const [newRation] = await prisma.$transaction([
+        // Calculate total food consumption across all groups
+        const foodTotals: Record<number, number> = {};
+        for (const [key, group] of Object.entries(groups as Record<string, any>)) {
+            if (group.fed && group.fed > 0 && group.aliments) {
+                for (const aliment of group.aliments) {
+                    const foodId = parseInt(aliment.id, 10);
+                    const amount = parseFloat(aliment.v1) || 0;
+                    if (!isNaN(foodId) && amount > 0) {
+                        foodTotals[foodId] = (foodTotals[foodId] || 0) + amount;
+                    }
+                }
+            }
+        }
+
+        const transactions: any[] = [
             prisma.pushedRation.create({
                 data: {
                     groups_total,
@@ -60,7 +74,37 @@ export async function POST(request: Request) {
                     };
                 })
             })
-        ]);
+        ];
+
+        // Deduct inventory for each food used
+        for (const [foodIdStr, amount] of Object.entries(foodTotals)) {
+            const foodId = parseInt(foodIdStr, 10);
+            
+            // Find the first storage for this food to deduct from
+            const storage = await prisma.foodStorage.findFirst({
+                where: { food_id: foodId }
+            });
+
+            if (storage) {
+                transactions.push(
+                    prisma.foodStorage.update({
+                        where: {
+                            food_id_storage_id: {
+                                food_id: foodId,
+                                storage_id: storage.storage_id
+                            }
+                        },
+                        data: {
+                            current_stock: {
+                                decrement: amount
+                            }
+                        }
+                    })
+                );
+            }
+        }
+
+        const [newRation] = await prisma.$transaction(transactions);
 
         return NextResponse.json({ success: true, pushedRation: newRation });
     } catch (error) {
