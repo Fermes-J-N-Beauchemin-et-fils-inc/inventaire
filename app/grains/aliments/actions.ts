@@ -11,6 +11,7 @@ export async function createAliment(formData: FormData) {
   const price_per_ms = parseFloat(formData.get("price_per_ms") as string) || 0;
   const price_per_tqs = parseFloat(formData.get("price_per_tqs") as string) || 0;
   const ms_percentage = parseFloat(formData.get("ms_percentage") as string) || 0;
+  const current_stock = parseFloat(formData.get("current_stock") as string) || 0;
 
   if (!name || isNaN(unit_type_id) || isNaN(storage_id)) {
     throw new Error("Veuillez remplir tous les champs obligatoires.");
@@ -26,7 +27,7 @@ export async function createAliment(formData: FormData) {
       storages: {
         create: {
           storage_id: storage_id,
-          current_stock: 0
+          current_stock
         }
       }
     },
@@ -43,6 +44,7 @@ export async function updateAliment(id: number, formData: FormData) {
   const price_per_ms = parseFloat(formData.get("price_per_ms") as string) || 0;
   const price_per_tqs = parseFloat(formData.get("price_per_tqs") as string) || 0;
   const ms_percentage = parseFloat(formData.get("ms_percentage") as string) || 0;
+  const current_stock = parseFloat(formData.get("current_stock") as string) || 0;
 
   if (!name || isNaN(unit_type_id) || isNaN(storage_id)) {
     throw new Error("Veuillez remplir tous les champs obligatoires.");
@@ -65,7 +67,7 @@ export async function updateAliment(id: number, formData: FormData) {
     });
 
     if (existingStorage) {
-      if (existingStorage.storage_id !== storage_id) {
+      if (existingStorage.storage_id !== storage_id || existingStorage.current_stock !== current_stock) {
         await tx.foodStorage.update({
           where: {
             food_id_storage_id: {
@@ -73,7 +75,7 @@ export async function updateAliment(id: number, formData: FormData) {
               storage_id: existingStorage.storage_id
             }
           },
-          data: { storage_id }
+          data: { storage_id, current_stock }
         });
       }
     } else {
@@ -81,7 +83,7 @@ export async function updateAliment(id: number, formData: FormData) {
         data: {
           food_id: id,
           storage_id,
-          current_stock: 0
+          current_stock
         }
       });
     }

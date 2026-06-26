@@ -17,6 +17,7 @@ interface AlimentFormProps {
     price_per_tqs: number;
     ms_percentage: number;
     storage_id?: number;
+    current_stock?: number;
   };
   action: (formData: FormData) => void;
 }
@@ -72,7 +73,7 @@ export default function AlimentForm({ units, storages, initialData, action }: Al
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label htmlFor="unit_type_id" className="block text-sm font-bold text-zinc-700 mb-2">Unité de mesure *</label>
                 <select
@@ -90,7 +91,7 @@ export default function AlimentForm({ units, storages, initialData, action }: Al
               </div>
 
               <div>
-                <label htmlFor="storage_id" className="block text-sm font-bold text-zinc-700 mb-2">Emplacement (Silo/Entrepôt) *</label>
+                <label htmlFor="storage_id" className="block text-sm font-bold text-zinc-700 mb-2">Emplacement *</label>
                 <select
                   id="storage_id"
                   name="storage_id"
@@ -103,6 +104,18 @@ export default function AlimentForm({ units, storages, initialData, action }: Al
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label htmlFor="current_stock" className="block text-sm font-bold text-zinc-700 mb-2">Stock Actuel</label>
+                <input
+                  type="number"
+                  step="any"
+                  id="current_stock"
+                  name="current_stock"
+                  defaultValue={initialData?.current_stock || 0}
+                  className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
+                />
               </div>
             </div>
           </div>

@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Ferme JN Beauchemin",
-  description: "logiciel de gestion agricole",
+  description: "logiciel de gestion agricole ",
 };
 
 export default function RootLayout({
