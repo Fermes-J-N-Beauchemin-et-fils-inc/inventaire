@@ -316,34 +316,56 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
   const handleToggleGroupCompletion = async (key: GroupKey, tour: 1 | 2 = 1) => {
     const fullKey = `${key}-tour${tour}`;
     if (pushedRation && isDistributor) {
-      // Calculate consumed amounts based on the current group configuration and indice
+      const isAlreadyCompleted = pushedRation.completed_keys?.includes(fullKey);
+
       const group = groups[key];
       const indiceStr = tour === 1 ? group.indice : (group.indiceTour2 || "1.00");
       const indice = parseFloat(indiceStr || "1");
       
       const consumedAliments = group.aliments.map(a => ({
-          food_id: parseInt(a.id), // Send food_id integer
+          food_id: parseInt(a.id),
           consumed_tqs: Math.ceil((parseFloat(a.v1) || 0) * indice)
       }));
 
-      try {
-         const res = await fetch('/api/ration/complete-group', {
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ 
-                 id: pushedRation.id, 
-                 group_key: fullKey,
-                 consumed: consumedAliments
-             })
-         });
-         if (res.ok) {
-            const data = await res.json();
-            setPushedRation(data.pushedRation);
-         } else {
-            toast.error("Erreur de sauvegarde");
-         }
-      } catch (err) {
-         toast.error("Erreur réseau");
+      if (isAlreadyCompleted) {
+        // UNDO
+        try {
+          const res = await fetch('/api/ration/undo-group', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: pushedRation.id, group_key: fullKey, consumed: consumedAliments })
+          });
+          if (res.ok) {
+             const data = await res.json();
+             setPushedRation(data.pushedRation);
+             toast.success("Groupe annulé. Inventaire restauré.");
+          } else {
+             toast.error("Erreur lors de l'annulation");
+          }
+        } catch (err) {
+           toast.error("Erreur réseau");
+        }
+      } else {
+        // COMPLETE
+        try {
+           const res = await fetch('/api/ration/complete-group', {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({ 
+                   id: pushedRation.id, 
+                   group_key: fullKey,
+                   consumed: consumedAliments
+               })
+           });
+           if (res.ok) {
+              const data = await res.json();
+              setPushedRation(data.pushedRation);
+           } else {
+              toast.error("Erreur de sauvegarde");
+           }
+        } catch (err) {
+           toast.error("Erreur réseau");
+        }
       }
     } else {
       setGroups(prev => {
