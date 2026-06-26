@@ -116,7 +116,7 @@ export default function AlimentForm({ units, storages, initialData, action }: Al
                 <label htmlFor="ms_percentage" className="block text-sm font-bold text-zinc-700 mb-2">Masse Sèche (MS) %</label>
                 <input
                   type="number"
-                  step="0.1"
+                  step="any"
                   id="ms_percentage"
                   name="ms_percentage"
                   defaultValue={initialData?.ms_percentage || 0}
@@ -128,7 +128,7 @@ export default function AlimentForm({ units, storages, initialData, action }: Al
                 <label htmlFor="price_per_ms" className="block text-sm font-bold text-zinc-700 mb-2">Prix / MS ($)</label>
                 <input
                   type="number"
-                  step="0.01"
+                  step="any"
                   id="price_per_ms"
                   name="price_per_ms"
                   defaultValue={initialData?.price_per_ms || 0}
@@ -140,7 +140,7 @@ export default function AlimentForm({ units, storages, initialData, action }: Al
                 <label htmlFor="price_per_tqs" className="block text-sm font-bold text-zinc-700 mb-2">Prix / TQS ($)</label>
                 <input
                   type="number"
-                  step="0.01"
+                  step="any"
                   id="price_per_tqs"
                   name="price_per_tqs"
                   defaultValue={initialData?.price_per_tqs || 0}
