@@ -57,7 +57,7 @@ export async function GET(request: Request) {
       
       if (!name) continue;
 
-      let msStr = cols[5]?.replace('%', '');
+      const msStr = cols[5]?.replace('%', '');
       let msVal = parseFloat(msStr);
       if (isNaN(msVal)) msVal = 0;
 

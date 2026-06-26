@@ -28,7 +28,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Ration not found" }, { status: 404 });
         }
 
-        let completedKeys = Array.isArray(pushedRation.completed_keys) 
+        const completedKeys = Array.isArray(pushedRation.completed_keys) 
             ? [...pushedRation.completed_keys] 
             : [];
 

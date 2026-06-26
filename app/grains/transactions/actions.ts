@@ -746,7 +746,7 @@ export async function createSale(formData: FormData) {
 
       // Deduct from storages sequentially
       let remainingToDeduct = qtyToDeduct;
-      let primaryStorageId = storages.length > 0 ? storages[0].storage_id : null;
+      const primaryStorageId = storages.length > 0 ? storages[0].storage_id : null;
 
       for (const storage of storages) {
         if (remainingToDeduct <= 0) break;
