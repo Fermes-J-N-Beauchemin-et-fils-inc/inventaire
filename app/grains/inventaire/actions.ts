@@ -244,3 +244,18 @@ export async function toggleStorageStatus(storageId: number, isActive: boolean) 
 
   revalidatePath('/inventaire');
 }
+
+export async function deleteStorage(storageId: number) {
+  try {
+    await prisma.$transaction([
+      prisma.foodStorage.deleteMany({ where: { storage_id: storageId } }),
+      prisma.stockTransaction.deleteMany({ where: { storage_id: storageId } }),
+      prisma.storage.delete({ where: { id: storageId } })
+    ]);
+  } catch (error) {
+    console.error("Failed to delete storage", error);
+    throw new Error("Impossible de supprimer le stockage");
+  }
+  revalidatePath('/grains/inventaire');
+  revalidatePath('/aliments');
+}

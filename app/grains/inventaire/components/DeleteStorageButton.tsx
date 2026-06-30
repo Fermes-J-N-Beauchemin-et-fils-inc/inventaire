@@ -4,14 +4,14 @@ import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import toast from 'react-hot-toast';
-import { deleteAliment } from '../actions';
+import { deleteStorage } from '../actions';
 
-export default function DeleteFoodButton({ foodId, foodName }: { foodId: number, foodName: string }) {
+export default function DeleteStorageButton({ storageId, storageName }: { storageId: number, storageName: string }) {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDeleteClick = () => {
     if (isDeleting) return;
-
+    
     toast((t) => (
       <div className="flex flex-col gap-4 p-2">
         <div className="flex items-start gap-4">
@@ -21,8 +21,8 @@ export default function DeleteFoodButton({ foodId, foodName }: { foodId: number,
           <div>
             <h3 className="text-lg font-black text-zinc-900">Supprimer définitivement ?</h3>
             <p className="text-sm font-medium text-zinc-500 mt-1">
-              Vous êtes sur le point de supprimer l'aliment <strong>{foodName}</strong>. 
-              Toutes les transactions et historiques liés seront effacés. Cette action est irréversible.
+              Vous êtes sur le point de supprimer le stockage <strong>{storageName}</strong>. 
+              Toutes les données associées seront effacées. Cette action est irréversible.
             </p>
           </div>
         </div>
@@ -41,8 +41,8 @@ export default function DeleteFoodButton({ foodId, foodName }: { foodId: number,
               setIsDeleting(true);
               const loadingToast = toast.loading('Suppression en cours...', { id: t.id });
               try {
-                await deleteAliment(foodId);
-                toast.success('Aliment supprimé avec succès', { id: loadingToast });
+                await deleteStorage(storageId);
+                toast.success('Stockage supprimé avec succès', { id: loadingToast });
               } catch (error) {
                 toast.error('Erreur lors de la suppression', { id: loadingToast });
               } finally {
@@ -64,11 +64,11 @@ export default function DeleteFoodButton({ foodId, foodName }: { foodId: number,
     <button
       type="button"
       onClick={handleDeleteClick}
+      title="Supprimer définitivement"
       disabled={isDeleting}
-      className="text-red-500 hover:text-red-700 font-bold px-4 py-2 hover:bg-red-50 rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50"
+      className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold border transition-colors bg-white border-zinc-200 text-red-500 hover:bg-red-50 hover:border-red-200 disabled:opacity-50"
     >
       <FontAwesomeIcon icon={faTrash} />
-      Supprimer l'aliment
     </button>
   );
 }

@@ -23,6 +23,7 @@ export default function GroupManager({ groups }: Props) {
   const [name, setName] = useState('');
   const [count, setCount] = useState<number | ''>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<number | null>(null);
 
   const resetForm = () => {
     setEditingId(null);
@@ -50,25 +51,44 @@ export default function GroupManager({ groups }: Props) {
       resetForm();
     } catch (e) {
       toast.error('Erreur lors de la sauvegarde');
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   const handleDelete = async (id: number, groupName: string) => {
+    if (isDeleting) return;
+
     toast((t) => (
       <div className="flex flex-col gap-3">
         <p className="font-bold">Supprimer définitivement le groupe "{groupName}" ?</p>
         <div className="flex justify-end gap-2 mt-2">
-          <button className="px-3 py-1.5 bg-zinc-100 rounded-lg text-sm font-bold" onClick={() => toast.dismiss(t.id)}>Annuler</button>
-          <button className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm font-bold" onClick={async () => {
-            toast.dismiss(t.id);
-            try {
-              await deleteGroup(id);
-              toast.success('Groupe supprimé');
-            } catch (e) {
-              toast.error('Erreur lors de la suppression');
-            }
-          }}>Confirmer</button>
+          <button 
+            className="px-3 py-1.5 bg-zinc-100 rounded-lg text-sm font-bold disabled:opacity-50" 
+            disabled={isDeleting === id}
+            onClick={() => toast.dismiss(t.id)}
+          >
+            Annuler
+          </button>
+          <button 
+            className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm font-bold disabled:opacity-50" 
+            disabled={isDeleting === id}
+            onClick={async () => {
+              setIsDeleting(id);
+              toast.dismiss(t.id);
+              const loadingToast = toast.loading('Suppression en cours...');
+              try {
+                await deleteGroup(id);
+                toast.success('Groupe supprimé', { id: loadingToast });
+              } catch (e) {
+                toast.error('Erreur lors de la suppression', { id: loadingToast });
+              } finally {
+                setIsDeleting(null);
+              }
+            }}
+          >
+            Confirmer
+          </button>
         </div>
       </div>
     ), { duration: Infinity });
@@ -109,7 +129,11 @@ export default function GroupManager({ groups }: Props) {
                   <button onClick={() => handleEdit(g)} className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center">
                     <FontAwesomeIcon icon={faPen} className="text-sm" />
                   </button>
-                  <button onClick={() => handleDelete(g.id, g.name)} className="w-8 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center">
+                  <button 
+                    onClick={() => handleDelete(g.id, g.name)} 
+                    disabled={isDeleting === g.id}
+                    className="w-8 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center disabled:opacity-50"
+                  >
                     <FontAwesomeIcon icon={faTrash} className="text-sm" />
                   </button>
                 </div>
@@ -148,7 +172,7 @@ export default function GroupManager({ groups }: Props) {
               <button 
                 onClick={handleSave} 
                 disabled={isSubmitting}
-                className="flex-1 bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 rounded-xl shadow-md shadow-pink-600/20 transition-all flex justify-center items-center gap-2"
+                className="flex-1 bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 rounded-xl shadow-md shadow-pink-600/20 transition-all flex justify-center items-center gap-2 disabled:opacity-50"
               >
                 <FontAwesomeIcon icon={faSave} />
                 {editingId ? 'Mettre à jour' : 'Créer le groupe'}

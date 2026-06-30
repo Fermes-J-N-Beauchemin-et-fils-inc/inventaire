@@ -3,9 +3,10 @@
 import React, { useState, useTransition } from 'react';
 import { StorageData } from '../data/fetchInventaire';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faWarehouse, faSave, faSpinner, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faWarehouse, faSave, faSpinner, faPlus, faTrash, faPowerOff } from '@fortawesome/free-solid-svg-icons';
 import { updateStorageCapacity, createStorage, toggleStorageStatus } from '../actions';
 import toast from 'react-hot-toast';
+import DeleteStorageButton from './DeleteStorageButton';
 
 interface Props {
   storages: StorageData[];
@@ -148,13 +149,11 @@ export default function StockageView({ storages }: Props) {
                   <button 
                     onClick={() => handleToggleActive(storage.id, storage.is_active)}
                     title={storage.is_active ? "Désactiver" : "Activer"}
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold border transition-colors ${storage.is_active ? 'bg-white border-zinc-200 text-red-500 hover:bg-red-50 hover:border-red-200' : 'bg-white border-zinc-200 text-green-500 hover:bg-green-50 hover:border-green-200'}`}
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold border transition-colors ${storage.is_active ? 'bg-white border-zinc-200 text-amber-500 hover:bg-amber-50 hover:border-amber-200' : 'bg-white border-zinc-200 text-green-500 hover:bg-green-50 hover:border-green-200'}`}
                   >
-                    <FontAwesomeIcon icon={faTrash} />
+                    <FontAwesomeIcon icon={faPowerOff} />
                   </button>
-                  <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-amber-600 border border-zinc-100">
-                    <FontAwesomeIcon icon={faWarehouse} />
-                  </div>
+                  <DeleteStorageButton storageId={storage.id} storageName={storage.name} />
                 </div>
               </div>
 

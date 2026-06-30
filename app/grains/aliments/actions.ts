@@ -109,17 +109,52 @@ export async function toggleFoodStatus(foodId: number, isActive: boolean) {
 export async function deleteAliment(id: number) {
   try {
     // Delete associated records that don't have cascade delete (or where cascade might not be applied in DB)
-    await prisma.$transaction([
-      prisma.dailyServing.deleteMany({ where: { food_id: id } }),
-      prisma.stockTransaction.deleteMany({ where: { food_id: id } }),
-      prisma.delivery.deleteMany({ where: { food_id: id } }),
-      prisma.sale.deleteMany({ where: { food_id: id } }),
-      prisma.contract.deleteMany({ where: { food_id: id } }),
-      prisma.saleContract.deleteMany({ where: { food_id: id } }),
-      prisma.foodStorage.deleteMany({ where: { food_id: id } }),
-      prisma.foodSnapshot.deleteMany({ where: { food_id: id } }),
-      prisma.food.delete({ where: { id } })
-    ]);
+    await prisma.$transaction(async (tx) => {
+      // 1. Deliveries and SubContracts
+      const deliveries = await tx.delivery.findMany({ where: { food_id: id }, select: { id: true } });
+      if (deliveries.length > 0) {
+        await tx.deliverySubContract.deleteMany({ where: { delivery_id: { in: deliveries.map(d => d.id) } } });
+      }
+
+      // 2. Sales and SubContract Allocations
+      const sales = await tx.sale.findMany({ where: { food_id: id }, select: { id: true } });
+      if (sales.length > 0) {
+        await tx.saleSubContractAllocation.deleteMany({ where: { sale_id: { in: sales.map(s => s.id) } } });
+      }
+
+      // 3. Contracts
+      const contracts = await tx.contract.findMany({ where: { food_id: id }, select: { id: true } });
+      if (contracts.length > 0) {
+        const subContracts = await tx.subContract.findMany({ where: { contract_id: { in: contracts.map(c => c.id) } }, select: { id: true } });
+        if (subContracts.length > 0) {
+          await tx.deliverySubContract.deleteMany({ where: { sub_contract_id: { in: subContracts.map(sc => sc.id) } } });
+        }
+        await tx.subContract.deleteMany({ where: { contract_id: { in: contracts.map(c => c.id) } } });
+      }
+
+      // 4. SaleContracts
+      const saleContracts = await tx.saleContract.findMany({ where: { food_id: id }, select: { id: true } });
+      if (saleContracts.length > 0) {
+        const saleSubContracts = await tx.saleSubContract.findMany({ where: { sale_contract_id: { in: saleContracts.map(c => c.id) } }, select: { id: true } });
+        if (saleSubContracts.length > 0) {
+          await tx.saleSubContractAllocation.deleteMany({ where: { sale_sub_contract_id: { in: saleSubContracts.map(sc => sc.id) } } });
+        }
+        await tx.saleSubContract.deleteMany({ where: { sale_contract_id: { in: saleContracts.map(c => c.id) } } });
+      }
+
+      // 5. Normal deletions
+      await tx.dailyServing.deleteMany({ where: { food_id: id } });
+      await tx.stockTransaction.deleteMany({ where: { food_id: id } });
+      await tx.delivery.deleteMany({ where: { food_id: id } });
+      await tx.sale.deleteMany({ where: { food_id: id } });
+      await tx.contract.deleteMany({ where: { food_id: id } });
+      await tx.saleContract.deleteMany({ where: { food_id: id } });
+      await tx.foodStorage.deleteMany({ where: { food_id: id } });
+      await tx.foodSnapshot.deleteMany({ where: { food_id: id } });
+      
+      // Finally, delete food
+      await tx.food.delete({ where: { id } });
+    });
   } catch (error: any) {
     console.error("Error deleting aliment:", error);
     throw new Error("Impossible de supprimer l'aliment.");
