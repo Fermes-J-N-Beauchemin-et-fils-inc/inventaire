@@ -146,7 +146,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
 
   useEffect(() => {
     if (isLoadingPushed) return;
-    if (pushedRation) {
+    if (pushedRation && !isRefaire) {
         // If a ration is pushed, use its payload
         setGroups(pushedRation.payload);
         const pushedKeys = Object.keys(pushedRation.payload);
@@ -180,10 +180,12 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
               note: "",
               systemNote: "",
               foinSec: "0",
-              aliments: (data.rationConfig[key] || []).map((a: any) => ({
-                ...a,
-                rowId: Math.random().toString(36).substr(2, 9)
-              }))
+              aliments: (data.rationConfig[key] || [])
+                .filter((a: any) => parseFloat(a.v1) > 0)
+                .map((a: any) => ({
+                  ...a,
+                  rowId: Math.random().toString(36).substr(2, 9)
+                }))
             };
           });
 
@@ -200,7 +202,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
     };
 
     fetchConfig();
-  }, [isLoadingPushed, pushedRation]);
+  }, [isLoadingPushed, pushedRation, isRefaire]);
 
   const handleGroupChange = (key: GroupKey, field: 'fed' | 'indice' | 'indiceTour2' | 'real' | 'foinSec', value: string | number) => {
     setGroups(prev => {
