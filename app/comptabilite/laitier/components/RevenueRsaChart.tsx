@@ -60,12 +60,32 @@ export default function RevenueRsaChart() {
             />
             <Line 
               type="monotone" 
+              dataKey="revenuTrend" 
+              name="Tendance Revenu" 
+              stroke="#2563eb" 
+              strokeWidth={2}
+              strokeDasharray="5 5"
+              dot={false}
+              activeDot={false}
+            />
+            <Line 
+              type="monotone" 
               dataKey="rsa" 
               name="Marge (RSA)" 
               stroke="#10b981" 
               strokeWidth={3}
               dot={false}
               activeDot={{ r: 6, strokeWidth: 0 }}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="rsaTrend" 
+              name="Tendance RSA" 
+              stroke="#059669" 
+              strokeWidth={2}
+              strokeDasharray="5 5"
+              dot={false}
+              activeDot={false}
             />
           </ComposedChart>
         </ResponsiveContainer>

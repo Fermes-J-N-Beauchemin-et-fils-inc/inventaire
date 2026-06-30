@@ -20,7 +20,7 @@ export default function BoeufTab({ mocks }: BoeufTabProps) {
           value={total.betes.toString()} 
           subtitle="bêtes"
           icon={faCow} 
-          colorTheme="amber"
+          colorTheme="yellow"
         />
         <StatCard 
           title="Poids Total" 

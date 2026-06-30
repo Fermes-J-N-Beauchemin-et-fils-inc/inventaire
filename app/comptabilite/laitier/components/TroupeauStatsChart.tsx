@@ -13,7 +13,7 @@ export default function TroupeauStatsChart() {
           <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center">
             <FontAwesomeIcon icon={faCow} />
           </div>
-          Évolution du Troupeau
+          Évolution du Troupeau (Mensuel)
         </h3>
         <div className="text-right">
           <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Total (Juin)</p>
@@ -36,19 +36,28 @@ export default function TroupeauStatsChart() {
               dy={10}
             />
             <YAxis 
+              yAxisId="left"
               axisLine={false} 
               tickLine={false} 
-              tick={{ fill: '#71717a', fontSize: 12, fontWeight: 600 }}
-              domain={['auto', 'auto']}
+              tick={{ fill: '#3b82f6', fontSize: 12, fontWeight: 600 }}
+              domain={['dataMin - 5', 'dataMax + 5']}
+            />
+            <YAxis 
+              yAxisId="right"
+              orientation="right"
+              axisLine={false} 
+              tickLine={false} 
+              tick={{ fill: '#10b981', fontSize: 12, fontWeight: 600 }}
+              domain={['dataMin - 5', 'dataMax + 5']}
             />
             <Tooltip
               contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}
               itemStyle={{ fontWeight: 700 }}
             />
             <Legend wrapperStyle={{ paddingTop: '20px', fontWeight: 600 }} />
-            <Line type="monotone" dataKey="vachesLait" name="En Lait" stroke="#3b82f6" strokeWidth={4} activeDot={{ r: 6, strokeWidth: 0 }} />
-            <Line type="monotone" dataKey="releve" name="Relève" stroke="#10b981" strokeWidth={4} activeDot={{ r: 6, strokeWidth: 0 }} />
-            <Line type="monotone" dataKey="taries" name="Taries" stroke="#f59e0b" strokeWidth={4} activeDot={{ r: 6, strokeWidth: 0 }} />
+            <Line yAxisId="left" type="monotone" dataKey="vachesLait" name="En Lait" stroke="#3b82f6" strokeWidth={4} activeDot={{ r: 6, strokeWidth: 0 }} />
+            <Line yAxisId="right" type="monotone" dataKey="releve" name="Relève" stroke="#10b981" strokeWidth={4} activeDot={{ r: 6, strokeWidth: 0 }} />
+            <Line yAxisId="right" type="monotone" dataKey="taries" name="Taries" stroke="#f59e0b" strokeWidth={4} activeDot={{ r: 6, strokeWidth: 0 }} />
           </LineChart>
         </ResponsiveContainer>
       </div>

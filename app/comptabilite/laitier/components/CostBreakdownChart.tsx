@@ -38,7 +38,7 @@ export default function CostBreakdownChart() {
             <Tooltip 
               contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}
               itemStyle={{ fontWeight: 700 }}
-              formatter={(value: number) => [`${value}%`, 'Proportion']}
+              formatter={(value: any, _name: any, _item: any, _index: any, _payload: any) => [`${value}%`, 'Proportion']}
             />
             <Legend 
               verticalAlign="bottom" 

@@ -2,6 +2,7 @@ export type GroupKey = string;
 
 export type RationAliment = {
   id: string;
+  rowId?: string;
   name: string;
   v1: string;
   v2: string;

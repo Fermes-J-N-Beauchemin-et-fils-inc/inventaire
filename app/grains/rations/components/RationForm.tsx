@@ -243,8 +243,10 @@ export default function RationForm({
                   ref={provided.innerRef} 
                   className={`space-y-3 p-3 rounded-2xl border-2 border-dashed transition-all duration-200 min-h-[100px] ${snapshot.isDraggingOver ? 'bg-blue-50/50 border-blue-400' : 'bg-zinc-50 border-zinc-200'}`}
                 >
-                  {group.aliments.map((aliment, index) => (
-                    <Draggable key={`aliment-${key}-${aliment.id}`} draggableId={`aliment-${key}-${aliment.id}`} index={index}>
+                  {group.aliments.map((aliment, index) => {
+                    const uniqueId = aliment.rowId || aliment.id;
+                    return (
+                    <Draggable key={`aliment-${key}-${uniqueId}`} draggableId={`aliment-${key}-${uniqueId}`} index={index}>
                       {(provided, snapshot) => (
                         <div
                           ref={provided.innerRef}
@@ -259,14 +261,14 @@ export default function RationForm({
                             <input
                               type="text"
                               value={aliment.name}
-                              onChange={(e) => handleUpdateAliment(key, aliment.id, 'name', e.target.value)}
+                              onChange={(e) => handleUpdateAliment(key, uniqueId, 'name', e.target.value)}
                               placeholder="Texte de l'instruction..."
                               className="flex-1 px-3 py-2 text-base font-black text-red-800 border-2 border-red-300 hover:border-red-400 focus:border-red-600 rounded-lg focus:outline-none bg-white shadow-sm"
                             />
                           ) : (
                             <select 
                               value={aliment.id} 
-                              onChange={(e) => handleUpdateAliment(key, aliment.id, 'change_food', e.target.value)}
+                              onChange={(e) => handleUpdateAliment(key, uniqueId, 'change_food', e.target.value)}
                               className="flex-1 px-3 py-2 text-base font-black text-black border-2 border-zinc-400 hover:border-black focus:border-blue-600 rounded-lg focus:outline-none bg-zinc-100 shadow-sm cursor-pointer"
                             >
                               <option value={aliment.id} disabled hidden>{aliment.name}</option>
@@ -280,16 +282,17 @@ export default function RationForm({
                               })}
                             </select>
                           )}
-                          <button 
-                            onClick={() => handleRemoveAliment(key, aliment.id)}
-                            className="w-8 h-8 flex-shrink-0 flex items-center justify-center text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                          >
-                            <FontAwesomeIcon icon={faTrash} />
-                          </button>
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
+                            <button 
+                              onClick={() => handleRemoveAliment(key, uniqueId)}
+                              className="w-8 h-8 flex-shrink-0 flex items-center justify-center text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            >
+                              <FontAwesomeIcon icon={faTrash} />
+                            </button>
+                          </div>
+                        )}
+                      </Draggable>
+                    )
+                  })}
                   {provided.placeholder}
                 </div>
               )}

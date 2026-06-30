@@ -2,14 +2,19 @@ export const revenueRsaData = Array.from({ length: 30 }).map((_, i) => {
   const date = new Date();
   date.setDate(date.getDate() - (29 - i));
   
-  // Base revenue around 4000, RSA around 2500
   const baseRev = 3800 + Math.sin(i / 3) * 300 + Math.random() * 200;
   const baseRsa = baseRev * 0.6 + Math.random() * 100;
+  
+  // Simple linear trend simulation
+  const revTrend = 3800 + (i * 10);
+  const rsaTrend = 2280 + (i * 6);
   
   return {
     date: date.toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }),
     revenu: Math.round(baseRev),
     rsa: Math.round(baseRsa),
+    revenuTrend: Math.round(revTrend),
+    rsaTrend: Math.round(rsaTrend),
   };
 });
 
@@ -21,6 +26,17 @@ export const troupeauData = [
   { month: 'Mai', vachesLait: 520, taries: 54, releve: 180 },
   { month: 'Juin', vachesLait: 525, taries: 56, releve: 181 },
 ];
+
+export const troupeauDailyData = Array.from({ length: 30 }).map((_, i) => {
+  const date = new Date();
+  date.setDate(date.getDate() - (29 - i));
+  
+  return {
+    date: date.toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }),
+    total: 750 + Math.floor(i / 2),
+    enLait: 515 + Math.floor(i / 3),
+  };
+});
 
 export const costBreakdownData = [
   { name: 'En Lait (RTM)', value: 65, fill: '#3b82f6' }, // blue-500

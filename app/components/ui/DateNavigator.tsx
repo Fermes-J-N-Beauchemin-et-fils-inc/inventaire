@@ -66,16 +66,20 @@ export default function DateNavigator({
       <div 
         className="relative flex flex-col items-center min-w-[220px] cursor-pointer"
         onClick={() => {
-          if (inputRef.current && 'showPicker' in inputRef.current) {
-            try {
-              inputRef.current.showPicker();
-            } catch (e) {
-              console.error(e);
+          const input = inputRef.current as any;
+          if (input) {
+            if (input.showPicker) {
+              try {
+                input.showPicker();
+              } catch (e) {
+                input.focus();
+              }
+            } else {
+              input.focus();
             }
           }
         }}
       >
-        {/* Hidden native date input for quick jumping */}
         <input 
           ref={inputRef}
           type="date"
@@ -84,9 +88,9 @@ export default function DateNavigator({
           onChange={(e) => {
             if(e.target.value) onChange(e.target.value);
           }}
-          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+          className="absolute opacity-0 w-0 h-0 pointer-events-none"
         />
-        <div className="pointer-events-none flex flex-col items-center">
+        <div className="flex flex-col items-center">
           <span className="text-xs font-black text-zinc-400 uppercase tracking-widest mb-1 flex items-center gap-2">
             <FontAwesomeIcon icon={faCalendarAlt} /> {label}
           </span>

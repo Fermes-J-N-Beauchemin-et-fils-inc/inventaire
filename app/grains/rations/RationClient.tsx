@@ -173,7 +173,10 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
               note: "",
               systemNote: "",
               foinSec: "0",
-              aliments: data.rationConfig[key] || []
+              aliments: (data.rationConfig[key] || []).map((a: any) => ({
+                ...a,
+                rowId: Math.random().toString(36).substr(2, 9)
+              }))
             };
           });
 
@@ -235,6 +238,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
           ...prev[groupKey].aliments,
           { 
             id: Math.random().toString(36).substr(2, 9), 
+            rowId: Math.random().toString(36).substr(2, 9),
             name: isInstruction ? "" : "Nouvel aliment", 
             v1: "0", 
             v2: "0",
@@ -267,17 +271,17 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
     }
   };
 
-  const handleRemoveAliment = (groupKey: GroupKey, id: string) => {
+  const handleRemoveAliment = (groupKey: GroupKey, idOrRowId: string) => {
     setGroups(prev => {
       const updatedGroup = {
         ...prev[groupKey],
-        aliments: prev[groupKey].aliments.filter(a => a.id !== id)
+        aliments: prev[groupKey].aliments.filter(a => (a.rowId || a.id) !== idOrRowId)
       };
       return { ...prev, [groupKey]: recalculateGroupAliments(updatedGroup) };
     });
   };
 
-  const handleUpdateAliment = (groupKey: GroupKey, id: string, field: 'name' | 'v1' | 'v2' | 'change_food', value: string) => {
+  const handleUpdateAliment = (groupKey: GroupKey, idOrRowId: string, field: 'name' | 'v1' | 'v2' | 'change_food', value: string) => {
     setGroups(prev => {
       if (field === 'change_food') {
         const isDuplicate = prev[groupKey].aliments.some(a => a.id === value && !a.isInstruction);
@@ -286,7 +290,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
       const updatedGroup = {
         ...prev[groupKey],
         aliments: prev[groupKey].aliments.map(a => {
-          if (a.id !== id) return a;
+          if ((a.rowId || a.id) !== idOrRowId) return a;
           
           if (field === 'change_food') {
             const foundFood = availableAliments?.find(f => f.id === value);

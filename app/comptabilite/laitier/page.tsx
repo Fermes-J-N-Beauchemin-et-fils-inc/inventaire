@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDroplet, faChartLine, faCoins, faCalendarDays } from '@fortawesome/free-solid-svg-icons';
 import RevenueRsaChart from "./components/RevenueRsaChart";
 import TroupeauStatsChart from "./components/TroupeauStatsChart";
+import TroupeauDailyStatsChart from "./components/TroupeauDailyStatsChart";
 import CostBreakdownChart from "./components/CostBreakdownChart";
 
 export default function LaitierComptabilitePage() {
@@ -122,9 +123,9 @@ export default function LaitierComptabilitePage() {
             <CostBreakdownChart />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <TroupeauStatsChart />
-            {/* Can add more charts in the future here */}
+            <TroupeauDailyStatsChart />
           </div>
         </div>
 
