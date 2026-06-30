@@ -20,6 +20,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
   const [globalPluie, setGlobalPluie] = useState<PluieMode>('normal');
   const [pushedRation, setPushedRation] = useState<any>(null);
   const [isLoadingPushed, setIsLoadingPushed] = useState(true);
+  const [isRefaire, setIsRefaire] = useState(false);
 
   // Poll for active pushed ration
   useEffect(() => {
@@ -81,6 +82,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
       if (res.ok) {
         const data = await res.json();
         setPushedRation(data.pushedRation);
+        setIsRefaire(false);
         toast.success("Ration poussée avec succès !");
         setView('tractor');
       } else {
@@ -507,7 +509,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
       );
   }
 
-  if (pushedRation && pushedRation.status === 'TERMINEE') {
+  if (pushedRation && pushedRation.status === 'TERMINEE' && !isRefaire) {
       return renderLayout(
           <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
               <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6">
@@ -515,9 +517,22 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
               </div>
               <h2 className="text-3xl font-black text-zinc-900 mb-2">Ration finie pour aujourd'hui</h2>
               <p className="text-lg text-zinc-500 max-w-md mb-6">Excellent travail. Tous les groupes ont été nourris.</p>
-              <Link href="/comptabilite/rations" className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all inline-flex items-center gap-2">
-                 Veuillez consulter comptabilité/ration pour les détails d'aujourd'hui
-              </Link>
+              <div className="flex flex-col gap-3">
+                <Link href="/comptabilite/rations" className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all inline-flex items-center justify-center gap-2">
+                   Veuillez consulter comptabilité/ration pour les détails d'aujourd'hui
+                </Link>
+                {!isDistributor && (
+                  <button 
+                    onClick={() => {
+                      setIsRefaire(true);
+                      setView('form');
+                    }}
+                    className="px-6 py-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold rounded-xl shadow-sm transition-all inline-flex items-center justify-center"
+                  >
+                    Refaire une ration
+                  </button>
+                )}
+              </div>
           </div>
       );
   }
