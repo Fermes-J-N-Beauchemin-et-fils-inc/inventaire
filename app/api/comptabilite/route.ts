@@ -107,6 +107,7 @@ export async function GET(request: Request) {
         };
 
         // Parse groups from pushedRation payload for the GroupsDataView
+        const allFoods = await prisma.food.findMany();
         const groups: any[] = [];
         let totalGroupCost = 0;
         
@@ -120,13 +121,14 @@ export async function GET(request: Request) {
                 const alimentData: any[] = [];
 
                 g.aliments?.forEach((a: any) => {
-                    const tqs = parseFloat(a.v2) || 0;
-                    const ms = parseFloat(a.v1) || 0;
-                    // Since payload might not have price, we find it from dailyTransactions or foods
-                    const foodRecord = dailyTransactions.find(t => t.food_id.toString() === a.id)?.food;
+                    // Since payload might not have price, we find it from allFoods
+                    const foodRecord = allFoods.find(f => f.id.toString() === a.food_id || f.id.toString() === a.id);
                     const priceTqs = foodRecord ? (foodRecord.price_per_tqs || 0) : 0;
                     const priceMs = foodRecord ? (foodRecord.price_per_ms || 0) : 0;
                     const msPercentage = foodRecord ? foodRecord.ms_percentage : 100;
+
+                    const tqs = parseFloat(a.v1) || 0;
+                    const ms = tqs * (msPercentage / 100);
                     
                     const costDay = tqs * (priceTqs / 1000);
                     

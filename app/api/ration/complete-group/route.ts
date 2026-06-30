@@ -57,8 +57,15 @@ export async function POST(request: Request) {
                     if (!item.food_id || isNaN(item.consumed_tqs)) continue;
                     
                     const foodId = parseInt(item.food_id);
-                    const quantity = parseFloat(item.consumed_tqs);
-                    if (quantity <= 0) continue;
+                    const quantityInKg = parseFloat(item.consumed_tqs);
+                    if (quantityInKg <= 0) continue;
+
+                    const food = await tx.food.findUnique({
+                        where: { id: foodId },
+                        include: { unit_type: true }
+                    });
+                    const rationToKg = food?.unit_type?.ration_to_kg || 1;
+                    const quantity = quantityInKg / rationToKg; // Convert kg to stored units
 
                     // Update stock from the storage that has the most stock
                     const bestStorage = await tx.foodStorage.findFirst({

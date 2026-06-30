@@ -16,11 +16,55 @@ export async function POST(req: Request) {
         }
 
         if (action === 'cancel') {
-            await prisma.pushedRation.update({
-                where: { id },
-                data: { status: 'ANNULEE' }
+            await prisma.$transaction(async (tx) => {
+                await tx.pushedRation.update({
+                    where: { id },
+                    data: { status: 'ANNULEE' }
+                });
+
+                const completedKeys = Array.isArray(ration.completed_keys) ? ration.completed_keys : [];
+                for (const key of completedKeys) {
+                    const group = (ration.payload as any)?.[key as string];
+                    if (group && group.aliments) {
+                        for (const a of group.aliments) {
+                            const foodId = parseInt(a.food_id);
+                            const quantityInKg = parseFloat(a.v1);
+                            if (!foodId || isNaN(quantityInKg) || quantityInKg <= 0) continue;
+
+                            const food = await tx.food.findUnique({
+                                where: { id: foodId },
+                                include: { unit_type: true }
+                            });
+                            const rationToKg = food?.unit_type?.ration_to_kg || 1;
+                            const quantity = quantityInKg / rationToKg;
+
+                            const bestStorage = await tx.foodStorage.findFirst({
+                                where: { food_id: foodId },
+                                orderBy: { current_stock: 'desc' }
+                            });
+
+                            let storageIdToLog = null;
+                            if (bestStorage) {
+                                storageIdToLog = bestStorage.storage_id;
+                                await tx.foodStorage.update({
+                                    where: { food_id_storage_id: { food_id: foodId, storage_id: bestStorage.storage_id } },
+                                    data: { current_stock: { increment: quantity } }
+                                });
+                            }
+
+                            await tx.stockTransaction.create({
+                                data: {
+                                    food_id: foodId,
+                                    storage_id: storageIdToLog,
+                                    quantity: quantity,
+                                    transaction_type: "ADJUSTMENT"
+                                }
+                            });
+                        }
+                    }
+                }
             });
-            return NextResponse.json({ success: true, message: "Ration annulée." });
+            return NextResponse.json({ success: true, message: "Ration annulée et inventaire restauré." });
         }
 
         if (action === 'finish') {
