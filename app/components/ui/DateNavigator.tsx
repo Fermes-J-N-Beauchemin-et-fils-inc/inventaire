@@ -23,13 +23,22 @@ export default function DateNavigator({
   const handlePrevDay = () => {
     const newDate = new Date(currentDateObj);
     newDate.setDate(newDate.getDate() - 1);
-    onChange(newDate.toISOString().split('T')[0]);
+    
+    const year = newDate.getFullYear();
+    const month = String(newDate.getMonth() + 1).padStart(2, '0');
+    const day = String(newDate.getDate()).padStart(2, '0');
+    onChange(`${year}-${month}-${day}`);
   };
 
   const handleNextDay = () => {
     const newDate = new Date(currentDateObj);
     newDate.setDate(newDate.getDate() + 1);
-    const newDateStr = newDate.toISOString().split('T')[0];
+    
+    const year = newDate.getFullYear();
+    const month = String(newDate.getMonth() + 1).padStart(2, '0');
+    const day = String(newDate.getDate()).padStart(2, '0');
+    const newDateStr = `${year}-${month}-${day}`;
+    
     if (maxDate && newDateStr > maxDate) return;
     onChange(newDateStr);
   };
@@ -46,34 +55,48 @@ export default function DateNavigator({
   return (
     <div className="flex items-center gap-4 bg-white p-2 rounded-[2rem] border-2 border-zinc-200 shadow-sm relative group w-max">
       
-      {/* Hidden native date input for quick jumping */}
-      <input 
-        ref={inputRef}
-        type="date"
-        value={selectedDate}
-        max={maxDate}
-        onChange={(e) => {
-          if(e.target.value) onChange(e.target.value);
-        }}
-        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
-      />
-
       <button 
-        onClick={(e) => { e.preventDefault(); handlePrevDay(); }}
+        type="button"
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePrevDay(); }}
         className="relative z-20 w-12 h-12 rounded-2xl flex items-center justify-center text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 transition-colors"
       >
         <FontAwesomeIcon icon={faChevronLeft} className="w-5 h-5" />
       </button>
       
-      <div className="flex flex-col items-center min-w-[220px] pointer-events-none">
-        <span className="text-xs font-black text-zinc-400 uppercase tracking-widest mb-1 flex items-center gap-2">
-          <FontAwesomeIcon icon={faCalendarAlt} /> {label}
-        </span>
-        <span className="font-black text-lg text-zinc-800 capitalize">{formattedDate}</span>
+      <div 
+        className="relative flex flex-col items-center min-w-[220px] cursor-pointer"
+        onClick={() => {
+          if (inputRef.current && 'showPicker' in inputRef.current) {
+            try {
+              inputRef.current.showPicker();
+            } catch (e) {
+              console.error(e);
+            }
+          }
+        }}
+      >
+        {/* Hidden native date input for quick jumping */}
+        <input 
+          ref={inputRef}
+          type="date"
+          value={selectedDate}
+          max={maxDate}
+          onChange={(e) => {
+            if(e.target.value) onChange(e.target.value);
+          }}
+          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+        />
+        <div className="pointer-events-none flex flex-col items-center">
+          <span className="text-xs font-black text-zinc-400 uppercase tracking-widest mb-1 flex items-center gap-2">
+            <FontAwesomeIcon icon={faCalendarAlt} /> {label}
+          </span>
+          <span className="font-black text-lg text-zinc-800 capitalize">{formattedDate}</span>
+        </div>
       </div>
       
       <button 
-        onClick={(e) => { e.preventDefault(); handleNextDay(); }}
+        type="button"
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleNextDay(); }}
         disabled={isMaxReached}
         className="relative z-20 w-12 h-12 rounded-2xl flex items-center justify-center text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
       >

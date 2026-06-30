@@ -7,7 +7,8 @@ import DashboardTab from './components/DashboardTab';
 import LactationTab from './components/LactationTab';
 import ReleveTab from './components/ReleveTab';
 import TariesTab from './components/TariesTab';
-import { globalMocks, lactationGroups, releveGroups, releveTotal, tariesGroups, tariesTotal } from './lib/mockData';
+import BoeufTab from './components/BoeufTab';
+import { globalMocks, lactationGroups, releveGroups, releveTotal, tariesGroups, tariesTotal, boeufGroups, boeufTotal } from './lib/mockData';
 
 import DateNavigator from '@/app/components/ui/DateNavigator';
 
@@ -23,7 +24,9 @@ export default function SommaireClient() {
     releveGroups,
     releveTotal,
     tariesGroups,
-    tariesTotal
+    tariesTotal,
+    boeufGroups,
+    boeufTotal
   };
 
   return (
@@ -86,6 +89,17 @@ export default function SommaireClient() {
           <FontAwesomeIcon icon={faBed} />
           Taries & Autres
         </button>
+        <button
+          onClick={() => setActiveTab('boeuf')}
+          className={`flex-shrink-0 px-6 py-4 rounded-2xl font-bold text-lg flex items-center gap-3 transition-all ${
+            activeTab === 'boeuf' 
+              ? 'bg-orange-600 text-white shadow-md shadow-orange-600/20' 
+              : 'bg-white text-zinc-500 border-2 border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50'
+          }`}
+        >
+          <FontAwesomeIcon icon={faCow} />
+          Bœuf
+        </button>
       </div>
 
       {/* Tab Content */}
@@ -94,6 +108,7 @@ export default function SommaireClient() {
         {activeTab === 'lactation' && <LactationTab mocks={mocks} />}
         {activeTab === 'releve' && <ReleveTab mocks={mocks} />}
         {activeTab === 'taries' && <TariesTab mocks={mocks} />}
+        {activeTab === 'boeuf' && <BoeufTab mocks={mocks} />}
       </div>
       
     </div>

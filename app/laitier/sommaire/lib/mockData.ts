@@ -65,3 +65,18 @@ export const tariesTotal = {
   vaches: 56,
   coutTotalJournalier: 365.76 // 170.11 + 195.65
 };
+
+export const boeufGroups = [
+  { id: 'au-lait-cage', name: 'Au lait cage', betes: 6, poids: 119, ageMoyen: 5, prixLbs: 20.00, prixTete: 2383, valeurTot: 14298 },
+  { id: 'p1-au-lait', name: 'P1 Au lait', betes: 10, poids: 275, ageMoyen: 67, prixLbs: 15.00, prixTete: 4118, valeurTot: 41175 },
+  { id: 'p2-sevre', name: 'P2 (Sevré garage)', betes: 9, poids: 663, ageMoyen: 202, prixLbs: 7.00, prixTete: 4638, valeurTot: 41738 },
+  { id: 'bouvillon-83', name: 'Bouvillon extérieur (83)', betes: 11, poids: 1105, ageMoyen: 363, prixLbs: 5.00, prixTete: 5526, valeurTot: 60789 },
+  { id: 'bouvillon-84', name: 'Bouvillon extérieur (84)', betes: 19, poids: 1592, ageMoyen: 594, prixLbs: 3.50, prixTete: 5572, valeurTot: 105868 },
+  { id: 'bouvillon-85', name: 'Bouvillon extérieur (85)', betes: 0, poids: 0, ageMoyen: 0, prixLbs: 0, prixTete: 0, valeurTot: 0 },
+];
+
+export const boeufTotal = {
+  betes: 55,
+  poidsLbs: 51828,
+  valeurTot: 263867
+};
