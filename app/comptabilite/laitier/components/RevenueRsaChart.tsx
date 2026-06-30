@@ -5,7 +5,7 @@ import { revenueRsaData } from '../lib/mockChartData';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChartLine } from '@fortawesome/free-solid-svg-icons';
 
-export default function RevenueRsaChart() {
+export default function RevenueRsaChart({ data = revenueRsaData }: { data?: any[] }) {
   return (
     <div className="bg-white p-6 rounded-[2rem] border-2 border-zinc-100 shadow-sm col-span-1 lg:col-span-2">
       <div className="flex items-center justify-between mb-6">
@@ -23,7 +23,7 @@ export default function RevenueRsaChart() {
       
       <div className="h-[300px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={revenueRsaData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <ComposedChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="colorRevenu" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>

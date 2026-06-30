@@ -5,7 +5,7 @@ import { troupeauDailyData } from '../lib/mockChartData';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChartArea } from '@fortawesome/free-solid-svg-icons';
 
-export default function TroupeauDailyStatsChart() {
+export default function TroupeauDailyStatsChart({ data = troupeauDailyData }: { data?: any[] }) {
   return (
     <div className="bg-white p-6 rounded-[2rem] border-2 border-zinc-100 shadow-sm col-span-1 lg:col-span-2">
       <div className="flex items-center justify-between mb-6">
@@ -20,7 +20,7 @@ export default function TroupeauDailyStatsChart() {
       <div className="h-[300px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
-            data={troupeauDailyData}
+            data={data}
             margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
           >
             <defs>

@@ -8,6 +8,7 @@ import LactationTab from './components/LactationTab';
 import ReleveTab from './components/ReleveTab';
 import TariesTab from './components/TariesTab';
 import BoeufTab from './components/BoeufTab';
+import LiveHerdView from './components/LiveHerdView';
 import { globalMocks, lactationGroups, releveGroups, releveTotal, tariesGroups, tariesTotal, boeufGroups, boeufTotal } from './lib/mockData';
 
 import DateNavigator from '@/app/components/ui/DateNavigator';
@@ -42,6 +43,8 @@ export default function SommaireClient() {
           maxDate={new Date().toISOString().split('T')[0]}
         />
       </div>
+
+      <LiveHerdView />
 
       {/* Tabs Navigation */}
       <div className="flex overflow-x-auto gap-2 mb-8 pb-2 scrollbar-hide">
@@ -102,7 +105,7 @@ export default function SommaireClient() {
         </button>
       </div>
 
-      {/* Tab Content */}
+      {/* Tabs Menu */}
       <div className="min-h-[500px]">
         {activeTab === 'dashboard' && <DashboardTab mocks={mocks} setActiveTab={setActiveTab} />}
         {activeTab === 'lactation' && <LactationTab mocks={mocks} />}

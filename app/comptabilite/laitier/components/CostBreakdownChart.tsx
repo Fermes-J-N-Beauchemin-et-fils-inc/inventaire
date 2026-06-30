@@ -5,7 +5,7 @@ import { costBreakdownData } from '../lib/mockChartData';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChartPie } from '@fortawesome/free-solid-svg-icons';
 
-export default function CostBreakdownChart() {
+export default function CostBreakdownChart({ data = costBreakdownData }: { data?: any[] }) {
   return (
     <div className="bg-white p-6 rounded-[2rem] border-2 border-zinc-100 shadow-sm col-span-1">
       <div className="flex items-center justify-between mb-2">
@@ -21,7 +21,7 @@ export default function CostBreakdownChart() {
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
-              data={costBreakdownData}
+              data={data}
               cx="50%"
               cy="45%"
               innerRadius={70}
