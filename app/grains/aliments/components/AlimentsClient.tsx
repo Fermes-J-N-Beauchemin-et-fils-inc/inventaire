@@ -18,6 +18,7 @@ export default function AlimentsClient({ initialAliments }: AlimentsClientProps)
 
   const filteredAliments = initialAliments.filter(aliment => 
     aliment.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (aliment.commonName && aliment.commonName !== "N/A" && aliment.commonName.toLowerCase().includes(searchQuery.toLowerCase())) ||
     aliment.id.includes(searchQuery)
   );
 
@@ -115,9 +116,11 @@ export default function AlimentsClient({ initialAliments }: AlimentsClientProps)
                 <h2 className="text-2xl font-black text-zinc-900 group-hover:text-blue-700 transition-colors line-clamp-2">
                   {aliment.fullName}
                 </h2>
-                <p className="text-zinc-500 font-bold mt-2">
-                  {aliment.commonName}
-                </p>
+                {aliment.commonName !== "N/A" && (
+                  <p className="text-zinc-500 font-bold mt-2">
+                    Aussi appelé : <span className="text-blue-600">{aliment.commonName}</span>
+                  </p>
+                )}
               </div>
 
               {/* Metrics */}

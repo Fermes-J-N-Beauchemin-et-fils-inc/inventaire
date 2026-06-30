@@ -10,8 +10,8 @@ export async function createAliment(formData: FormData) {
   const unit_type_id = parseInt(formData.get("unit_type_id") as string, 10);
   const storage_id = parseInt(formData.get("storage_id") as string, 10);
   const price_per_ms = parseFloat(formData.get("price_per_ms") as string) || 0;
-  const price_per_tqs = parseFloat(formData.get("price_per_tqs") as string) || 0;
   const ms_percentage = parseFloat(formData.get("ms_percentage") as string) || 0;
+  const price_per_tqs = price_per_ms * (ms_percentage / 100);
   const current_stock = parseFloat(formData.get("current_stock") as string) || 0;
 
   if (!name || isNaN(unit_type_id) || isNaN(storage_id)) {
@@ -45,8 +45,8 @@ export async function updateAliment(id: number, formData: FormData) {
   const unit_type_id = parseInt(formData.get("unit_type_id") as string, 10);
   const storage_id = parseInt(formData.get("storage_id") as string, 10);
   const price_per_ms = parseFloat(formData.get("price_per_ms") as string) || 0;
-  const price_per_tqs = parseFloat(formData.get("price_per_tqs") as string) || 0;
   const ms_percentage = parseFloat(formData.get("ms_percentage") as string) || 0;
+  const price_per_tqs = price_per_ms * (ms_percentage / 100);
   const current_stock = parseFloat(formData.get("current_stock") as string) || 0;
 
   if (!name || isNaN(unit_type_id) || isNaN(storage_id)) {

@@ -4,7 +4,7 @@ import React, { useState, useTransition } from 'react';
 import { StorageData } from '../data/fetchInventaire';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faWarehouse, faSave, faSpinner, faPlus, faTrash, faPowerOff } from '@fortawesome/free-solid-svg-icons';
-import { updateStorageCapacity, createStorage, toggleStorageStatus } from '../actions';
+import { updateStorage, createStorage, toggleStorageStatus } from '../actions';
 import toast from 'react-hot-toast';
 import DeleteStorageButton from './DeleteStorageButton';
 
@@ -22,23 +22,36 @@ export default function StockageView({ storages }: Props) {
     return initial;
   });
 
+  const [names, setNames] = useState<{ [id: number]: string }>(() => {
+    const initial: any = {};
+    storages.forEach(s => {
+      initial[s.id] = s.name;
+    });
+    return initial;
+  });
+
   const [isPending, startTransition] = useTransition();
 
   const handleCapacityChange = (id: number, val: string) => {
     setCapacities(prev => ({ ...prev, [id]: val }));
   };
 
+  const handleNameChange = (id: number, val: string) => {
+    setNames(prev => ({ ...prev, [id]: val }));
+  };
+
   const handleSave = (id: number) => {
     const val = parseFloat(capacities[id]);
-    if (isNaN(val) || val < 0) {
-      toast.error("Capacité invalide.");
+    const name = names[id]?.trim();
+    if (isNaN(val) || val < 0 || !name) {
+      toast.error("Capacité ou nom invalide.");
       return;
     }
 
     startTransition(async () => {
       try {
-        await updateStorageCapacity(id, val);
-        toast.success("Capacité mise à jour avec succès !");
+        await updateStorage(id, name, val);
+        toast.success("Stockage mis à jour avec succès !");
       } catch (e) {
         console.error(e);
         toast.error("Erreur lors de la sauvegarde.");
@@ -111,19 +124,16 @@ export default function StockageView({ storages }: Props) {
         {storages.map(storage => {
           // Calcul de la quantité actuelle en TM.
           const currentTm = storage.food_storages.reduce((sum: number, fs: any) => {
-            const isTm = fs.food?.unit_type?.name?.toLowerCase() === 'tm';
-            const tmStock = isTm ? fs.current_stock : fs.current_stock / 1000;
-            return sum + tmStock;
+            const rationToKg = fs.food?.unit_type?.ration_to_kg || 1;
+            const kgStock = fs.current_stock * rationToKg;
+            return sum + (kgStock / 1000);
           }, 0);
           
           // Calculate total blocked TM across all foods in this storage
           const blockedTm = storage.food_storages.reduce((sum: number, fs: any) => {
-            const isTm = fs.food?.unit_type?.name?.toLowerCase() === 'tm';
             if (fs.food?.sale_contracts) {
               const subContracts = fs.food.sale_contracts.flatMap((c: any) => c.sub_contracts);
               const totalKg = subContracts.reduce((s: number, sc: any) => s + sc.kg_left_to_deliver, 0);
-              const blocked = isTm ? totalKg / 1000 : totalKg; // Assuming totalKg is in kg actually? No, wait, expected_kg in contracts is whatever unit they used? Actually, sales are always registered in the base unit. If unit is TM, totalKg is in kg. Actually, looking at validateSale, it uses kg and converts if isTm.
-              // Wait, createSaleContract gets total_kg, so it's always in kg.
               const blockedTmEquivalent = totalKg / 1000;
               return sum + blockedTmEquivalent;
             }
@@ -140,12 +150,18 @@ export default function StockageView({ storages }: Props) {
 
           return (
             <div key={storage.id} className={`rounded-[2rem] border shadow-sm p-6 flex flex-col transition-all ${storage.is_active ? 'bg-zinc-50 border-zinc-200' : 'bg-zinc-100/50 border-zinc-200 opacity-60 grayscale hover:grayscale-0'}`}>
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h3 className="text-2xl font-black text-zinc-900">{storage.name}</h3>
+              <div className="flex justify-between items-start mb-6 gap-4">
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={names[storage.id]}
+                    onChange={(e) => handleNameChange(storage.id, e.target.value)}
+                    disabled={!storage.is_active}
+                    className="w-full bg-transparent border-b-2 border-transparent hover:border-zinc-300 focus:border-amber-500 focus:bg-white px-2 py-1 -ml-2 rounded-lg text-2xl font-black text-zinc-900 outline-none transition-all"
+                  />
                   {!storage.is_active && <span className="text-xs font-black text-red-500 uppercase tracking-widest mt-1 block">Désactivé</span>}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 shrink-0">
                   <button 
                     onClick={() => handleToggleActive(storage.id, storage.is_active)}
                     title={storage.is_active ? "Désactiver" : "Activer"}
@@ -214,7 +230,7 @@ export default function StockageView({ storages }: Props) {
                   />
                   <button
                     onClick={() => handleSave(storage.id)}
-                    disabled={isPending || parseFloat(capacities[storage.id]) === storage.max_capacity || !storage.is_active}
+                    disabled={isPending || (parseFloat(capacities[storage.id]) === storage.max_capacity && names[storage.id] === storage.name) || !storage.is_active}
                     className="bg-zinc-900 hover:bg-black text-white px-4 py-2 rounded-xl font-black shadow-md transition-all disabled:opacity-50 flex items-center justify-center"
                     title="Sauvegarder"
                   >

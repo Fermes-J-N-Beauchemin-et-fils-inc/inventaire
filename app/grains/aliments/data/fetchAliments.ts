@@ -26,13 +26,17 @@ export async function fetchAliments(): Promise<AlimentDetail[]> {
       );
 
       const currentStock = food.storages.reduce((sum: number, s: any) => sum + s.current_stock, 0);
-      const maxStock = food.storages.reduce((sum: number, s: any) => sum + s.storage.max_capacity, 0);
+      const maxStock = food.storages.reduce((sum: number, s: any) => {
+        const capacityKg = s.storage.max_capacity * 1000;
+        const capacityInUnit = capacityKg / food.unit_type.ration_to_kg;
+        return sum + capacityInUnit;
+      }, 0);
       const storageLocation = food.storages.map((s: any) => s.storage.name).join(', ') || 'Aucun silo';
 
       return {
         id: food.id.toString(),
         fullName: food.name,
-        commonName: food.name, // Using name for both as schema only has one name field
+        commonName: food.common_name || "N/A", 
         msPercentage: food.ms_percentage,
         humidityPercentage: 100 - food.ms_percentage,
         maxStock: maxStock,

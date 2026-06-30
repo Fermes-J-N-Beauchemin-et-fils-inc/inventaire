@@ -165,13 +165,19 @@ export default async function AlimentDetailPage({ params }: { params: Promise<{ 
   }
   const consumptionRate = Number((last7DaysConsumption / 7).toFixed(2));
 
+  const maxStock = food.storages.reduce((sum: number, s: any) => {
+    const capacityKg = s.storage.max_capacity * 1000;
+    const capacityInUnit = capacityKg / food.unit_type.ration_to_kg;
+    return sum + capacityInUnit;
+  }, 0);
+
   // Construct view model
   const aliment = {
     id: food.id,
     fullName: food.name,
     commonName: food.common_name || "N/A",
     currentStock: currentStock,
-    maxStock: currentStock * 2 || 100, // Dummy max stock
+    maxStock: maxStock > 0 ? maxStock : 100, // Avoid division by zero
     unit: food.unit_type.name,
     msPercentage: food.ms_percentage,
     humidityPercentage: 100 - food.ms_percentage,

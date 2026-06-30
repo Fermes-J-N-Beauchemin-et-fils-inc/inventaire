@@ -202,14 +202,17 @@ export async function createComplexSale(formData: FormData) {
   revalidatePath('/comptabilite');
 }
 
-export async function updateStorageCapacity(storageId: number, maxCapacityTm: number) {
-  if (isNaN(storageId) || isNaN(maxCapacityTm) || maxCapacityTm < 0) {
+export async function updateStorage(storageId: number, name: string, maxCapacityTm: number) {
+  if (isNaN(storageId) || !name || isNaN(maxCapacityTm) || maxCapacityTm < 0) {
     throw new Error("Valeurs invalides.");
   }
 
   await prisma.storage.update({
     where: { id: storageId },
-    data: { max_capacity: maxCapacityTm }
+    data: { 
+      name: name,
+      max_capacity: maxCapacityTm 
+    }
   });
 
   revalidatePath('/inventaire');

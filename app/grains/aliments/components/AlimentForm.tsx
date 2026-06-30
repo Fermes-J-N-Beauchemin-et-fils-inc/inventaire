@@ -168,7 +168,7 @@ export default function AlimentForm({ units, storages, initialData, action }: Al
           <div className="bg-zinc-50 p-6 rounded-[2rem] border border-zinc-100 space-y-6">
             <h2 className="text-xl font-black text-zinc-800 uppercase tracking-widest mb-4">Valeurs Supplémentaires</h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="ms_percentage" className="block text-sm font-bold text-zinc-700 mb-2">Masse Sèche (MS) %</label>
                 <input
@@ -193,17 +193,7 @@ export default function AlimentForm({ units, storages, initialData, action }: Al
                 />
               </div>
 
-              <div>
-                <label htmlFor="price_per_tqs" className="block text-sm font-bold text-zinc-700 mb-2">Prix / TQS ($)</label>
-                <input
-                  type="number"
-                  step="any"
-                  id="price_per_tqs"
-                  name="price_per_tqs"
-                  defaultValue={initialData?.price_per_tqs || 0}
-                  className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm"
-                />
-              </div>
+
             </div>
           </div>
 
