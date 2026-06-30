@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import Sidenav from "@/app/components/ui/sidenav";
 import { GroupKey, GroupsState, Saison, PluieMode, GroupPluieMode, GroupData } from "./types";
 import RationForm from "./components/RationForm";
@@ -100,8 +101,12 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
       });
       if (res.ok) {
         toast.success(action === 'cancel' ? "Distribution annulée." : "Distribution terminée.");
-        setPushedRation(null);
-        setView('form');
+        if (action === 'finish') {
+          setPushedRation((prev: any) => ({ ...prev, status: 'TERMINEE' }));
+        } else {
+          setPushedRation(null);
+          setView('form');
+        }
       } else {
         toast.error("Erreur lors de l'opération.");
       }
@@ -502,14 +507,17 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
       );
   }
 
-  if (isDistributor && pushedRation && pushedRation.status === 'TERMINEE') {
+  if (pushedRation && pushedRation.status === 'TERMINEE') {
       return renderLayout(
           <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
               <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6">
                 <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
               </div>
-              <h2 className="text-3xl font-black text-zinc-900 mb-2">Distribution finie pour aujourd'hui</h2>
-              <p className="text-lg text-zinc-500 max-w-md">Excellent travail. Tous les groupes ont été nourris.</p>
+              <h2 className="text-3xl font-black text-zinc-900 mb-2">Ration finie pour aujourd'hui</h2>
+              <p className="text-lg text-zinc-500 max-w-md mb-6">Excellent travail. Tous les groupes ont été nourris.</p>
+              <Link href="/comptabilite/rations" className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all inline-flex items-center gap-2">
+                 Veuillez consulter comptabilité/ration pour les détails d'aujourd'hui
+              </Link>
           </div>
       );
   }
@@ -576,7 +584,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
           globalPluie={globalPluie}
           handleReorderGroups={handleReorderGroups}
           onToggleGroupCompletion={handleToggleGroupCompletion}
-          onFinishAll={() => toast.success("Ration sauvegardée ! (La comptabilité est déjà mise à jour pour chaque groupe)")}
+          onFinishAll={() => handleAdminAction('finish')}
           onAdjustAlimentWeight={handleAdjustAlimentWeight}
           onIndiceChange={handleIndiceChange}
           onGroupPluieChange={handleGroupPluieChange}
