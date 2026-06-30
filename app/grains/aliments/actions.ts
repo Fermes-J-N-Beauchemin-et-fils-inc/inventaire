@@ -108,7 +108,7 @@ export async function toggleFoodStatus(foodId: number, isActive: boolean) {
 
 export async function deleteAliment(id: number) {
   try {
-    // Delete associated records that don't have cascade delete
+    // Delete associated records that don't have cascade delete (or where cascade might not be applied in DB)
     await prisma.$transaction([
       prisma.dailyServing.deleteMany({ where: { food_id: id } }),
       prisma.stockTransaction.deleteMany({ where: { food_id: id } }),
@@ -116,6 +116,8 @@ export async function deleteAliment(id: number) {
       prisma.sale.deleteMany({ where: { food_id: id } }),
       prisma.contract.deleteMany({ where: { food_id: id } }),
       prisma.saleContract.deleteMany({ where: { food_id: id } }),
+      prisma.foodStorage.deleteMany({ where: { food_id: id } }),
+      prisma.foodSnapshot.deleteMany({ where: { food_id: id } }),
       prisma.food.delete({ where: { id } })
     ]);
   } catch (error: any) {
