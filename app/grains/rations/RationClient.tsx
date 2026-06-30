@@ -227,13 +227,19 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
     setGroups(prev => ({ ...prev, [key]: { ...prev[key], pluieMode: mode } }));
   };
 
-  const handleAddAliment = (groupKey: GroupKey) => {
+  const handleAddAliment = (groupKey: GroupKey, isInstruction = false) => {
     setGroups(prev => {
       const updatedGroup = {
         ...prev[groupKey],
         aliments: [
           ...prev[groupKey].aliments,
-          { id: Math.random().toString(36).substr(2, 9), name: "Nouvel aliment", v1: "0", v2: "0" }
+          { 
+            id: Math.random().toString(36).substr(2, 9), 
+            name: isInstruction ? "" : "Nouvel aliment", 
+            v1: "0", 
+            v2: "0",
+            isInstruction
+          }
         ]
       };
       return { ...prev, [groupKey]: recalculateGroupAliments(updatedGroup) };
@@ -273,6 +279,10 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
 
   const handleUpdateAliment = (groupKey: GroupKey, id: string, field: 'name' | 'v1' | 'v2' | 'change_food', value: string) => {
     setGroups(prev => {
+      if (field === 'change_food') {
+        const isDuplicate = prev[groupKey].aliments.some(a => a.id === value && !a.isInstruction);
+        if (isDuplicate) return prev;
+      }
       const updatedGroup = {
         ...prev[groupKey],
         aliments: prev[groupKey].aliments.map(a => {

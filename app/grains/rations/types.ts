@@ -9,6 +9,7 @@ export type RationAliment = {
   highlight?: string;
   extra?: string;
   extraColor?: string;
+  isInstruction?: boolean;
 };
 
 export type PluieMode = 'normal' | 'semi-pluie' | 'pluie' | 'extra-pluie';

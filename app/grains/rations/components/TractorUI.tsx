@@ -330,17 +330,17 @@ export default function TractorUI({
               return (
                 <div
                   key={aliment.id}
-                  className={`flex flex-col xl:flex-row xl:justify-between xl:items-center p-6 sm:p-8 rounded-2xl border-b-2 border-zinc-100 gap-6 ${idx % 2 === 0 ? 'bg-zinc-50' : 'bg-white'}`}
+                  className={`flex flex-col xl:flex-row xl:justify-between xl:items-center p-6 sm:p-8 rounded-2xl border-b-2 gap-6 ${aliment.isInstruction ? 'bg-red-50 border-red-200 shadow-sm' : (idx % 2 === 0 ? 'bg-zinc-50 border-zinc-100' : 'bg-white border-zinc-100')}`}
                 >
                   <div className="flex items-center gap-6">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-black text-xl sm:text-2xl shrink-0">
-                      {idx + 1}
+                    <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center font-black text-xl sm:text-2xl shrink-0 ${aliment.isInstruction ? 'bg-red-200 text-red-800' : 'bg-blue-100 text-blue-700'}`}>
+                      {aliment.isInstruction ? <FontAwesomeIcon icon={faExclamationTriangle} /> : (idx + 1)}
                     </div>
                     <div>
-                      <span className={`text-2xl sm:text-4xl font-black ${aliment.highlight || ''} ${(!aliment.highlight || !aliment.highlight.includes('text-')) ? 'text-black' : ''}`}>
+                      <span className={`text-2xl sm:text-4xl font-black ${aliment.isInstruction ? 'text-red-700' : 'text-black'} ${aliment.highlight || ''}`}>
                         {aliment.name}
                       </span>
-                      {aliment.extra && (
+                      {aliment.extra && !aliment.isInstruction && (
                         <span className={`ml-4 text-lg sm:text-2xl ${aliment.extraColor || 'text-red-500'}`}>
                           ({aliment.extra})
                         </span>
@@ -348,29 +348,31 @@ export default function TractorUI({
                     </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-4 sm:gap-10 xl:ml-auto bg-white xl:bg-transparent p-4 sm:p-5 xl:p-0 rounded-2xl shadow-sm xl:shadow-none border-2 xl:border-none border-zinc-200 w-full xl:w-auto">
-                    {aliment.v1 !== "0" && aliment.v1 !== aliment.v2 && (
-                      <div className="flex flex-col items-end">
-                        <span className="text-xs sm:text-sm font-bold text-zinc-600 uppercase tracking-widest mb-1">Aliment</span>
-                        <span className="text-2xl sm:text-3xl font-black text-zinc-800">{scaledV1} <span className="text-lg sm:text-xl font-bold text-zinc-600">kg</span></span>
+                  {!aliment.isInstruction && (
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-4 sm:gap-10 xl:ml-auto bg-white xl:bg-transparent p-4 sm:p-5 xl:p-0 rounded-2xl shadow-sm xl:shadow-none border-2 xl:border-none border-zinc-200 w-full xl:w-auto">
+                      {aliment.v1 !== "0" && aliment.v1 !== aliment.v2 && (
+                        <div className="flex flex-col items-end">
+                          <span className="text-xs sm:text-sm font-bold text-zinc-600 uppercase tracking-widest mb-1">Aliment</span>
+                          <span className="text-2xl sm:text-3xl font-black text-zinc-800">{scaledV1} <span className="text-lg sm:text-xl font-bold text-zinc-600">kg</span></span>
+                        </div>
+                      )}
+                      <div className={`flex flex-col items-end ${aliment.v1 !== "0" && aliment.v1 !== aliment.v2 ? 'sm:pl-10 sm:border-l-2 border-zinc-200 pt-4 sm:pt-0 mt-4 sm:mt-0 border-t-2 sm:border-t-0' : ''}`}>
+                        <span className="text-xs sm:text-sm font-black text-blue-600 uppercase tracking-widest mb-1">RTM (Balance)</span>
+                        <span className="text-4xl sm:text-5xl font-black text-blue-700">{scaledV2} <span className="text-2xl sm:text-3xl font-bold text-blue-500/70">kg</span></span>
                       </div>
-                    )}
-                    <div className={`flex flex-col items-end ${aliment.v1 !== "0" && aliment.v1 !== aliment.v2 ? 'sm:pl-10 sm:border-l-2 border-zinc-200 pt-4 sm:pt-0 mt-4 sm:mt-0 border-t-2 sm:border-t-0' : ''}`}>
-                      <span className="text-xs sm:text-sm font-black text-blue-600 uppercase tracking-widest mb-1">RTM (Balance)</span>
-                      <span className="text-4xl sm:text-5xl font-black text-blue-700">{scaledV2} <span className="text-2xl sm:text-3xl font-bold text-blue-500/70">kg</span></span>
+                      {/* Ajuster button */}
+                      {typeof scaledV2 === 'number' && !isReadOnly && (
+                        <button
+                          onClick={() => { setAdjustModal({ key, tour, alimentId: aliment.id, alimentName: aliment.name, targetV2: scaledV2 }); setAdjustValue(""); }}
+                          className="ml-0 sm:ml-4 mt-4 sm:mt-0 w-full sm:w-auto shrink-0 bg-blue-100 hover:bg-blue-200 text-blue-900 px-4 py-3 rounded-xl border border-blue-300 font-bold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-sm"
+                          title="Corriger si erreur de balance"
+                        >
+                          <FontAwesomeIcon icon={faScaleBalanced} />
+                          <span className="xl:hidden">Ajuster erreur</span>
+                        </button>
+                      )}
                     </div>
-                    {/* Ajuster button */}
-                    {typeof scaledV2 === 'number' && !isReadOnly && (
-                      <button
-                        onClick={() => { setAdjustModal({ key, tour, alimentId: aliment.id, alimentName: aliment.name, targetV2: scaledV2 }); setAdjustValue(""); }}
-                        className="ml-0 sm:ml-4 mt-4 sm:mt-0 w-full sm:w-auto shrink-0 bg-blue-100 hover:bg-blue-200 text-blue-900 px-4 py-3 rounded-xl border border-blue-300 font-bold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-sm"
-                        title="Corriger si erreur de balance"
-                      >
-                        <FontAwesomeIcon icon={faScaleBalanced} />
-                        <span className="xl:hidden">Ajuster erreur</span>
-                      </button>
-                    )}
-                  </div>
+                  )}
                 </div>
               );
             })}

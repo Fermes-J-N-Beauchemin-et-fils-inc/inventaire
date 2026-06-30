@@ -1,6 +1,9 @@
 import Sidenav from "@/app/components/ui/sidenav";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDroplet, faChartLine, faCoins, faCalendarDays } from '@fortawesome/free-solid-svg-icons';
+import RevenueRsaChart from "./components/RevenueRsaChart";
+import TroupeauStatsChart from "./components/TroupeauStatsChart";
+import CostBreakdownChart from "./components/CostBreakdownChart";
 
 export default function LaitierComptabilitePage() {
   return (
@@ -103,6 +106,25 @@ export default function LaitierComptabilitePage() {
             <div className="flex-1 w-full text-zinc-600 text-sm leading-relaxed">
               <p>Ce coût ne comprend que l'alimentation distribuée aux animaux via les rations (incluant concentrés, ensilages et foin). Les autres dépenses (frais vétérinaires, main d'œuvre, amortissements) ne sont pas comptabilisées dans cette section.</p>
             </div>
+          </div>
+        </div>
+
+        {/* Analyses & Tendances Section */}
+        <div className="mt-8">
+          <div className="flex items-center justify-between border-b border-zinc-200 pb-3 mb-6">
+            <h2 className="text-2xl font-black text-zinc-800 flex items-center gap-2">
+              Analyses & Tendances
+            </h2>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <RevenueRsaChart />
+            <CostBreakdownChart />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <TroupeauStatsChart />
+            {/* Can add more charts in the future here */}
           </div>
         </div>
 

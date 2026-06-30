@@ -21,7 +21,7 @@ interface RationFormProps {
   handleGroupChange: (groupKey: GroupKey, field: 'indice' | 'indiceTour2' | 'fed' | 'real' | 'foinSec', value: string | number) => void;
   handleNoteChange: (groupKey: GroupKey, value: string) => void;
   handleSystemNoteChange: (groupKey: GroupKey, value: string) => void;
-  handleAddAliment: (groupKey: GroupKey) => void;
+  handleAddAliment: (groupKey: GroupKey, isInstruction?: boolean) => void;
   handleUpdateAliment: (groupKey: GroupKey, id: string, field: 'name' | 'v1' | 'v2' | 'change_food', value: string) => void;
   handleRemoveAliment: (groupKey: GroupKey, id: string) => void;
   handleReorderAliments: (groupKey: GroupKey, startIndex: number, endIndex: number) => void;
@@ -218,13 +218,22 @@ export default function RationForm({
           <div className="flex-1 border-t-2 border-zinc-200 pt-4">
             <div className="flex justify-between items-center mb-3">
               <h4 className="font-black text-zinc-800">Ingrédients (Totaux par jour)</h4>
-              <button 
-                onClick={() => handleAddAliment(key)}
-                className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
-              >
-                <FontAwesomeIcon icon={faPlus} />
-                Ajouter
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => handleAddAliment(key, true)}
+                  className="text-xs bg-red-100 hover:bg-red-200 text-red-700 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <FontAwesomeIcon icon={faPlus} />
+                  Instruction
+                </button>
+                <button 
+                  onClick={() => handleAddAliment(key, false)}
+                  className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <FontAwesomeIcon icon={faPlus} />
+                  Aliment
+                </button>
+              </div>
             </div>
             
             <Droppable droppableId={`aliments-${key}-${tour}`} type="aliment">
@@ -241,21 +250,36 @@ export default function RationForm({
                           ref={provided.innerRef}
                           {...provided.draggableProps}
                           style={provided.draggableProps.style}
-                          className={`flex gap-3 items-center bg-white p-2.5 rounded-xl border shadow-sm transition-all duration-200 ${snapshot.isDragging ? 'border-blue-500 shadow-lg ring-4 ring-blue-500/20 scale-[1.02] z-50' : 'border-zinc-200 hover:border-blue-300 hover:shadow-md'}`}
+                          className={`flex gap-3 items-center bg-white p-2.5 rounded-xl border shadow-sm transition-all duration-200 ${snapshot.isDragging ? 'border-blue-500 shadow-lg ring-4 ring-blue-500/20 scale-[1.02] z-50' : 'border-zinc-200 hover:border-blue-300 hover:shadow-md'} ${aliment.isInstruction ? '!bg-red-50 !border-red-300' : ''}`}
                         >
-                          <div {...provided.dragHandleProps} className="text-zinc-300 hover:text-zinc-500 w-10 h-10 flex items-center justify-center bg-zinc-50 hover:bg-zinc-100 rounded-lg cursor-grab active:cursor-grabbing transition-colors">
+                          <div {...provided.dragHandleProps} className={`text-zinc-300 hover:text-zinc-500 w-10 h-10 flex items-center justify-center rounded-lg cursor-grab active:cursor-grabbing transition-colors ${aliment.isInstruction ? 'bg-red-100 hover:bg-red-200 text-red-400 hover:text-red-600' : 'bg-zinc-50 hover:bg-zinc-100'}`}>
                             <FontAwesomeIcon icon={faGripVertical} className="text-lg" />
                           </div>
-                          <select 
-                            value={aliment.id} 
-                            onChange={(e) => handleUpdateAliment(key, aliment.id, 'change_food', e.target.value)}
-                            className="flex-1 px-3 py-2 text-base font-black text-black border-2 border-zinc-400 hover:border-black focus:border-blue-600 rounded-lg focus:outline-none bg-zinc-100 shadow-sm cursor-pointer"
-                          >
-                            <option value={aliment.id} disabled hidden>{aliment.name}</option>
-                            {availableAliments.map(a => (
-                              <option key={a.id} value={a.id}>{a.name}</option>
-                            ))}
-                          </select>
+                          {aliment.isInstruction ? (
+                            <input
+                              type="text"
+                              value={aliment.name}
+                              onChange={(e) => handleUpdateAliment(key, aliment.id, 'name', e.target.value)}
+                              placeholder="Texte de l'instruction..."
+                              className="flex-1 px-3 py-2 text-base font-black text-red-800 border-2 border-red-300 hover:border-red-400 focus:border-red-600 rounded-lg focus:outline-none bg-white shadow-sm"
+                            />
+                          ) : (
+                            <select 
+                              value={aliment.id} 
+                              onChange={(e) => handleUpdateAliment(key, aliment.id, 'change_food', e.target.value)}
+                              className="flex-1 px-3 py-2 text-base font-black text-black border-2 border-zinc-400 hover:border-black focus:border-blue-600 rounded-lg focus:outline-none bg-zinc-100 shadow-sm cursor-pointer"
+                            >
+                              <option value={aliment.id} disabled hidden>{aliment.name}</option>
+                              {availableAliments.map(a => {
+                                const isDuplicate = group.aliments.some(ga => ga.id === a.id && !ga.isInstruction);
+                                return (
+                                  <option key={a.id} value={a.id} disabled={isDuplicate}>
+                                    {a.name} {isDuplicate ? '(Déjà ajouté)' : ''}
+                                  </option>
+                                );
+                              })}
+                            </select>
+                          )}
                           <button 
                             onClick={() => handleRemoveAliment(key, aliment.id)}
                             className="w-8 h-8 flex-shrink-0 flex items-center justify-center text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
