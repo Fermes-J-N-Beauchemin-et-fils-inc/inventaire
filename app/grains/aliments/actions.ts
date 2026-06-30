@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 export async function createAliment(formData: FormData) {
   const name = formData.get("name") as string;
+  const common_name = formData.get("common_name") as string || null;
   const unit_type_id = parseInt(formData.get("unit_type_id") as string, 10);
   const storage_id = parseInt(formData.get("storage_id") as string, 10);
   const price_per_ms = parseFloat(formData.get("price_per_ms") as string) || 0;
@@ -20,6 +21,7 @@ export async function createAliment(formData: FormData) {
   await prisma.food.create({
     data: {
       name,
+      common_name,
       unit_type_id,
       price_per_ms,
       price_per_tqs,
@@ -39,6 +41,7 @@ export async function createAliment(formData: FormData) {
 
 export async function updateAliment(id: number, formData: FormData) {
   const name = formData.get("name") as string;
+  const common_name = formData.get("common_name") as string || null;
   const unit_type_id = parseInt(formData.get("unit_type_id") as string, 10);
   const storage_id = parseInt(formData.get("storage_id") as string, 10);
   const price_per_ms = parseFloat(formData.get("price_per_ms") as string) || 0;
@@ -55,6 +58,7 @@ export async function updateAliment(id: number, formData: FormData) {
       where: { id },
       data: {
         name,
+        common_name,
         unit_type_id,
         price_per_ms,
         price_per_tqs,

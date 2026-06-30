@@ -40,6 +40,7 @@ export default async function ModifierAlimentPage({ params }: { params: Promise<
           initialData={{
             id: food.id,
             name: food.name,
+            common_name: food.common_name,
             unit_type_id: food.unit_type_id,
             price_per_ms: food.price_per_ms,
             price_per_tqs: food.price_per_tqs,

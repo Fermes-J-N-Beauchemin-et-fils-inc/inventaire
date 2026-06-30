@@ -15,6 +15,7 @@ interface AlimentFormProps {
   initialData?: {
     id: number;
     name: string;
+    common_name?: string | null;
     unit_type_id: number;
     price_per_ms: number;
     price_per_tqs: number;
@@ -101,6 +102,18 @@ export default function AlimentForm({ units, storages, initialData, action }: Al
                 required
                 className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
                 placeholder="Ex: Maïs grain humide..."
+              />
+            </div>
+
+            <div>
+              <label htmlFor="common_name" className="block text-sm font-bold text-zinc-700 mb-2">Aussi appelé (Optionnel)</label>
+              <input
+                type="text"
+                id="common_name"
+                name="common_name"
+                defaultValue={initialData?.common_name || ""}
+                className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
+                placeholder="Ex: Supplément de transition..."
               />
             </div>
 
