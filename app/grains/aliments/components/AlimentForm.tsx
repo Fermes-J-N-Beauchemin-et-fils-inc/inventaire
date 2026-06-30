@@ -3,8 +3,11 @@
 import React, { useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSave, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
+import { faSave, faArrowLeft, faPowerOff } from '@fortawesome/free-solid-svg-icons';
 import Link from 'next/link';
+import DeleteFoodButton from './DeleteFoodButton';
+import { toggleFoodStatus } from '../actions';
+import toast from 'react-hot-toast';
 
 interface AlimentFormProps {
   units: { id: number; name: string }[];
@@ -16,6 +19,7 @@ interface AlimentFormProps {
     price_per_ms: number;
     price_per_tqs: number;
     ms_percentage: number;
+    is_active?: boolean;
     storage_id?: number;
     current_stock?: number;
   };
@@ -39,20 +43,47 @@ function SubmitButton({ isEditing }: { isEditing: boolean }) {
 
 export default function AlimentForm({ units, storages, initialData, action }: AlimentFormProps) {
   const isEditing = !!initialData;
+  const [isActive, setIsActive] = useState(initialData?.is_active ?? true);
+
+  const handleToggleActive = async () => {
+    if (!initialData) return;
+    try {
+      await toggleFoodStatus(initialData.id, !isActive);
+      setIsActive(!isActive);
+      toast.success(isActive ? 'Aliment désactivé' : 'Aliment activé');
+    } catch (err) {
+      toast.error('Erreur lors du changement de statut');
+    }
+  };
 
   return (
     <div className="bg-white rounded-[2.5rem] p-8 sm:p-12 border-2 border-zinc-200/60 shadow-sm relative overflow-hidden max-w-4xl mx-auto">
       <div className="absolute top-0 right-0 w-[30rem] h-[30rem] bg-blue-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
 
       <div className="relative z-10">
-        <div className="flex items-center gap-4 mb-8">
-          <Link href={isEditing ? `/aliments/${initialData.id}` : "/aliments"} className="inline-flex items-center text-zinc-500 hover:text-blue-600 font-bold transition-colors bg-white px-4 py-2 rounded-xl shadow-sm border border-zinc-200">
-            <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
-            Annuler
-          </Link>
-          <h1 className="text-3xl font-black text-zinc-900 tracking-tight">
-            {isEditing ? `Modifier : ${initialData.name}` : "Nouvel Aliment"}
-          </h1>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-4">
+            <Link href={isEditing ? `/aliments/${initialData.id}` : "/aliments"} className="inline-flex items-center text-zinc-500 hover:text-blue-600 font-bold transition-colors bg-white px-4 py-2 rounded-xl shadow-sm border border-zinc-200 shrink-0">
+              <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
+              Annuler
+            </Link>
+            <h1 className="text-3xl font-black text-zinc-900 tracking-tight line-clamp-1">
+              {isEditing ? `Modifier : ${initialData.name}` : "Nouvel Aliment"}
+            </h1>
+          </div>
+          {isEditing && initialData && (
+            <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+              <button 
+                type="button"
+                onClick={handleToggleActive}
+                className={`px-4 py-2 rounded-xl font-bold transition-colors flex items-center gap-2 ${isActive ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
+              >
+                <FontAwesomeIcon icon={faPowerOff} />
+                {isActive ? 'Désactiver' : 'Activer'}
+              </button>
+              <DeleteFoodButton foodId={initialData.id} foodName={initialData.name} />
+            </div>
+          )}
         </div>
 
         <form action={action} className="space-y-8">

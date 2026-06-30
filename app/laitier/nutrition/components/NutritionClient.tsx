@@ -4,11 +4,13 @@ import React, { useState, useTransition } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFlask, faExclamationTriangle, faSave, faCheckCircle, faSpinner } from '@fortawesome/free-solid-svg-icons';
 import { updateDailyServing } from '../actions';
+import GroupManager from './GroupManager';
 import toast, { Toaster } from 'react-hot-toast';
 
 interface GroupData {
   id: number;
   name: string;
+  real_animal_count: number;
   daily_servings: {
     id: number;
     food_id: number;
@@ -83,7 +85,7 @@ export default function NutritionClient({ groups, foods }: Props) {
       <Toaster position="top-center" />
       
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
         <div>
           <h1 className="text-4xl sm:text-5xl font-black text-zinc-900 tracking-tight flex items-center gap-4">
             <div className="w-16 h-16 bg-pink-600 text-white rounded-[1.5rem] flex items-center justify-center shadow-lg shadow-pink-600/30">
@@ -95,6 +97,7 @@ export default function NutritionClient({ groups, foods }: Props) {
             Définissez la quantité de base en Kg de Matière Sèche (MS) par vache.
           </p>
         </div>
+        <GroupManager groups={groups} />
       </div>
 
       {/* Warning */}

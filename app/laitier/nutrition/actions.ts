@@ -41,3 +41,40 @@ export async function updateDailyServing(groupId: number, foodId: number, dailyK
   revalidatePath('/nutrition');
   revalidatePath('/ration'); // Since it affects the main ration too
 }
+
+export async function createGroup(name: string, real_animal_count: number) {
+  await prisma.group.create({
+    data: {
+      name,
+      real_animal_count,
+      animals_fed: real_animal_count, // default to real_count
+      performance_index: 1.0,
+    }
+  });
+  revalidatePath('/laitier/nutrition');
+  revalidatePath('/laitier/sommaire');
+}
+
+export async function updateGroup(id: number, name: string, real_animal_count: number) {
+  await prisma.group.update({
+    where: { id },
+    data: { name, real_animal_count }
+  });
+  revalidatePath('/laitier/nutrition');
+  revalidatePath('/laitier/sommaire');
+}
+
+export async function deleteGroup(id: number) {
+  try {
+    await prisma.$transaction([
+      prisma.dailyServing.deleteMany({ where: { group_id: id } }),
+      prisma.groupSnapshot.deleteMany({ where: { group_id: id } }),
+      prisma.group.delete({ where: { id } })
+    ]);
+  } catch (error) {
+    console.error("Failed to delete group", error);
+    throw new Error("Impossible de supprimer le groupe");
+  }
+  revalidatePath('/laitier/nutrition');
+  revalidatePath('/laitier/sommaire');
+}
