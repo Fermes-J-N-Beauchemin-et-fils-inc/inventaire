@@ -6,6 +6,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import ProgressBar from './ui/ProgressBar';
 import { SingleLineChart } from '@/app/grains/aliments/components/AlimentCharts';
+import BulkTankChart from './BulkTankChart';
 
 interface DashboardTabProps {
   mocks: any;
@@ -137,6 +138,11 @@ export default function DashboardTab({ mocks, setActiveTab }: DashboardTabProps)
               </PieChart>
             </ResponsiveContainer>
           </div>
+        </div>
+
+        {/* Bulk Tank Chart (Composants du lait) */}
+        <div className="lg:col-span-3 mb-8">
+          <BulkTankChart />
         </div>
 
         {/* Groups Summary Overview */}

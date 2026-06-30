@@ -44,7 +44,7 @@ export default function SommaireClient() {
         />
       </div>
 
-      <LiveHerdView />
+      
 
       {/* Tabs Navigation */}
       <div className="flex overflow-x-auto gap-2 mb-8 pb-2 scrollbar-hide">
@@ -58,6 +58,17 @@ export default function SommaireClient() {
         >
           <FontAwesomeIcon icon={faChartPie} />
           Vue Globale
+        </button>
+        <button
+          onClick={() => setActiveTab('effectif')}
+          className={`flex-shrink-0 px-6 py-4 rounded-2xl font-bold text-lg flex items-center gap-3 transition-all ${
+            activeTab === 'effectif' 
+              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20' 
+              : 'bg-white text-zinc-500 border-2 border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50'
+          }`}
+        >
+          <FontAwesomeIcon icon={faCow} />
+          Effectif (Live)
         </button>
         <button
           onClick={() => setActiveTab('lactation')}
@@ -108,6 +119,7 @@ export default function SommaireClient() {
       {/* Tabs Menu */}
       <div className="min-h-[500px]">
         {activeTab === 'dashboard' && <DashboardTab mocks={mocks} setActiveTab={setActiveTab} />}
+        {activeTab === 'effectif' && <LiveHerdView />}
         {activeTab === 'lactation' && <LactationTab mocks={mocks} />}
         {activeTab === 'releve' && <ReleveTab mocks={mocks} />}
         {activeTab === 'taries' && <TariesTab mocks={mocks} />}
