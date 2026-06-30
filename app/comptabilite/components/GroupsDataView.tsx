@@ -77,8 +77,11 @@ export default function GroupsDataView({ groups, totalGroup }: GroupsDataViewPro
                     <th className="p-4 font-black">$/t MS</th>
                     <th className="p-4 font-black">$/t TQS</th>
                     <th className="p-4 font-black bg-blue-50/50">Kg MS</th>
+                    <th className="p-4 font-black bg-blue-50/50">Kg MS / Va</th>
                     <th className="p-4 font-black bg-blue-50/50">Kg TQS</th>
+                    <th className="p-4 font-black bg-blue-50/50">Kg TQS / Va</th>
                     <th className="p-4 font-black bg-green-50/50">$/Jour</th>
+                    <th className="p-4 font-black bg-green-50/50">$/Va/Jr</th>
                     <th className="p-4 font-black bg-green-50/50">$/Année</th>
                   </tr>
                 </thead>
@@ -95,8 +98,11 @@ export default function GroupsDataView({ groups, totalGroup }: GroupsDataViewPro
                       <td className="p-4 font-medium text-zinc-600">{formatMoney(aliment.priceMs)}</td>
                       <td className="p-4 font-medium text-zinc-600">{formatMoney(aliment.priceTqs)}</td>
                       <td className="p-4 font-black text-zinc-800 bg-blue-50/20">{formatNum(aliment.kgMs)}</td>
+                      <td className="p-4 font-black text-zinc-800 bg-blue-50/20">{formatNum(activeGroup.cows > 0 ? aliment.kgMs / activeGroup.cows : 0)}</td>
                       <td className="p-4 font-black text-zinc-800 bg-blue-50/20">{formatNum(aliment.kgTqs)}</td>
+                      <td className="p-4 font-black text-zinc-800 bg-blue-50/20">{formatNum(activeGroup.cows > 0 ? aliment.kgTqs / activeGroup.cows : 0)}</td>
                       <td className="p-4 font-black text-blue-600 bg-green-50/20">{formatMoney(aliment.costDay)}</td>
+                      <td className="p-4 font-black text-blue-600 bg-green-50/20">{formatMoney(activeGroup.cows > 0 ? aliment.costDay / activeGroup.cows : 0)}</td>
                       <td className="p-4 font-black text-green-600 bg-green-50/20">{formatMoney(aliment.costYear)}</td>
                     </tr>
                   ))}
@@ -104,8 +110,11 @@ export default function GroupsDataView({ groups, totalGroup }: GroupsDataViewPro
                   <tr className="bg-zinc-100 font-black border-t-4 border-zinc-300">
                     <td className="p-4 text-zinc-900" colSpan={5}>TOTAL</td>
                     <td className="p-4 text-zinc-900">{formatNum(activeGroup.totalKgMs)}</td>
+                    <td className="p-4 text-zinc-900">{formatNum(activeGroup.cows > 0 ? activeGroup.totalKgMs / activeGroup.cows : 0)}</td>
                     <td className="p-4 text-zinc-900">{formatNum(activeGroup.totalKgTqs)}</td>
+                    <td className="p-4 text-zinc-900">{formatNum(activeGroup.cows > 0 ? activeGroup.totalKgTqs / activeGroup.cows : 0)}</td>
                     <td className="p-4 text-blue-700">{formatMoney(activeGroup.totalCostDay)}</td>
+                    <td className="p-4 text-blue-700">{formatMoney(activeGroup.cows > 0 ? activeGroup.totalCostDay / activeGroup.cows : 0)}</td>
                     <td className="p-4 text-green-700">{formatMoney(activeGroup.totalCostYear)}</td>
                   </tr>
                 </tbody>
