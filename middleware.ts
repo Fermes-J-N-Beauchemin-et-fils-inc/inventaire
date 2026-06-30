@@ -17,6 +17,12 @@ export default async function middleware(request: NextRequest) {
 
     if (hasSessionCookie) {
         try {
+            // Skip API call for prefetch requests to avoid hitting rate limits
+            const isPrefetch = request.headers.get("next-router-prefetch") === "1" || request.headers.get("purpose") === "prefetch";
+            if (isPrefetch) {
+                return NextResponse.next();
+            }
+
             // Récupère la session depuis l'API Better Auth
             const response = await fetch(`${origin}/api/auth/get-session`, {
                 headers: {
