@@ -188,34 +188,47 @@ export default function NutritionClient({ groups, foods }: Props) {
             const manualMsTotal = group.daily_servings.filter(ds => ds.is_manual).reduce((sum, ds) => sum + ds.daily_kg_serving_ms, 0);
             const totalMs = Object.values(groupServings).reduce((sum, val) => sum + val, 0) + manualMsTotal;
             const activeIngredientsCount = Object.values(groupServings).filter(val => val > 0).length + group.daily_servings.filter(ds => ds.is_manual).length;
-            const tMs = targetMs[group.id];
+            const tMsPercent = targetMs[group.id];
+
+            let totalTqs = 0;
+            foods.forEach(f => {
+              const kgMs = groupServings[f.id] || 0;
+              if (kgMs > 0 && f.ms_percentage > 0) {
+                totalTqs += kgMs / (f.ms_percentage / 100);
+              }
+            });
+            group.daily_servings.filter(ds => ds.is_manual).forEach(ds => {
+              const qtyTqs = ds.manual_qty_tqs || 0;
+              totalTqs += qtyTqs;
+            });
+            const actualMsPercent = totalTqs > 0 ? (totalMs / totalTqs) * 100 : 0;
 
             return (
               <button
                 key={group.id}
                 onClick={() => setSelectedGroupId(group.id)}
-                className="bg-white rounded-[2rem] border border-zinc-200 shadow-sm hover:shadow-md hover:border-pink-200 transition-all p-6 text-left group flex flex-col min-h-[200px]"
+                className="bg-white rounded-[2rem] border border-zinc-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all p-6 text-left group flex flex-col min-h-[200px]"
               >
                 <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-2xl font-black text-zinc-900 group-hover:text-pink-600 transition-colors">
+                  <h3 className="text-2xl font-black text-zinc-900 group-hover:text-blue-600 transition-colors">
                     {group.name}
                   </h3>
-                  <div className="w-10 h-10 rounded-full bg-zinc-50 flex items-center justify-center text-zinc-400 group-hover:bg-pink-50 group-hover:text-pink-500 transition-colors">
+                  <div className="w-10 h-10 rounded-full bg-zinc-50 flex items-center justify-center text-zinc-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
                     &rarr;
                   </div>
                 </div>
                 
                 <div className="mt-auto space-y-2">
                   <div className="flex justify-between items-center text-zinc-500">
-                    <span className="font-medium">Cible MS / vache</span>
-                    <span className={`font-black text-lg ${tMs ? "text-blue-600" : "text-zinc-400"}`}>
-                      {tMs ? `${tMs} kg MS` : "Non définie"}
+                    <span className="font-medium">Cible MS%</span>
+                    <span className={`font-black text-lg ${tMsPercent ? "text-blue-600" : "text-zinc-400"}`}>
+                      {tMsPercent ? `${tMsPercent}%` : "Non définie"}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-zinc-500">
                     <span className="font-medium">Total actuel</span>
-                    <span className={`font-black text-lg ${tMs && Math.abs(totalMs - tMs) > 0.1 ? "text-red-500" : "text-zinc-900"}`}>
-                      {totalMs.toFixed(2)} kg MS
+                    <span className={`font-black text-lg ${tMsPercent && Math.abs(actualMsPercent - tMsPercent) > 1.0 ? "text-red-500" : "text-zinc-900"}`}>
+                      {actualMsPercent.toFixed(1)}% <span className="text-sm font-medium text-zinc-400">({totalMs.toFixed(2)} kg MS)</span>
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-zinc-500">
@@ -241,19 +254,21 @@ export default function NutritionClient({ groups, foods }: Props) {
             </div>
             <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm border border-zinc-200">
-                <span className="text-zinc-500 font-bold text-sm">Cible MS:</span>
+                <span className="text-zinc-500 font-bold text-sm">Cible MS%:</span>
                 <input 
                   type="number"
-                  step="0.01"
+                  step="0.1"
                   min="0"
+                  max="100"
                   value={targetMs[selectedGroup.id] || ''}
                   onChange={(e) => handleTargetMsChange(selectedGroup.id, e.target.value)}
-                  placeholder="ex: 27.00"
-                  className="w-24 px-2 py-1 border-2 border-zinc-200 rounded-lg font-black text-blue-600 outline-none focus:border-blue-500"
+                  placeholder="ex: 43.5"
+                  className="w-20 px-2 py-1 border-2 border-zinc-200 rounded-lg font-black text-blue-600 outline-none focus:border-blue-500"
                 />
+                <span className="text-zinc-400 font-bold">%</span>
               </div>
               <div className="text-zinc-600 font-bold bg-white px-4 py-2 rounded-xl shadow-sm border border-zinc-200">
-                Total: <span className="text-pink-600 font-black ml-2">
+                Total: <span className="text-zinc-900 font-black ml-2">
                   {(Object.values(servings[selectedGroup.id] || {}).reduce((sum, val) => sum + val, 0) + selectedGroup.daily_servings.filter(ds => ds.is_manual).reduce((sum, ds) => sum + ds.daily_kg_serving_ms, 0)).toFixed(2)} kg MS
                 </span>
               </div>
