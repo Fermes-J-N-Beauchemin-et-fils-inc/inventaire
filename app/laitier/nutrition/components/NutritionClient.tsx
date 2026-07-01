@@ -3,7 +3,7 @@
 import React, { useState, useTransition } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFlask, faExclamationTriangle, faSave, faCheckCircle, faSpinner, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
-import { updateDailyServing, updateGroupTargetMs, upsertManualServing, deleteManualServing, updateFoodMs } from '../actions';
+import { updateDailyServing, updateGroupTargetMs, upsertManualServing, deleteManualServing } from '../actions';
 import GroupManager from './GroupManager';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -63,14 +63,6 @@ export default function NutritionClient({ groups, foods }: Props) {
     return initialState;
   });
 
-  const [foodMs, setFoodMs] = useState<{ [foodId: number]: number }>(() => {
-    const initialState: any = {};
-    foods.forEach(f => {
-      initialState[f.id] = f.ms_percentage;
-    });
-    return initialState;
-  });
-
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   
   // State for adding a new manual ingredient
@@ -100,14 +92,6 @@ export default function NutritionClient({ groups, foods }: Props) {
     }));
   };
 
-  const handleFoodMsChange = (foodId: number, value: string) => {
-    const numValue = parseFloat(value) || 0;
-    setFoodMs(prev => ({
-      ...prev,
-      [foodId]: numValue
-    }));
-  };
-
   const handleSaveGroup = async (groupId: number) => {
     startTransition(async () => {
       try {
@@ -121,13 +105,6 @@ export default function NutritionClient({ groups, foods }: Props) {
 
         // Save target MS
         promises.push(updateGroupTargetMs(groupId, targetMs[groupId] || null));
-
-        // Save food MS percentages
-        foods.forEach(food => {
-          if (foodMs[food.id] !== food.ms_percentage) {
-            promises.push(updateFoodMs(food.id, foodMs[food.id]));
-          }
-        });
 
         await Promise.all(promises);
         toast.success(`Formulation sauvegardée pour ${groups.find(g => g.id === groupId)?.name}`);
@@ -145,7 +122,8 @@ export default function NutritionClient({ groups, foods }: Props) {
     }
     startTransition(async () => {
       try {
-        await upsertManualServing(groupId, null, manualName, manualMs, manualQty);
+        const qtyTqs = manualMs > 0 ? manualQty / (manualMs / 100) : manualQty;
+        await upsertManualServing(groupId, null, manualName, manualMs, qtyTqs);
         toast.success("Ingrédient ajouté");
         setIsAddingManual(false);
         setManualName('');
@@ -304,26 +282,12 @@ export default function NutritionClient({ groups, foods }: Props) {
               <tbody className="divide-y divide-zinc-100">
                 {foods.map(food => {
                   const kgMs = (servings[selectedGroup.id] || {})[food.id] || 0;
-                  const currentMs = foodMs[food.id] || 0;
-                  const kgTqs = kgMs > 0 && currentMs > 0 ? kgMs / (currentMs / 100) : 0;
+                  const kgTqs = kgMs > 0 && food.ms_percentage > 0 ? kgMs / (food.ms_percentage / 100) : 0;
                   
                   return (
                     <tr key={food.id} className={`transition-colors hover:bg-zinc-50 ${kgMs === 0 ? 'opacity-50 hover:opacity-100' : ''}`}>
                       <td className="py-4 font-bold text-zinc-900">{food.name}</td>
-                      <td className="py-4">
-                        <div className="flex items-center gap-1">
-                          <input 
-                            type="number"
-                            step="0.1"
-                            min="0"
-                            max="100"
-                            value={currentMs || ''}
-                            onChange={(e) => handleFoodMsChange(food.id, e.target.value)}
-                            className="w-20 px-2 py-1 border-2 border-zinc-200 rounded-lg font-medium text-zinc-600 focus:border-blue-500 outline-none transition-all"
-                          />
-                          <span className="text-zinc-500 font-bold">%</span>
-                        </div>
-                      </td>
+                      <td className="py-4 font-medium text-zinc-500">{food.ms_percentage}%</td>
                       <td className="py-4">
                         <input 
                           type="number"
@@ -373,35 +337,55 @@ export default function NutritionClient({ groups, foods }: Props) {
                         type="text"
                         value={manualName}
                         onChange={(e) => setManualName(e.target.value)}
-                        placeholder="Ex: Eau, Reste de table..."
-                        className="w-full px-3 py-2 border-2 border-zinc-300 rounded-lg font-medium outline-none focus:border-blue-500"
+                        placeholder="Ex: RTM 1-2, Eau..."
+                        className="w-full px-3 py-2 border-2 border-zinc-300 rounded-lg font-medium outline-none focus:border-blue-500 text-black"
                       />
                     </td>
                     <td className="py-4">
-                      <input 
-                        type="number"
-                        value={manualMs || ''}
-                        onChange={(e) => setManualMs(parseFloat(e.target.value) || 0)}
-                        placeholder="%"
-                        className="w-20 px-3 py-2 border-2 border-zinc-300 rounded-lg font-medium outline-none focus:border-blue-500"
-                      />
+                      <div className="flex items-center gap-1">
+                        <input 
+                          type="number"
+                          step="0.1"
+                          value={manualMs === 0 && manualName === '' ? '' : manualMs}
+                          onChange={(e) => setManualMs(parseFloat(e.target.value) || 0)}
+                          placeholder="%"
+                          className="w-20 px-3 py-2 border-2 border-zinc-300 rounded-lg font-medium outline-none focus:border-blue-500 text-black"
+                        />
+                        <span className="font-bold text-zinc-500">%</span>
+                      </div>
                     </td>
                     <td className="py-4">
-                      <span className="text-zinc-400 text-sm italic">Calculé auto</span>
+                      {manualMs === 0 ? (
+                        <span className="text-zinc-400 text-sm italic">Sera 0</span>
+                      ) : (
+                        <input 
+                          type="number"
+                          step="0.01"
+                          value={manualQty || ''}
+                          onChange={(e) => setManualQty(parseFloat(e.target.value) || 0)}
+                          placeholder="Kg MS"
+                          className="w-24 px-3 py-2 border-2 border-zinc-300 rounded-lg font-medium outline-none focus:border-blue-500 text-black"
+                        />
+                      )}
                     </td>
-                    <td className="py-4">
-                      <input 
-                        type="number"
-                        value={manualQty || ''}
-                        onChange={(e) => setManualQty(parseFloat(e.target.value) || 0)}
-                        placeholder="Kg TQS"
-                        className="w-24 px-3 py-2 border-2 border-zinc-300 rounded-lg font-medium outline-none focus:border-blue-500"
-                      />
+                    <td className="py-4 font-bold text-zinc-500">
+                      {manualMs === 0 ? (
+                        <input 
+                          type="number"
+                          step="0.01"
+                          value={manualQty || ''}
+                          onChange={(e) => setManualQty(parseFloat(e.target.value) || 0)}
+                          placeholder="Kg TQS"
+                          className="w-24 px-3 py-2 border-2 border-zinc-300 rounded-lg font-medium outline-none focus:border-blue-500 text-black"
+                        />
+                      ) : (
+                        manualQty > 0 ? (manualQty / (manualMs / 100)).toFixed(2) + ' kg' : '-'
+                      )}
                     </td>
                     <td className="py-4 flex gap-2">
                       <button 
                         onClick={() => handleAddManualServing(selectedGroup.id)}
-                        className="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold text-sm hover:bg-blue-700"
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-blue-700"
                       >
                         OK
                       </button>
