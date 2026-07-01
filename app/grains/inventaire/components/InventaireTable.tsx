@@ -48,13 +48,10 @@ export default function InventaireTable({ inventory }: InventaireTableProps) {
           </thead>
           <tbody className="divide-y divide-zinc-100 text-lg">
             {filteredInventory.map((item) => {
-              // Calculate daily consumption in kg MS
-              const dailyConsumption = item.daily_servings.reduce((sum, serving) => sum + serving.daily_kg_serving_ms, 0);
+              // Calculate daily consumption in kg MS by multiplying the per-cow serving by the number of animals fed
+              const dailyConsumption = item.daily_servings.reduce((sum, serving) => sum + (serving.daily_kg_serving_ms * serving.group.animals_fed), 0);
               
-              // Convert current stock to kg MS based on ms_percentage (assuming current_stock is in units like kg or tm, wait. If current_stock is in tm, 1 tm = 1000 kg. And ms_percentage is %)
-              // Let's just estimate remaining days based on daily consumption if it's > 0.
-              // Assuming current_stock is in the unit_type (e.g. tm, kg).
-              // For simplicity: if unit is tm, current_stock_kg = current_stock * 1000.
+              // Convert current stock to kg MS based on ms_percentage (assuming current_stock is in units like kg or tm)
               const current_stock = item.storages.reduce((sum: number, s: any) => sum + s.current_stock, 0);
               const storageNames = item.storages.map((s: any) => s.storage.name).join(', ') || 'Aucun silo';
               const isTm = item.unit_type.name.toLowerCase() === 'tm';

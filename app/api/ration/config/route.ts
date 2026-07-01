@@ -74,6 +74,49 @@ export async function GET() {
                     };
                 }
             });
+
+            if (group.target_ms_per_cow) {
+                const targetMsPercent = group.target_ms_per_cow;
+                
+                let totalMs = 0;
+                let totalTqs = 0;
+                
+                group.daily_servings.forEach(serving => {
+                    if (serving.is_manual) {
+                        const msPercentage = serving.manual_ms_percentage || 0;
+                        const v1 = serving.manual_qty_tqs ? serving.manual_qty_tqs * group.animals_fed : 0;
+                        totalMs += v1 * (msPercentage / 100);
+                        totalTqs += v1;
+                    } else if (serving.food) {
+                        const msPercentage = serving.food.ms_percentage || 100;
+                        const baseMsPerCow = serving.daily_kg_serving_ms;
+                        const baseTqsPerCow = baseMsPerCow / (msPercentage / 100);
+                        const v1 = Math.ceil(baseTqsPerCow * group.animals_fed);
+                        totalMs += baseMsPerCow * group.animals_fed;
+                        totalTqs += v1;
+                    }
+                });
+
+                const currentMsPercent = totalTqs > 0 ? (totalMs / totalTqs) * 100 : 0;
+                
+                if (currentMsPercent > targetMsPercent) {
+                    const waterToAdd = (totalMs * 100 / targetMsPercent) - totalTqs;
+                    if (waterToAdd > 0) {
+                        const roundedWater = Math.ceil(waterToAdd);
+                        currentRtm += roundedWater;
+                        rationConfig[groupIdStr].push({
+                            id: 'auto_water',
+                            name: 'Eau (Ajustement)',
+                            v1: roundedWater.toString(),
+                            v2: currentRtm.toString(),
+                            base_tqs_per_cow: roundedWater / group.animals_fed,
+                            price_per_tqs: 0,
+                            price_per_ms: 0,
+                            is_manual: true
+                        });
+                    }
+                }
+            }
         });
 
         // Also fetch all active foods for the "Add ingredient" modal

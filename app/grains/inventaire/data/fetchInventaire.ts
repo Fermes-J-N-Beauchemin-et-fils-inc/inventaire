@@ -9,7 +9,9 @@ export async function fetchInventoryFoods() {
     include: {
       unit_type: true,
       storages: { include: { storage: true } },
-      daily_servings: true,
+      daily_servings: {
+        include: { group: true }
+      },
       sale_contracts: {
         where: { is_active: true },
         include: {
