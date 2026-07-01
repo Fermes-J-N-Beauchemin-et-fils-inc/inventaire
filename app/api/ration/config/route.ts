@@ -50,7 +50,7 @@ export async function GET() {
                     const baseTqsPerCow = baseMsPerCow / (msPercentage / 100);
 
                     // v1 = Aliment = formulation of nutrition page (serving.daily_kg_serving_ms) times number of counts (group.animals_fed), factor MS, rounded up
-                    const v1 = Math.ceil(baseTqsPerCow * group.animals_fed);
+                    const v1 = Math.round(baseTqsPerCow * group.animals_fed);
                     
                     // v2 = RTM (Balance) = total of food in mixer when distributor is at this aliment (cumulative sum)
                     currentRtm += v1;
@@ -91,7 +91,7 @@ export async function GET() {
                         const msPercentage = serving.food.ms_percentage || 100;
                         const baseMsPerCow = serving.daily_kg_serving_ms;
                         const baseTqsPerCow = baseMsPerCow / (msPercentage / 100);
-                        const v1 = Math.ceil(baseTqsPerCow * group.animals_fed);
+                        const v1 = Math.round(baseTqsPerCow * group.animals_fed);
                         totalMs += baseMsPerCow * group.animals_fed;
                         totalTqs += v1;
                     }
@@ -102,7 +102,7 @@ export async function GET() {
                 if (currentMsPercent > targetMsPercent) {
                     const waterToAdd = (totalMs * 100 / targetMsPercent) - totalTqs;
                     if (waterToAdd > 0) {
-                        const roundedWater = Math.ceil(waterToAdd);
+                        const roundedWater = Math.round(waterToAdd);
                         currentRtm += roundedWater;
                         rationConfig[groupIdStr].push({
                             id: 'auto_water',
