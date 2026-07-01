@@ -130,3 +130,12 @@ export async function deleteManualServing(servingId: number) {
   revalidatePath('/laitier/nutrition');
   revalidatePath('/grains/rations');
 }
+
+export async function updateFoodMs(foodId: number, msPercentage: number) {
+  await prisma.food.update({
+    where: { id: foodId },
+    data: { ms_percentage: msPercentage }
+  });
+  revalidatePath('/laitier/nutrition');
+  revalidatePath('/grains/rations');
+}
