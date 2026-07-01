@@ -64,7 +64,10 @@ export async function POST(request: Request) {
                         where: { id: foodId },
                         include: { unit_type: true }
                     });
-                    const rationToKg = food?.unit_type?.ration_to_kg || 1;
+                    let rationToKg = food?.unit_type?.ration_to_kg || 1;
+                    if (rationToKg === 1 && food?.unit_type?.name?.toLowerCase() === 'tm') {
+                        rationToKg = 1000;
+                    }
                     const quantity = quantityInKg / rationToKg; // Convert kg to stored units
 
                     // Update stock to the storage that has the most stock

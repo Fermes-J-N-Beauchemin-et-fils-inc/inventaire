@@ -249,7 +249,7 @@ export async function createDelivery(formData: FormData) {
         const food = await tx.food.findUnique({ where: { id: food_id }, include: { unit_type: true } });
         if (food) {
           storageIdToLog = firstStorage.id;
-          const ration_to_kg = food.unit_type?.ration_to_kg || 1;
+          let ration_to_kg = food.unit_type?.ration_to_kg || 1; if (ration_to_kg === 1 && food?.unit_type?.name?.toLowerCase() === "tm") { ration_to_kg = 1000; }
           const qtyInUnit = quantity_received / ration_to_kg;
           
           await tx.foodStorage.upsert({
@@ -503,7 +503,7 @@ export async function markDeliveryAsReceived(deliveryId: number) {
     if (firstStorage) {
       const food = await tx.food.findUnique({ where: { id: delivery.food_id }, include: { unit_type: true } });
       if (food) {
-        const ration_to_kg = food.unit_type?.ration_to_kg || 1;
+        let ration_to_kg = food.unit_type?.ration_to_kg || 1; if (ration_to_kg === 1 && food?.unit_type?.name?.toLowerCase() === "tm") { ration_to_kg = 1000; }
         const qtyInUnit = delivery.quantity_received / ration_to_kg;
         
         await tx.foodStorage.upsert({
@@ -736,7 +736,7 @@ export async function createSale(formData: FormData) {
       
       const food = await tx.food.findUnique({ where: { id: food_id }, include: { unit_type: true } });
       if (!food) throw new Error("Aliment introuvable.");
-      const ration_to_kg = food.unit_type?.ration_to_kg || 1;
+      let ration_to_kg = food.unit_type?.ration_to_kg || 1; if (ration_to_kg === 1 && food?.unit_type?.name?.toLowerCase() === "tm") { ration_to_kg = 1000; }
       const qtyToDeduct = quantity_sold / ration_to_kg;
       
       const totalStock = storages.reduce((acc, s) => acc + s.current_stock, 0);
