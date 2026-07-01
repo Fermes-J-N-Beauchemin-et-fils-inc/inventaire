@@ -2,19 +2,33 @@
 
 import React, { useState, useTransition } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFlask, faExclamationTriangle, faSave, faCheckCircle, faSpinner } from '@fortawesome/free-solid-svg-icons';
-import { updateDailyServing } from '../actions';
+import { faFlask, faExclamationTriangle, faSave, faCheckCircle, faSpinner, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { updateDailyServing, updateGroupTargetMs, upsertManualServing, deleteManualServing } from '../actions';
 import GroupManager from './GroupManager';
 import toast, { Toaster } from 'react-hot-toast';
+
+interface ManualServing {
+  id: number;
+  is_manual: boolean;
+  manual_name: string | null;
+  manual_ms_percentage: number | null;
+  manual_qty_tqs: number | null;
+  daily_kg_serving_ms: number;
+}
 
 interface GroupData {
   id: number;
   name: string;
   real_animal_count: number;
+  target_ms_per_cow: number | null;
   daily_servings: {
     id: number;
-    food_id: number;
+    food_id: number | null;
     daily_kg_serving_ms: number;
+    is_manual: boolean;
+    manual_name: string | null;
+    manual_ms_percentage: number | null;
+    manual_qty_tqs: number | null;
   }[];
 }
 
@@ -30,19 +44,32 @@ interface Props {
 }
 
 export default function NutritionClient({ groups, foods }: Props) {
-  // Local state to track modifications before saving
   const [servings, setServings] = useState<{ [groupId: number]: { [foodId: number]: number } }>(() => {
     const initialState: any = {};
     groups.forEach(g => {
       initialState[g.id] = {};
-      g.daily_servings.forEach(ds => {
-        initialState[g.id][ds.food_id] = ds.daily_kg_serving_ms;
+      g.daily_servings.filter(ds => !ds.is_manual).forEach(ds => {
+        initialState[g.id][ds.food_id as number] = ds.daily_kg_serving_ms;
       });
     });
     return initialState;
   });
 
+  const [targetMs, setTargetMs] = useState<{ [groupId: number]: number | null }>(() => {
+    const initialState: any = {};
+    groups.forEach(g => {
+      initialState[g.id] = g.target_ms_per_cow;
+    });
+    return initialState;
+  });
+
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
+  
+  // State for adding a new manual ingredient
+  const [isAddingManual, setIsAddingManual] = useState(false);
+  const [manualName, setManualName] = useState('');
+  const [manualMs, setManualMs] = useState<number>(0);
+  const [manualQty, setManualQty] = useState<number>(0);
 
   const [isPending, startTransition] = useTransition();
 
@@ -57,17 +84,27 @@ export default function NutritionClient({ groups, foods }: Props) {
     }));
   };
 
+  const handleTargetMsChange = (groupId: number, value: string) => {
+    const numValue = parseFloat(value);
+    setTargetMs(prev => ({
+      ...prev,
+      [groupId]: isNaN(numValue) ? null : numValue
+    }));
+  };
+
   const handleSaveGroup = async (groupId: number) => {
     startTransition(async () => {
       try {
         const groupServings = servings[groupId];
         if (!groupServings) return;
         
-        // We iterate through all foods to update/delete values
         const promises = foods.map(food => {
           const val = groupServings[food.id] || 0;
           return updateDailyServing(groupId, food.id, val);
         });
+
+        // Save target MS
+        promises.push(updateGroupTargetMs(groupId, targetMs[groupId] || null));
 
         await Promise.all(promises);
         toast.success(`Formulation sauvegardée pour ${groups.find(g => g.id === groupId)?.name}`);
@@ -78,13 +115,42 @@ export default function NutritionClient({ groups, foods }: Props) {
     });
   };
 
+  const handleAddManualServing = async (groupId: number) => {
+    if (!manualName.trim()) {
+      toast.error("Le nom est requis.");
+      return;
+    }
+    startTransition(async () => {
+      try {
+        await upsertManualServing(groupId, null, manualName, manualMs, manualQty);
+        toast.success("Ingrédient ajouté");
+        setIsAddingManual(false);
+        setManualName('');
+        setManualMs(0);
+        setManualQty(0);
+      } catch (err) {
+        toast.error("Erreur d'ajout");
+      }
+    });
+  };
+
+  const handleDeleteManual = async (servingId: number) => {
+    startTransition(async () => {
+      try {
+        await deleteManualServing(servingId);
+        toast.success("Ingrédient supprimé");
+      } catch (err) {
+        toast.error("Erreur de suppression");
+      }
+    });
+  };
+
   const selectedGroup = groups.find(g => g.id === selectedGroupId);
 
   return (
     <div>
       <Toaster position="top-center" />
       
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
         <div>
           <h1 className="text-4xl sm:text-5xl font-black text-zinc-900 tracking-tight flex items-center gap-4">
@@ -97,10 +163,9 @@ export default function NutritionClient({ groups, foods }: Props) {
             Définissez la quantité de base en Kg de Matière Sèche (MS) par vache.
           </p>
         </div>
-        <GroupManager groups={groups} />
+        <GroupManager groups={groups as any} />
       </div>
 
-      {/* Warning */}
       <div className="bg-red-50 border-2 border-red-200 rounded-[2rem] p-6 mb-10 flex items-start gap-4">
         <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center shrink-0 text-xl">
           <FontAwesomeIcon icon={faExclamationTriangle} />
@@ -114,13 +179,15 @@ export default function NutritionClient({ groups, foods }: Props) {
         </div>
       </div>
 
-      {/* Main Content */}
       {!selectedGroup ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {groups.map(group => {
             const groupServings = servings[group.id] || {};
-            const totalMs = Object.values(groupServings).reduce((sum, val) => sum + val, 0);
-            const activeIngredientsCount = Object.values(groupServings).filter(val => val > 0).length;
+            // Also include manual servings in total Ms
+            const manualMsTotal = group.daily_servings.filter(ds => ds.is_manual).reduce((sum, ds) => sum + ds.daily_kg_serving_ms, 0);
+            const totalMs = Object.values(groupServings).reduce((sum, val) => sum + val, 0) + manualMsTotal;
+            const activeIngredientsCount = Object.values(groupServings).filter(val => val > 0).length + group.daily_servings.filter(ds => ds.is_manual).length;
+            const tMs = targetMs[group.id];
 
             return (
               <button
@@ -139,8 +206,16 @@ export default function NutritionClient({ groups, foods }: Props) {
                 
                 <div className="mt-auto space-y-2">
                   <div className="flex justify-between items-center text-zinc-500">
-                    <span className="font-medium">Total cible</span>
-                    <span className="font-black text-lg text-zinc-900">{totalMs.toFixed(2)} kg MS</span>
+                    <span className="font-medium">Cible MS / vache</span>
+                    <span className={`font-black text-lg ${tMs ? "text-blue-600" : "text-zinc-400"}`}>
+                      {tMs ? `${tMs} kg MS` : "Non définie"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-zinc-500">
+                    <span className="font-medium">Total actuel</span>
+                    <span className={`font-black text-lg ${tMs && Math.abs(totalMs - tMs) > 0.1 ? "text-red-500" : "text-zinc-900"}`}>
+                      {totalMs.toFixed(2)} kg MS
+                    </span>
                   </div>
                   <div className="flex justify-between items-center text-zinc-500">
                     <span className="font-medium">Ingrédients</span>
@@ -163,10 +238,22 @@ export default function NutritionClient({ groups, foods }: Props) {
               </button>
               <h3 className="text-2xl font-black text-zinc-900">{selectedGroup.name}</h3>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm border border-zinc-200">
+                <span className="text-zinc-500 font-bold text-sm">Cible MS:</span>
+                <input 
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={targetMs[selectedGroup.id] || ''}
+                  onChange={(e) => handleTargetMsChange(selectedGroup.id, e.target.value)}
+                  placeholder="ex: 27.00"
+                  className="w-24 px-2 py-1 border-2 border-zinc-200 rounded-lg font-black text-blue-600 outline-none focus:border-blue-500"
+                />
+              </div>
               <div className="text-zinc-600 font-bold bg-white px-4 py-2 rounded-xl shadow-sm border border-zinc-200">
                 Total: <span className="text-pink-600 font-black ml-2">
-                  {Object.values(servings[selectedGroup.id] || {}).reduce((sum, val) => sum + val, 0).toFixed(2)} kg MS
+                  {(Object.values(servings[selectedGroup.id] || {}).reduce((sum, val) => sum + val, 0) + selectedGroup.daily_servings.filter(ds => ds.is_manual).reduce((sum, ds) => sum + ds.daily_kg_serving_ms, 0)).toFixed(2)} kg MS
                 </span>
               </div>
               <button 
@@ -188,6 +275,7 @@ export default function NutritionClient({ groups, foods }: Props) {
                   <th className="pb-4 w-32">% MS</th>
                   <th className="pb-4 w-48">Kg MS / Vache</th>
                   <th className="pb-4 w-48">Kg Tel Quel (estimé)</th>
+                  <th className="pb-4 w-12"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
@@ -213,9 +301,94 @@ export default function NutritionClient({ groups, foods }: Props) {
                       <td className="py-4 font-bold text-zinc-400">
                         {kgTqs > 0 ? kgTqs.toFixed(2) : '-'} kg
                       </td>
+                      <td className="py-4"></td>
                     </tr>
                   );
                 })}
+                
+                {/* Manual Servings */}
+                {selectedGroup.daily_servings.filter(ds => ds.is_manual).map(manual => (
+                  <tr key={`manual_${manual.id}`} className="transition-colors hover:bg-zinc-50 bg-blue-50/30">
+                    <td className="py-4 font-bold text-blue-900 flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                      {manual.manual_name}
+                    </td>
+                    <td className="py-4 font-medium text-blue-600">{manual.manual_ms_percentage}%</td>
+                    <td className="py-4 font-black text-blue-900">{manual.daily_kg_serving_ms.toFixed(2)}</td>
+                    <td className="py-4 font-bold text-blue-700">{manual.manual_qty_tqs?.toFixed(2)} kg</td>
+                    <td className="py-4">
+                      <button 
+                        onClick={() => handleDeleteManual(manual.id)}
+                        className="text-red-400 hover:text-red-600 p-2"
+                        title="Supprimer cet ingrédient manuel"
+                      >
+                        <FontAwesomeIcon icon={faTrash} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+
+                {/* Add Manual Form */}
+                {isAddingManual ? (
+                  <tr className="bg-zinc-50">
+                    <td className="py-4">
+                      <input 
+                        type="text"
+                        value={manualName}
+                        onChange={(e) => setManualName(e.target.value)}
+                        placeholder="Ex: Eau, Reste de table..."
+                        className="w-full px-3 py-2 border-2 border-zinc-300 rounded-lg font-medium outline-none focus:border-blue-500"
+                      />
+                    </td>
+                    <td className="py-4">
+                      <input 
+                        type="number"
+                        value={manualMs || ''}
+                        onChange={(e) => setManualMs(parseFloat(e.target.value) || 0)}
+                        placeholder="%"
+                        className="w-20 px-3 py-2 border-2 border-zinc-300 rounded-lg font-medium outline-none focus:border-blue-500"
+                      />
+                    </td>
+                    <td className="py-4">
+                      <span className="text-zinc-400 text-sm italic">Calculé auto</span>
+                    </td>
+                    <td className="py-4">
+                      <input 
+                        type="number"
+                        value={manualQty || ''}
+                        onChange={(e) => setManualQty(parseFloat(e.target.value) || 0)}
+                        placeholder="Kg TQS"
+                        className="w-24 px-3 py-2 border-2 border-zinc-300 rounded-lg font-medium outline-none focus:border-blue-500"
+                      />
+                    </td>
+                    <td className="py-4 flex gap-2">
+                      <button 
+                        onClick={() => handleAddManualServing(selectedGroup.id)}
+                        className="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold text-sm hover:bg-blue-700"
+                      >
+                        OK
+                      </button>
+                      <button 
+                        onClick={() => setIsAddingManual(false)}
+                        className="text-zinc-500 hover:text-zinc-800 font-bold px-2"
+                      >
+                        Annuler
+                      </button>
+                    </td>
+                  </tr>
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="py-6 text-center border-t-2 border-dashed border-zinc-200">
+                      <button 
+                        onClick={() => setIsAddingManual(true)}
+                        className="text-blue-600 font-bold hover:text-blue-800 transition-colors flex items-center justify-center gap-2 mx-auto"
+                      >
+                        <FontAwesomeIcon icon={faPlus} />
+                        Ajouter un ingrédient manuel (non inventorié)
+                      </button>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

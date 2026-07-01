@@ -78,3 +78,55 @@ export async function deleteGroup(id: number) {
   revalidatePath('/laitier/nutrition');
   revalidatePath('/laitier/sommaire');
 }
+
+export async function updateGroupTargetMs(groupId: number, targetMs: number | null) {
+  await prisma.group.update({
+    where: { id: groupId },
+    data: { target_ms_per_cow: targetMs }
+  });
+  revalidatePath('/laitier/nutrition');
+  revalidatePath('/grains/rations');
+}
+
+export async function upsertManualServing(
+  groupId: number,
+  servingId: number | null,
+  name: string,
+  msPercentage: number,
+  qtyTqs: number
+) {
+  const dailyKgServingMs = qtyTqs * (msPercentage / 100);
+
+  if (servingId) {
+    await prisma.dailyServing.update({
+      where: { id: servingId },
+      data: {
+        manual_name: name,
+        manual_ms_percentage: msPercentage,
+        manual_qty_tqs: qtyTqs,
+        daily_kg_serving_ms: dailyKgServingMs
+      }
+    });
+  } else {
+    await prisma.dailyServing.create({
+      data: {
+        group_id: groupId,
+        is_manual: true,
+        manual_name: name,
+        manual_ms_percentage: msPercentage,
+        manual_qty_tqs: qtyTqs,
+        daily_kg_serving_ms: dailyKgServingMs
+      }
+    });
+  }
+  revalidatePath('/laitier/nutrition');
+  revalidatePath('/grains/rations');
+}
+
+export async function deleteManualServing(servingId: number) {
+  await prisma.dailyServing.delete({
+    where: { id: servingId }
+  });
+  revalidatePath('/laitier/nutrition');
+  revalidatePath('/grains/rations');
+}

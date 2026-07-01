@@ -128,6 +128,7 @@ model Group {
   performance_index Float
   weather           String?
   season            String?
+  target_ms_per_cow Float?
 
   daily_servings  DailyServing[]
   group_snapshots GroupSnapshot[]
@@ -137,12 +138,17 @@ model Group {
 
 model DailyServing {
   id                  Int   @id @default(autoincrement())
-  food_id             Int
+  food_id             Int?
   group_id            Int
   daily_kg_serving_ms Float
 
-  food  Food  @relation(fields: [food_id], references: [id])
-  group Group @relation(fields: [group_id], references: [id])
+  is_manual            Boolean @default(false)
+  manual_name          String?
+  manual_ms_percentage Float?
+  manual_qty_tqs       Float?
+
+  food  Food?  @relation(fields: [food_id], references: [id])
+  group Group @relation(fields: [group_id], references: [id], onDelete: Cascade)
 
   @@map("daily_serving")
 }

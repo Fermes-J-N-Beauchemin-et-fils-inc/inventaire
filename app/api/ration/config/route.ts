@@ -28,35 +28,51 @@ export async function GET() {
             let currentRtm = 0;
 
             group.daily_servings.forEach(serving => {
-                const msPercentage = serving.food.ms_percentage || 100;
-                
-                // Base amount per cow
-                const baseMsPerCow = serving.daily_kg_serving_ms;
-                const baseTqsPerCow = baseMsPerCow / (msPercentage / 100);
+                if (serving.is_manual) {
+                    const msPercentage = serving.manual_ms_percentage || 0;
+                    const v1 = serving.manual_qty_tqs ? serving.manual_qty_tqs * group.animals_fed : 0;
+                    currentRtm += v1;
+                    rationConfig[groupIdStr].push({
+                        id: `manual_${serving.id}`,
+                        name: serving.manual_name || "Manuel",
+                        v1: v1.toString(),
+                        v2: currentRtm.toString(),
+                        base_tqs_per_cow: serving.manual_qty_tqs || 0,
+                        price_per_tqs: 0,
+                        price_per_ms: 0,
+                        is_manual: true
+                    });
+                } else if (serving.food) {
+                    const msPercentage = serving.food.ms_percentage || 100;
+                    
+                    // Base amount per cow
+                    const baseMsPerCow = serving.daily_kg_serving_ms;
+                    const baseTqsPerCow = baseMsPerCow / (msPercentage / 100);
 
-                // v1 = Aliment = formulation of nutrition page (serving.daily_kg_serving_ms) times number of counts (group.animals_fed), factor MS, rounded up
-                const v1 = Math.ceil(baseTqsPerCow * group.animals_fed);
-                
-                // v2 = RTM (Balance) = total of food in mixer when distributor is at this aliment (cumulative sum)
-                currentRtm += v1;
-                const v2 = currentRtm;
+                    // v1 = Aliment = formulation of nutrition page (serving.daily_kg_serving_ms) times number of counts (group.animals_fed), factor MS, rounded up
+                    const v1 = Math.ceil(baseTqsPerCow * group.animals_fed);
+                    
+                    // v2 = RTM (Balance) = total of food in mixer when distributor is at this aliment (cumulative sum)
+                    currentRtm += v1;
+                    const v2 = currentRtm;
 
-                rationConfig[groupIdStr].push({
-                    id: serving.food.id.toString(),
-                    name: serving.food.name,
-                    v1: v1.toString(),
-                    v2: v2.toString(),
-                    base_tqs_per_cow: baseTqsPerCow, // Added to allow frontend recalculation
-                    price_per_tqs: serving.food.price_per_tqs, // Include price for accurate snapshot
-                    price_per_ms: serving.food.price_per_ms
-                });
+                    rationConfig[groupIdStr].push({
+                        id: serving.food.id.toString(),
+                        name: serving.food.name,
+                        v1: v1.toString(),
+                        v2: v2.toString(),
+                        base_tqs_per_cow: baseTqsPerCow, // Added to allow frontend recalculation
+                        price_per_tqs: serving.food.price_per_tqs, // Include price for accurate snapshot
+                        price_per_ms: serving.food.price_per_ms
+                    });
 
-                // Add to available aliments just in case
-                availableAliments[serving.food.id.toString()] = {
-                    id: serving.food.id.toString(),
-                    name: serving.food.name,
-                    msPercentage: msPercentage
-                };
+                    // Add to available aliments just in case
+                    availableAliments[serving.food.id.toString()] = {
+                        id: serving.food.id.toString(),
+                        name: serving.food.name,
+                        msPercentage: msPercentage
+                    };
+                }
             });
         });
 
