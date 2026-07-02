@@ -160,10 +160,38 @@ export default async function AlimentDetailPage({ params }: { params: Promise<{ 
   }
 
   let last7DaysConsumption = 0;
+  let daysWithConsumption = 0;
   for (let i = 23; i < 30; i++) { 
-    last7DaysConsumption += consumptionHistoryData[i]?.value || 0;
+    if (consumptionHistoryData[i]?.value > 0) {
+       last7DaysConsumption += consumptionHistoryData[i].value;
+       daysWithConsumption++;
+    }
   }
-  const consumptionRate = Number((last7DaysConsumption / 7).toFixed(2));
+  // Use actual days fed, or default to 7 if none
+  const averageDivisor = daysWithConsumption > 0 ? daysWithConsumption : 7;
+  const consumptionRate = Number((last7DaysConsumption / averageDivisor).toFixed(2));
+
+  // Compute Expected Consumption (Theoretical) based on current recipes
+  let expectedConsumptionTQS_KG = 0;
+  const allGroups = await prisma.group.findMany({
+    include: { daily_servings: true }
+  });
+  
+  for (const g of allGroups) {
+    for (const ds of g.daily_servings) {
+      if (ds.food_id === id && !ds.is_manual) {
+        const kgMsPerCow = ds.daily_kg_serving_ms;
+        const kgTqsPerCow = kgMsPerCow / ((food.ms_percentage || 100) / 100);
+        expectedConsumptionTQS_KG += (kgTqsPerCow * g.real_animal_count);
+      }
+    }
+  }
+
+  let rationToKg = food.unit_type.ration_to_kg || 1;
+  if (rationToKg === 1 && food.unit_type.name.toLowerCase() === 'tm') {
+    rationToKg = 1000;
+  }
+  const expectedConsumptionRate = Number((expectedConsumptionTQS_KG / rationToKg).toFixed(2));
 
   const maxStock = food.storages.reduce((sum: number, s: any) => {
     const capacityKg = s.storage.max_capacity * 1000;
@@ -191,6 +219,7 @@ export default async function AlimentDetailPage({ params }: { params: Promise<{ 
     // Dummy fields for charts and conversions that rely on mock data structure
     kgPerBag: food.unit_type.name.toLowerCase() === 'poches' ? 25 : undefined,
     consumptionRate: consumptionRate,
+    expectedConsumptionRate: expectedConsumptionRate,
     consumptionHistory: consumptionHistoryData,
     msHistory: msHistoryData,
     stockHistory: stockHistory,
@@ -465,9 +494,15 @@ export default async function AlimentDetailPage({ params }: { params: Promise<{ 
                   </div>
                   Historique de Consommation
                 </h2>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Taux actuel</p>
-                  <p className="text-3xl font-black text-blue-600">{aliment.consumptionRate} <span className="text-lg text-zinc-500">{aliment.unit}/jour</span></p>
+                <div className="flex gap-6 text-right">
+                  <div>
+                    <p className="text-xs font-black text-zinc-400 uppercase tracking-widest mb-1">Théorique (Nutrition)</p>
+                    <p className="text-2xl font-black text-zinc-900">{aliment.expectedConsumptionRate} <span className="text-sm text-zinc-500">{aliment.unit}/j</span></p>
+                  </div>
+                  <div className="pl-6 border-l border-zinc-200">
+                    <p className="text-xs font-black text-blue-500 uppercase tracking-widest mb-1">Moyenne (7 derniers jours)</p>
+                    <p className="text-3xl font-black text-blue-600">{aliment.consumptionRate} <span className="text-lg text-blue-400">{aliment.unit}/j</span></p>
+                  </div>
                 </div>
               </div>
 

@@ -228,13 +228,6 @@ export default function RationForm({
                   <FontAwesomeIcon icon={faPlus} />
                   Instruction
                 </button>
-                <button 
-                  onClick={() => handleAddAliment(key, false)}
-                  className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
-                >
-                  <FontAwesomeIcon icon={faPlus} />
-                  Aliment
-                </button>
               </div>
             </div>
             
@@ -288,7 +281,7 @@ export default function RationForm({
                             </div>
                           )}
                           
-                          {!isReadOnly && (
+                          {!aliment.isDump && (
                             <button 
                               onClick={() => handleRemoveAliment(key, uniqueId)}
                               className="w-8 h-8 flex-shrink-0 flex items-center justify-center text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"

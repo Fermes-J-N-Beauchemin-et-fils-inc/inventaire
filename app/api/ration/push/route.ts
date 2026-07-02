@@ -76,56 +76,6 @@ export async function POST(request: Request) {
             })
         ];
 
-        // Deduct inventory for each food used and calculate total cost
-        let totalRationCost = 0;
-        for (const [foodIdStr, amount] of Object.entries(foodTotals)) {
-            const foodId = parseInt(foodIdStr, 10);
-            
-            const food = foods.find(f => f.id === foodId);
-            if (food) {
-                // Assuming amount is in KG and price_per_tqs is per Tonne
-                totalRationCost += (amount / 1000) * food.price_per_tqs;
-            }
-
-            // Find the first storage for this food to deduct from
-            const storage = await prisma.foodStorage.findFirst({
-                where: { food_id: foodId }
-            });
-
-            if (storage) {
-                transactions.push(
-                    prisma.foodStorage.update({
-                        where: {
-                            food_id_storage_id: {
-                                food_id: foodId,
-                                storage_id: storage.storage_id
-                            }
-                        },
-                        data: {
-                            current_stock: {
-                                decrement: amount
-                            }
-                        }
-                    })
-                );
-            }
-        }
-
-        // Log the financial transaction for the day's ration
-        if (totalRationCost > 0) {
-            transactions.push(
-                prisma.financialTransaction.create({
-                    data: {
-                        date: new Date(),
-                        type: "OUT",
-                        category: "Alimentation",
-                        amount: totalRationCost,
-                        description: `Coût ration globale (${Object.keys(groups).length} groupes)`,
-                    }
-                })
-            );
-        }
-
         const [newRation] = await prisma.$transaction(transactions);
 
         return NextResponse.json({ success: true, pushedRation: newRation });

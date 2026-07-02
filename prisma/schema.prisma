@@ -382,12 +382,14 @@ model StockTransaction {
   id               Int      @id @default(autoincrement())
   food_id          Int
   storage_id       Int? // Optional for older transactions or if not silo-specific
+  pushed_ration_id Int? // Link to a pushed ration for rollback
   quantity         Float // Negative for consumption, positive for delivery/adjustment
   transaction_type String // "CONSUMPTION", "DELIVERY", "ADJUSTMENT"
   recorded_at      DateTime @default(now())
 
-  food    Food     @relation(fields: [food_id], references: [id], onDelete: Cascade)
-  storage Storage? @relation(fields: [storage_id], references: [id], onDelete: Cascade)
+  food          Food          @relation(fields: [food_id], references: [id], onDelete: Cascade)
+  storage       Storage?      @relation(fields: [storage_id], references: [id], onDelete: Cascade)
+  pushed_ration PushedRation? @relation(fields: [pushed_ration_id], references: [id], onDelete: Cascade)
 
   @@map("stock_transaction")
 }
@@ -417,6 +419,9 @@ model PushedRation {
   payload        Json // Le contenu figé de la ration (groupes, aliments, quantités)
   completed_keys Json? // Liste des clés de groupes terminés (ex: ["g1", "taries"])
 
+  stock_transactions     StockTransaction[]
+  financial_transactions FinancialTransaction[]
+
   @@map("pushed_ration")
 }
 
@@ -440,8 +445,11 @@ model FinancialTransaction {
   date        DateTime
   type        String   // "IN" (Revenu) ou "OUT" (Dépense)
   category    String   // ex: "Vétérinaire", "Électricité", "Vente Animaux"
-  amount      Float
-  description String?
+  amount           Float
+  description      String?
+  pushed_ration_id Int?
+
+  pushed_ration PushedRation? @relation(fields: [pushed_ration_id], references: [id], onDelete: Cascade)
 
   @@map("financial_transaction")
 }

@@ -86,15 +86,31 @@ export async function POST(request: Request) {
                         });
                     }
 
-                    // Log transaction
+                    // Log transaction with pushed_ration_id
                     await tx.stockTransaction.create({
                         data: {
                             food_id: foodId,
                             storage_id: storageIdToLog,
+                            pushed_ration_id: parseInt(id),
                             quantity: -quantity,
                             transaction_type: "CONSUMPTION"
                         }
                     });
+
+                    // Log financial transaction for this food in this group
+                    const cost = (quantityInKg / 1000) * (food?.price_per_tqs || 0);
+                    if (cost > 0) {
+                        await tx.financialTransaction.create({
+                            data: {
+                                date: new Date(),
+                                type: "OUT",
+                                category: "Alimentation",
+                                amount: cost,
+                                pushed_ration_id: parseInt(id),
+                                description: `Coût alimentation: ${food?.name} (Groupe ${group_key})`,
+                            }
+                        });
+                    }
                 }
             }
             

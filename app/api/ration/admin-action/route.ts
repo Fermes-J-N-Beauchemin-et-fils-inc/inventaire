@@ -22,53 +22,42 @@ export async function POST(req: Request) {
                     data: { status: 'ANNULEE' }
                 });
 
-                const completedKeys = Array.isArray(ration.completed_keys) ? ration.completed_keys : [];
-                for (const key of completedKeys) {
-                    const rawKey = (key as string).split('-tour')[0];
-                    const groupSequence = (ration.payload as any)?.[rawKey];
-                    // Handle both old group format and new sequence array format
-                    const alimentsToRestore = Array.isArray(groupSequence) ? groupSequence : groupSequence?.aliments;
-                    if (alimentsToRestore) {
-                        for (const a of alimentsToRestore) {
-                            const foodId = parseInt(a.id);
-                            const quantityInKg = parseFloat(a.v1);
-                            if (!foodId || isNaN(quantityInKg) || quantityInKg <= 0) continue;
+                // Find all stock transactions associated with this ration
+                const stockTx = await tx.stockTransaction.findMany({
+                    where: { pushed_ration_id: id, transaction_type: "CONSUMPTION" }
+                });
 
-                            const food = await tx.food.findUnique({
-                                where: { id: foodId },
-                                include: { unit_type: true }
-                            });
-                            let rationToKg = food?.unit_type?.ration_to_kg || 1;
-                            if (rationToKg === 1 && food?.unit_type?.name?.toLowerCase() === 'tm') {
-                                rationToKg = 1000;
+                // Revert inventory
+                for (const st of stockTx) {
+                    if (st.storage_id && st.quantity < 0) {
+                        await tx.foodStorage.update({
+                            where: { food_id_storage_id: { food_id: st.food_id, storage_id: st.storage_id } },
+                            data: { current_stock: { increment: Math.abs(st.quantity) } }
+                        });
+                        
+                        // Create adjustment log
+                        await tx.stockTransaction.create({
+                            data: {
+                                food_id: st.food_id,
+                                storage_id: st.storage_id,
+                                quantity: Math.abs(st.quantity),
+                                transaction_type: "ROLLBACK_ADJUSTMENT",
+                                pushed_ration_id: id
                             }
-                            const quantity = quantityInKg / rationToKg;
+                        });
 
-                            const bestStorage = await tx.foodStorage.findFirst({
-                                where: { food_id: foodId },
-                                orderBy: { current_stock: 'desc' }
-                            });
-
-                            let storageIdToLog = null;
-                            if (bestStorage) {
-                                storageIdToLog = bestStorage.storage_id;
-                                await tx.foodStorage.update({
-                                    where: { food_id_storage_id: { food_id: foodId, storage_id: bestStorage.storage_id } },
-                                    data: { current_stock: { increment: quantity } }
-                                });
-                            }
-
-                            await tx.stockTransaction.create({
-                                data: {
-                                    food_id: foodId,
-                                    storage_id: storageIdToLog,
-                                    quantity: quantity,
-                                    transaction_type: "ADJUSTMENT"
-                                }
-                            });
-                        }
+                        // Rename original transaction so it doesn't count in comptabilite
+                        await tx.stockTransaction.update({
+                            where: { id: st.id },
+                            data: { transaction_type: "CANCELLED_CONSUMPTION" }
+                        });
                     }
                 }
+
+                // Delete the financial transactions associated with this ration
+                await tx.financialTransaction.deleteMany({
+                    where: { pushed_ration_id: id }
+                });
             });
             return NextResponse.json({ success: true, message: "Ration annulée et inventaire restauré." });
         }
