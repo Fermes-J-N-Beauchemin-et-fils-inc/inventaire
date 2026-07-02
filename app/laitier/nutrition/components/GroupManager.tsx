@@ -4,7 +4,9 @@ import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faPen, faTrash, faTimes, faSave } from '@fortawesome/free-solid-svg-icons';
 import { createGroup, updateGroup, deleteGroup } from '../actions';
+import { checkGroupDependencies } from '../dependencies';
 import toast from 'react-hot-toast';
+import Link from 'next/link';
 
 interface GroupData {
   id: number;
@@ -59,22 +61,61 @@ export default function GroupManager({ groups }: Props) {
   const handleDelete = async (id: number, groupName: string) => {
     if (isDeleting) return;
 
+    setIsDeleting(id);
+    const depsToast = toast.loading('Vérification des dépendances...');
+    let dependencies = [];
+    try {
+      dependencies = await checkGroupDependencies(id);
+    } catch (e) {
+      toast.error('Erreur lors de la vérification des dépendances', { id: depsToast });
+      setIsDeleting(null);
+      return;
+    }
+    toast.dismiss(depsToast);
+
     toast((t) => (
-      <div className="flex flex-col gap-3">
-        <p className="font-bold">Supprimer définitivement le groupe "{groupName}" ?</p>
-        <div className="flex justify-end gap-2 mt-2">
+      <div className="flex flex-col gap-4 p-2">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center shrink-0">
+            <FontAwesomeIcon icon={faTrash} className="text-xl" />
+          </div>
+          <div>
+            <h3 className="text-lg font-black text-zinc-900">Supprimer le groupe ?</h3>
+            
+            {dependencies.length > 0 ? (
+              <div className="mt-2 mb-3 bg-red-50 text-red-800 p-3 rounded-lg border border-red-200">
+                <p className="font-bold text-sm mb-2">Attention, ce groupe est utilisé :</p>
+                <ul className="list-disc pl-5 text-sm space-y-1">
+                  {dependencies.map((dep, idx) => (
+                    <li key={idx}>
+                      <Link href={dep.url} className="underline hover:text-red-900 font-medium">
+                        {dep.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            <p className="text-sm font-medium text-zinc-500 mt-1">
+              Vous êtes sur le point de supprimer définitivement le groupe <strong>{groupName}</strong>.
+            </p>
+          </div>
+        </div>
+        <div className="flex justify-end gap-3 mt-2">
           <button 
-            className="px-3 py-1.5 bg-zinc-100 rounded-lg text-sm font-bold disabled:opacity-50" 
-            disabled={isDeleting === id}
-            onClick={() => toast.dismiss(t.id)}
+            className="px-5 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl font-bold transition-colors" 
+            onClick={() => {
+              toast.dismiss(t.id);
+              setIsDeleting(null);
+            }}
+            disabled={isDeleting === id && dependencies.length === 0}
           >
             Annuler
           </button>
           <button 
-            className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm font-bold disabled:opacity-50" 
-            disabled={isDeleting === id}
+            className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-red-600/20" 
             onClick={async () => {
-              setIsDeleting(id);
               toast.dismiss(t.id);
               const loadingToast = toast.loading('Suppression en cours...');
               try {
@@ -82,7 +123,6 @@ export default function GroupManager({ groups }: Props) {
                 toast.success('Groupe supprimé', { id: loadingToast });
               } catch (e) {
                 toast.error('Erreur lors de la suppression', { id: loadingToast });
-              } finally {
                 setIsDeleting(null);
               }
             }}
@@ -91,7 +131,10 @@ export default function GroupManager({ groups }: Props) {
           </button>
         </div>
       </div>
-    ), { duration: Infinity });
+    ), { 
+      duration: Infinity,
+      style: { maxWidth: '500px', padding: '16px', borderRadius: '24px' }
+    });
   };
 
   if (!isOpen) {

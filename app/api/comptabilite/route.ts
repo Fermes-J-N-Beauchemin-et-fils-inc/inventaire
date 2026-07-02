@@ -111,58 +111,65 @@ export async function GET(request: Request) {
         const groups: any[] = [];
         let totalGroupCost = 0;
         
-        if (pushedRation && pushedRation.payload) {
-            const payload: any = pushedRation.payload;
-            Object.keys(payload).forEach(key => {
-                const g = payload[key];
-                let groupCost = 0;
-                let groupVolume = 0;
-                let groupMs = 0;
-                const alimentData: any[] = [];
+        const dbGroups = await prisma.group.findMany({
+            include: {
+                daily_servings: true
+            }
+        });
 
-                g.aliments?.forEach((a: any) => {
-                    // Since payload might not have price, we find it from allFoods
-                    const foodRecord = allFoods.find(f => f.id.toString() === a.food_id || f.id.toString() === a.id);
-                    const priceTqs = foodRecord ? (foodRecord.price_per_tqs || 0) : 0;
-                    const priceMs = foodRecord ? (foodRecord.price_per_ms || 0) : 0;
-                    const msPercentage = foodRecord ? foodRecord.ms_percentage : 100;
+        dbGroups.forEach(g => {
+            let groupCost = 0;
+            let groupVolume = 0;
+            let groupMs = 0;
+            const alimentData: any[] = [];
 
-                    const tqs = parseFloat(a.v1) || 0;
-                    const ms = tqs * (msPercentage / 100);
-                    
-                    const costDay = tqs * (priceTqs / 1000);
-                    
-                    alimentData.push({
-                        id: a.id,
-                        name: a.name,
-                        msPercentage,
-                        humPercentage: 100 - msPercentage,
-                        priceMs,
-                        priceTqs,
-                        kgMs: ms,
-                        kgTqs: tqs,
-                        costDay: costDay,
-                        costYear: costDay * 365
-                    });
-                    
-                    groupCost += costDay;
-                    groupVolume += tqs;
-                    groupMs += ms;
+            g.daily_servings.forEach(ds => {
+                if (ds.is_manual) return;
+                const foodRecord = allFoods.find(f => f.id === ds.food_id);
+                if (!foodRecord) return;
+                
+                const priceTqs = foodRecord.price_per_tqs || 0;
+                const priceMs = foodRecord.price_per_ms || 0;
+                const msPercentage = foodRecord.ms_percentage;
+
+                const kgMsPerCow = ds.daily_kg_serving_ms;
+                const tqsPerCow = kgMsPerCow / (msPercentage / 100);
+                
+                const tqs = tqsPerCow * g.real_animal_count;
+                const ms = kgMsPerCow * g.real_animal_count;
+                
+                const costDay = tqs * (priceTqs / 1000);
+
+                alimentData.push({
+                    id: foodRecord.id,
+                    name: foodRecord.name,
+                    msPercentage,
+                    humPercentage: 100 - msPercentage,
+                    priceMs,
+                    priceTqs,
+                    kgMs: ms,
+                    kgTqs: tqs,
+                    costDay: costDay,
+                    costYear: costDay * 365
                 });
-
-                groups.push({
-                    id: key,
-                    name: g.name,
-                    cows: g.fed,
-                    totalKgTqs: groupVolume,
-                    totalKgMs: groupMs,
-                    totalCostDay: groupCost,
-                    totalCostYear: groupCost * 365,
-                    aliments: alimentData
-                });
-                totalGroupCost += groupCost;
+                
+                groupCost += costDay;
+                groupVolume += tqs;
+                groupMs += ms;
             });
-        }
+
+            groups.push({
+                id: `group_${g.id}`,
+                name: g.name,
+                cows: g.real_animal_count,
+                totalKgTqs: groupVolume,
+                totalKgMs: groupMs,
+                totalCostDay: groupCost,
+                totalCostYear: groupCost * 365,
+                aliments: alimentData
+            });
+            totalGroupCost += groupCost;
+        });
 
         const totalGroup = {
             id: 'total',
