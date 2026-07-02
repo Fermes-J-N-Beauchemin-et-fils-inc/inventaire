@@ -173,7 +173,8 @@ export async function GET() {
                     price_per_ms: 0,
                     is_manual: true,
                     highlight: 'text-green-700',
-                    isDump: true
+                    isDump: true,
+                    targetGroupName: group.name
                 });
             });
 
@@ -189,7 +190,8 @@ export async function GET() {
                 animals_fed: totalAnimalsFed,
                 real_animal_count: totalRealAnimals,
                 performance_index: summer_two_meals ? 0.5 : 1.0, // Default to 0.5 if two meals, the Tractor UI can adjust per tour
-                season: summer_two_meals ? 'ete' : 'hiver' // Enforce summer UI if two meals checked
+                season: summer_two_meals ? 'ete' : 'hiver', // Enforce summer UI if two meals checked
+                summer_two_meals: summer_two_meals
             });
         };
 

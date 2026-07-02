@@ -77,7 +77,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
       const res = await fetch('/api/ration/push', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ groups, groups_total: groupsTotal, saison, globalPluie })
+        body: JSON.stringify({ groups, groups_total: groupsTotal, saison, globalPluie, tour1Keys, tour2Keys: activeTour2 })
       });
       if (res.ok) {
         const data = await res.json();
@@ -138,7 +138,8 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
       let newName = a.name;
       if (a.isDump) {
         currentRtm -= v1Num;
-        newName = `DUMP au ${group.name} jusqu'à ${Math.max(0, currentRtm)} RTM`;
+        const groupName = a.targetGroupName || group.name;
+        newName = `DUMP au ${groupName} jusqu'à ${Math.max(0, currentRtm)} RTM`;
       } else {
         currentRtm += v1Num;
       }
@@ -157,11 +158,22 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
     if (isLoadingPushed) return;
     if (pushedRation && !isRefaire) {
         // If a ration is pushed, use its payload
-        setGroups(pushedRation.payload);
-        const pushedKeys = Object.keys(pushedRation.payload);
-        // Assuming all keys are in both tours for simplicity, or we can parse from payload if we stored it
-        setTour1Keys(pushedKeys);
-        setTour2Keys(pushedKeys);
+        let savedGroups = pushedRation.payload;
+        let t1Keys = Object.keys(savedGroups);
+        let t2Keys = Object.keys(savedGroups); // Fallback for old rations
+
+        if (pushedRation.payload.groups) {
+           // New structure
+           savedGroups = pushedRation.payload.groups;
+           t1Keys = pushedRation.payload.tour1Keys || Object.keys(savedGroups);
+           t2Keys = pushedRation.payload.tour2Keys || [];
+           if (pushedRation.payload.saison) setSaison(pushedRation.payload.saison);
+           if (pushedRation.payload.globalPluie) setGlobalPluie(pushedRation.payload.globalPluie);
+        }
+        
+        setGroups(savedGroups);
+        setTour1Keys(t1Keys);
+        setTour2Keys(t2Keys);
         setIsConfigLoading(false);
         return;
     }
@@ -175,10 +187,14 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
           setOriginalConfig(data.rationConfig);
           const initialGroups: GroupsState = {};
           const keys: GroupKey[] = [];
+          const tour2InitialKeys: GroupKey[] = [];
           
           data.groups.forEach((g: any) => {
             const key = g.id.toString();
             keys.push(key);
+            if (g.summer_two_meals) {
+                tour2InitialKeys.push(key);
+            }
             initialGroups[key] = {
               name: g.name,
               real: g.real_animal_count,
@@ -200,7 +216,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
 
           setGroups(initialGroups);
           setTour1Keys([...keys]);
-          setTour2Keys([...keys]);
+          setTour2Keys(tour2InitialKeys);
         }
       } catch (err) {
         console.error("Failed to fetch ration config", err);

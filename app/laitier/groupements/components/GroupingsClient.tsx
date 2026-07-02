@@ -6,7 +6,7 @@ import { faPlus, faTrash, faGripVertical, faSave, faSun } from '@fortawesome/fre
 import { DndContext, DragOverlay, closestCorners, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { createMixBatch, updateMixBatch, deleteMixBatch, updateGroupBatchAssignment, updateBatchOrder } from '../actions';
+import { createMixBatch, updateMixBatch, deleteMixBatch, saveGroupingsState } from '../actions';
 import toast, { Toaster } from 'react-hot-toast';
 
 interface Group {
@@ -148,6 +148,23 @@ export default function GroupingsClient({ initialBatches, initialUnassigned }: G
     });
   };
 
+  const handleSaveAll = async () => {
+    startTransition(async () => {
+      try {
+        const batchesData = batches.map(b => ({
+          id: b.id,
+          groupIds: b.groups.map(g => g.id)
+        }));
+        const unassignedIds = unassigned.map(g => g.id);
+        
+        await saveGroupingsState(batchesData, unassignedIds);
+        toast.success("Modifications sauvegardées avec succès ! Le calcul des rations est à jour.");
+      } catch (e) {
+        toast.error("Erreur lors de la sauvegarde.");
+      }
+    });
+  };
+
   const handleDeleteBatch = async (id: number) => {
     if (!confirm("Voulez-vous supprimer ce mélange ? Ses groupes seront replacés dans les non-assignés.")) return;
     
@@ -277,28 +294,8 @@ export default function GroupingsClient({ initialBatches, initialUnassigned }: G
 
     setUnassigned(newUnassigned);
     setBatches(newBatches);
-
-    // Persist changes
-    startTransition(async () => {
-      if (destContainer === 'unassigned') {
-        await updateGroupBatchAssignment(groupId, null, null);
-      } else {
-        const batchId = parseInt(destContainer.replace('batch-', ''));
-        const batch = newBatches.find(b => b.id === batchId);
-        if (batch) {
-          await updateBatchOrder(batchId, batch.groups.map(g => g.id));
-        }
-      }
-      
-      // Also update source container order if it was a batch
-      if (sourceContainer !== 'unassigned' && sourceContainer !== destContainer) {
-         const sourceBatchId = parseInt(sourceContainer.replace('batch-', ''));
-         const sBatch = newBatches.find(b => b.id === sourceBatchId);
-         if (sBatch) {
-           await updateBatchOrder(sourceBatchId, sBatch.groups.map(g => g.id));
-         }
-      }
-    });
+    
+    // UI state only. User must click "Sauvegarder" to persist.
   };
 
   return (
@@ -309,14 +306,24 @@ export default function GroupingsClient({ initialBatches, initialUnassigned }: G
           <h1 className="text-4xl sm:text-5xl font-black text-zinc-900 tracking-tight">Séquences de Mélange</h1>
           <p className="text-xl text-zinc-500 font-medium mt-2">Organisez vos groupes dans des mélanges (Batches).</p>
         </div>
-        <button
-          onClick={handleAddBatch}
-          disabled={isPending}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-blue-600/30 flex items-center gap-2 disabled:opacity-50"
-        >
-          <FontAwesomeIcon icon={faPlus} />
-          Nouveau Mélange
-        </button>
+        <div className="flex gap-4">
+          <button
+            onClick={handleSaveAll}
+            disabled={isPending}
+            className="bg-[#15803D] hover:bg-green-700 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg flex items-center gap-2 disabled:opacity-50"
+          >
+            <FontAwesomeIcon icon={faSave} />
+            Sauvegarder les groupes
+          </button>
+          <button
+            onClick={handleAddBatch}
+            disabled={isPending}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-blue-600/30 flex items-center gap-2 disabled:opacity-50"
+          >
+            <FontAwesomeIcon icon={faPlus} />
+            Nouveau Mélange
+          </button>
+        </div>
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>

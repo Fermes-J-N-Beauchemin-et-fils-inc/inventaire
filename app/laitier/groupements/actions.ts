@@ -109,3 +109,44 @@ export async function updateBatchOrder(batchId: number, groupIds: number[]) {
     throw error;
   }
 }
+
+export async function saveGroupingsState(batches: {id: number, groupIds: number[]}[], unassignedIds: number[]) {
+  try {
+    // Transaction pour tout mettre à jour en même temps
+    const transactions = [];
+
+    // Mettre à jour les non-assignés
+    for (const id of unassignedIds) {
+      transactions.push(
+        prisma.group.update({
+          where: { id },
+          data: { mix_batch_id: null, mix_order: null }
+        })
+      );
+    }
+
+    // Mettre à jour les assignés
+    for (const batch of batches) {
+      batch.groupIds.forEach((id, index) => {
+        transactions.push(
+          prisma.group.update({
+            where: { id },
+            data: { mix_batch_id: batch.id, mix_order: index }
+          })
+        );
+      });
+    }
+
+    await prisma.$transaction(transactions);
+
+    revalidatePath('/laitier/groupements');
+    revalidatePath('/laitier/nutrition');
+    revalidatePath('/grains/rations');
+    revalidatePath('/api/ration/config');
+    return { success: true };
+  } catch (error) {
+    console.error("Erreur de sauvegarde globale:", error);
+    throw error;
+  }
+}
+

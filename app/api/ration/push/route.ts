@@ -14,7 +14,7 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { groups, groups_total, saison, globalPluie } = body;
+        const { groups, groups_total, saison, globalPluie, tour1Keys, tour2Keys } = body;
 
         if (!groups || typeof groups_total !== 'number') {
             return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
             prisma.pushedRation.create({
                 data: {
                     groups_total,
-                    payload: groups,
+                    payload: { groups, tour1Keys, tour2Keys, saison, globalPluie },
                     completed_keys: [],
                 }
             }),

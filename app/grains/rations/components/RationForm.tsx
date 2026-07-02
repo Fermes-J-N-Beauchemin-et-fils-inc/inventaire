@@ -48,10 +48,12 @@ export default function RationForm({
 
   const handleStartDistribution = () => {
     if (saison === 'ete') {
-      const groupsToValidate: GroupKey[] = ['g1', 'g2', 'g3', 'g4'];
+      // Validation: En été, les groupes nourris deux fois (présents dans tour1 et tour2) doivent avoir des indices qui somment à 1.0
+      const groupsToValidate: GroupKey[] = tour1Keys.filter(k => tour2Keys.includes(k));
       const groupsWithIssues: string[] = [];
       for (const key of groupsToValidate) {
         const g = groups[key];
+        if (!g) continue;
         const i1 = parseFloat(g.indice || "0");
         const i2 = parseFloat(g.indiceTour2 || "0");
         if (Math.abs((i1 + i2) - 1.0) > 0.01) {
