@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import React from 'react';
 import { getMixBatches, getUnassignedGroups } from './actions';
 import GroupingsClient from './components/GroupingsClient';
