@@ -243,21 +243,31 @@ export default function RationForm({
                   ref={provided.innerRef} 
                   className={`space-y-3 p-3 rounded-2xl border-2 border-dashed transition-all duration-200 min-h-[100px] ${snapshot.isDraggingOver ? 'bg-blue-50/50 border-blue-400' : 'bg-zinc-50 border-zinc-200'}`}
                 >
-                  {group.aliments.map((aliment, index) => {
+                  {(group.aliments || []).map((aliment, index) => {
                     const uniqueId = aliment.rowId || aliment.id;
+                    const isReadOnly = aliment.isDump || !aliment.isInstruction;
+                    
                     return (
-                    <Draggable key={`aliment-${key}-${uniqueId}`} draggableId={`aliment-${key}-${uniqueId}`} index={index}>
+                    <Draggable key={`aliment-${key}-${uniqueId}`} draggableId={`aliment-${key}-${uniqueId}`} index={index} isDragDisabled={isReadOnly}>
                       {(provided, snapshot) => (
                         <div
                           ref={provided.innerRef}
                           {...provided.draggableProps}
                           style={provided.draggableProps.style}
-                          className={`flex gap-3 items-center bg-white p-2.5 rounded-xl border shadow-sm transition-all duration-200 ${snapshot.isDragging ? 'border-blue-500 shadow-lg ring-4 ring-blue-500/20 scale-[1.02] z-50' : 'border-zinc-200 hover:border-blue-300 hover:shadow-md'} ${aliment.isInstruction ? '!bg-red-50 !border-red-300' : ''}`}
+                          className={`flex gap-3 items-center p-2.5 rounded-xl border shadow-sm transition-all duration-200 ${snapshot.isDragging ? 'border-blue-500 shadow-lg ring-4 ring-blue-500/20 scale-[1.02] z-50' : 'border-zinc-200'} ${aliment.isInstruction ? 'bg-red-50 border-red-300' : 'bg-zinc-100'}`}
                         >
-                          <div {...provided.dragHandleProps} className={`text-zinc-300 hover:text-zinc-500 w-10 h-10 flex items-center justify-center rounded-lg cursor-grab active:cursor-grabbing transition-colors ${aliment.isInstruction ? 'bg-red-100 hover:bg-red-200 text-red-400 hover:text-red-600' : 'bg-zinc-50 hover:bg-zinc-100'}`}>
-                            <FontAwesomeIcon icon={faGripVertical} className="text-lg" />
-                          </div>
-                          {aliment.isInstruction ? (
+                          {!isReadOnly && (
+                            <div {...provided.dragHandleProps} className="text-zinc-300 hover:text-zinc-500 w-10 h-10 flex items-center justify-center rounded-lg cursor-grab active:cursor-grabbing transition-colors bg-red-100 hover:bg-red-200 text-red-400 hover:text-red-600">
+                              <FontAwesomeIcon icon={faGripVertical} className="text-lg" />
+                            </div>
+                          )}
+                          {isReadOnly && (
+                            <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-zinc-200 text-zinc-400">
+                              <span className="font-bold">{index + 1}</span>
+                            </div>
+                          )}
+                          
+                          {aliment.isInstruction && !aliment.isDump ? (
                             <input
                               type="text"
                               value={aliment.name}
@@ -266,28 +276,24 @@ export default function RationForm({
                               className="flex-1 px-3 py-2 text-base font-black text-red-800 border-2 border-red-300 hover:border-red-400 focus:border-red-600 rounded-lg focus:outline-none bg-white shadow-sm"
                             />
                           ) : (
-                            <select 
-                              value={aliment.id} 
-                              onChange={(e) => handleUpdateAliment(key, uniqueId, 'change_food', e.target.value)}
-                              className="flex-1 px-3 py-2 text-base font-black text-black border-2 border-zinc-400 hover:border-black focus:border-blue-600 rounded-lg focus:outline-none bg-zinc-100 shadow-sm cursor-pointer"
-                            >
-                              <option value={aliment.id} disabled hidden>{aliment.name}</option>
-                              {availableAliments.map(a => {
-                                const isDuplicate = group.aliments.some(ga => ga.id === a.id && !ga.isInstruction);
-                                return (
-                                  <option key={a.id} value={a.id} disabled={isDuplicate}>
-                                    {a.name} {isDuplicate ? '(Déjà ajouté)' : ''}
-                                  </option>
-                                );
-                              })}
-                            </select>
+                            <div className="flex-1 px-3 py-2 text-base font-black border-2 border-transparent flex justify-between items-center">
+                              <span className={aliment.highlight || "text-black"}>{aliment.name}</span>
+                              {aliment.v1 !== "0" && (
+                                <span className="text-zinc-600 bg-zinc-100 px-3 py-1 rounded-lg shadow-sm">
+                                  {aliment.v1} kg
+                                </span>
+                              )}
+                            </div>
                           )}
+                          
+                          {!isReadOnly && (
                             <button 
                               onClick={() => handleRemoveAliment(key, uniqueId)}
                               className="w-8 h-8 flex-shrink-0 flex items-center justify-center text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                             >
                               <FontAwesomeIcon icon={faTrash} />
                             </button>
+                          )}
                           </div>
                         )}
                       </Draggable>

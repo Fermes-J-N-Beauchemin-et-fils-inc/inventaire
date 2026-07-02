@@ -130,10 +130,26 @@ model Group {
   season            String?
   target_ms_per_cow Float?
 
+  mix_batch_id      Int?
+  mix_order         Int?
+
   daily_servings  DailyServing[]
   group_snapshots GroupSnapshot[]
+  mix_batch       MixBatch? @relation(fields: [mix_batch_id], references: [id])
 
   @@map("group")
+}
+
+model MixBatch {
+  id               Int      @id @default(autoincrement())
+  name             String
+  summer_two_meals Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  groups           Group[]
+
+  @@map("mix_batch")
 }
 
 model DailyServing {

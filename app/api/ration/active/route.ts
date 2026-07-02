@@ -22,7 +22,8 @@ export async function GET(request: Request) {
             where: {
                 date: {
                     gte: today
-                }
+                },
+                status: 'EN_COURS'
             },
             orderBy: {
                 date: 'desc'

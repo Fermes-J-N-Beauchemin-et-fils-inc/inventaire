@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faDatabase, faCarrot, faHouse, faBuildingColumns, faWheatAwn, faBars, faXmark, faTruck, faFlask, faStore, faArrowRightArrowLeft } from "@fortawesome/free-solid-svg-icons";
+import { faDatabase, faCarrot, faHouse, faBuildingColumns, faWheatAwn, faBars, faXmark, faTruck, faFlask, faStore, faArrowRightArrowLeft, faLayerGroup } from "@fortawesome/free-solid-svg-icons";
 
 interface NavItemProps {
     href: string;
@@ -168,6 +168,11 @@ export default function Sidenav({ children, initials = "JN" }: SidenavProps) {
                                     href="/laitier/nutrition"
                                     label="Nutrition"
                                     icon={<FontAwesomeIcon icon={faFlask} />}
+                                />
+                                <NavItem
+                                    href="/laitier/groupements"
+                                    label="Groupements"
+                                    icon={<FontAwesomeIcon icon={faLayerGroup} />}
                                 />
                                 <NavItem
                                     href="/laitier/transactions"

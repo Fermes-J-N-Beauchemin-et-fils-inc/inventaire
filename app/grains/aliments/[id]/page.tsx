@@ -212,22 +212,30 @@ export default async function AlimentDetailPage({ params }: { params: Promise<{ 
   let stockTon = 0;
   let stockPoches = 0;
 
-  if (aliment.unit.toLowerCase() === 'tm') {
+  if (aliment.unit.toLowerCase() === 'tm' || aliment.unit.toLowerCase() === 't') {
     stockTm = aliment.currentStock;
     stockKg = stockTm * 1000;
     stockTon = stockKg / 907.185;
     if (aliment.kgPerBag) {
       stockPoches = Math.floor(stockKg / aliment.kgPerBag);
     }
+  } else if (aliment.unit.toLowerCase() === 'kg') {
+    stockKg = aliment.currentStock;
+    stockTm = stockKg / 1000;
+    stockTon = stockKg / 907.185;
   } else if (aliment.unit.toLowerCase() === 'poches' && aliment.kgPerBag) {
     stockPoches = aliment.currentStock;
     stockKg = stockPoches * aliment.kgPerBag;
     stockTm = stockKg / 1000;
     stockTon = stockKg / 907.185;
+  } else if (aliment.unit.toLowerCase() === 'lbs') {
+    stockKg = aliment.currentStock * 0.453592;
+    stockTm = stockKg / 1000;
+    stockTon = stockKg / 907.185;
   } else {
-    // Cas générique
-    stockTm = aliment.currentStock;
-    stockKg = stockTm * 1000;
+    // Fallback: assume kg
+    stockKg = aliment.currentStock;
+    stockTm = stockKg / 1000;
     stockTon = stockKg / 907.185;
   }
 

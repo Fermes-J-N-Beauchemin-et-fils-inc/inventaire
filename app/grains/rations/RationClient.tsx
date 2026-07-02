@@ -134,11 +134,20 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
       if (a.base_tqs_per_cow) {
         v1Num = Math.ceil(a.base_tqs_per_cow * group.fed);
       }
-      currentRtm += v1Num;
+      
+      let newName = a.name;
+      if (a.isDump) {
+        currentRtm -= v1Num;
+        newName = `DUMP au ${group.name} jusqu'à ${Math.max(0, currentRtm)} RTM`;
+      } else {
+        currentRtm += v1Num;
+      }
+      
       return {
         ...a,
+        name: newName,
         v1: v1Num.toString(),
-        v2: currentRtm.toString()
+        v2: Math.max(0, currentRtm).toString()
       };
     });
     return { ...group, aliments: newAliments };
@@ -160,7 +169,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
     // Fetch config from DB
     const fetchConfig = async () => {
       try {
-        const res = await fetch('/api/ration/config');
+        const res = await fetch('/api/ration/config', { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           setOriginalConfig(data.rationConfig);
@@ -442,16 +451,16 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
       if (newSaison === 'ete') {
         setGroups(g => {
           const updated = { ...g };
-          (['g1', 'g2', 'g3', 'g4'] as GroupKey[]).forEach(k => {
-            updated[k] = { ...updated[k], indice: '0.75', indiceTour2: '0.25' };
+          (Object.keys(g) as GroupKey[]).forEach(k => {
+            if (updated[k]) updated[k] = { ...updated[k], indice: '0.50', indiceTour2: '0.50' };
           });
           return updated;
         });
       } else {
         setGroups(g => {
           const updated = { ...g };
-          (['g1', 'g2', 'g3', 'g4'] as GroupKey[]).forEach(k => {
-            updated[k] = { ...updated[k], indice: '1.00' };
+          (Object.keys(g) as GroupKey[]).forEach(k => {
+            if (updated[k]) updated[k] = { ...updated[k], indice: '1.00' };
           });
           return updated;
         });

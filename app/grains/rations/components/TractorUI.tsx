@@ -352,7 +352,7 @@ export default function TractorUI({
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-4 sm:gap-10 xl:ml-auto bg-white xl:bg-transparent p-4 sm:p-5 xl:p-0 rounded-2xl shadow-sm xl:shadow-none border-2 xl:border-none border-zinc-200 w-full xl:w-auto">
                       {aliment.v1 !== "0" && aliment.v1 !== aliment.v2 && (
                         <div className="flex flex-col items-end">
-                          <span className="text-xs sm:text-sm font-bold text-zinc-600 uppercase tracking-widest mb-1">Aliment</span>
+                          <span className="text-xs sm:text-sm font-bold text-zinc-600 uppercase tracking-widest mb-1">{aliment.isDump ? "Quantité" : "Aliment"}</span>
                           <span className="text-2xl sm:text-3xl font-black text-zinc-800">{scaledV1} <span className="text-lg sm:text-xl font-bold text-zinc-600">kg</span></span>
                         </div>
                       )}

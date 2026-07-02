@@ -24,10 +24,13 @@ export async function POST(req: Request) {
 
                 const completedKeys = Array.isArray(ration.completed_keys) ? ration.completed_keys : [];
                 for (const key of completedKeys) {
-                    const group = (ration.payload as any)?.[key as string];
-                    if (group && group.aliments) {
-                        for (const a of group.aliments) {
-                            const foodId = parseInt(a.food_id);
+                    const rawKey = (key as string).split('-tour')[0];
+                    const groupSequence = (ration.payload as any)?.[rawKey];
+                    // Handle both old group format and new sequence array format
+                    const alimentsToRestore = Array.isArray(groupSequence) ? groupSequence : groupSequence?.aliments;
+                    if (alimentsToRestore) {
+                        for (const a of alimentsToRestore) {
+                            const foodId = parseInt(a.id);
                             const quantityInKg = parseFloat(a.v1);
                             if (!foodId || isNaN(quantityInKg) || quantityInKg <= 0) continue;
 
@@ -35,7 +38,10 @@ export async function POST(req: Request) {
                                 where: { id: foodId },
                                 include: { unit_type: true }
                             });
-                            const rationToKg = food?.unit_type?.ration_to_kg || 1;
+                            let rationToKg = food?.unit_type?.ration_to_kg || 1;
+                            if (rationToKg === 1 && food?.unit_type?.name?.toLowerCase() === 'tm') {
+                                rationToKg = 1000;
+                            }
                             const quantity = quantityInKg / rationToKg;
 
                             const bestStorage = await tx.foodStorage.findFirst({
