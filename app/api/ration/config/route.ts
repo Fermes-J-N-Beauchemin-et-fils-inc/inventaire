@@ -122,6 +122,7 @@ export async function GET() {
             let currentRtm = 0;
             let hasDumped = false;
             const loadedIngredients = new Set<string>();
+            const totalAnimalsFedForBatch = groups.reduce((sum, g) => sum + g.animals_fed, 0);
 
             groupNeeds.forEach(({ group, needs }) => {
                 // Phase A: Load any ingredients needed by this group that haven't been loaded yet
@@ -147,7 +148,7 @@ export async function GET() {
                             name: displayName,
                             v1: amountToLoad.toString(),
                             v2: currentRtm.toString(),
-                            base_tqs_per_cow: amountToLoad / group.animals_fed, // Approx, just for UI division if needed
+                            base_tqs_per_cow: totalAnimalsFedForBatch > 0 ? amountToLoad / totalAnimalsFedForBatch : 0, 
                             price_per_tqs: data.food.price_per_tqs,
                             price_per_ms: data.food.price_per_ms,
                             is_manual: data.isManual,
@@ -168,7 +169,7 @@ export async function GET() {
                     name: `DUMP au ${group.name} jusqu'à ${targetRtm} RTM`,
                     v1: amountToDump.toString(),
                     v2: targetRtm.toString(),
-                    base_tqs_per_cow: amountToDump / group.animals_fed,
+                    base_tqs_per_cow: totalAnimalsFedForBatch > 0 ? amountToDump / totalAnimalsFedForBatch : 0,
                     price_per_tqs: 0,
                     price_per_ms: 0,
                     is_manual: true,
