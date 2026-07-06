@@ -58,7 +58,10 @@ export async function POST(req: Request) {
         await prisma.$transaction(
             updates.map((update: any) => {
                 const dataToUpdate: any = {};
-                if (update.count !== undefined) dataToUpdate.real_animal_count = parseInt(update.count);
+                if (update.count !== undefined) {
+                    dataToUpdate.real_animal_count = parseInt(update.count);
+                    dataToUpdate.animals_fed = parseInt(update.count); // Sync animals_fed so recipes update correctly
+                }
                 if (update.category !== undefined) dataToUpdate.category = update.category;
                 
                 return prisma.group.update({
