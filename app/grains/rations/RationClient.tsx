@@ -210,7 +210,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
             
             if (lastGroup && lastGroup.aliments) {
                 mergedAliments = lastGroup.aliments.map((lastAlim: any) => {
-                    if (lastAlim.isInstruction || lastAlim.isDump) {
+                    if (lastAlim.isInstruction && !lastAlim.isDump) {
                         return { ...lastAlim, rowId: Math.random().toString(36).substr(2, 9) };
                     }
                     const theoAlim = baseAliments.find((a: any) => a.id === lastAlim.id);
@@ -221,6 +221,12 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
                             v1: theoAlim.v1, 
                             rowId: Math.random().toString(36).substr(2, 9) 
                         };
+                    }
+                    if (lastAlim.isDump) {
+                        // Si le dump n'existe plus dans la config theorique, on le garde quand même
+                        // mais on met 0 par sécurité (ou on le supprime ?)
+                        // On garde 0 pour forcer l'utilisateur à voir qu'il a changé.
+                        return { ...lastAlim, base_tqs_per_cow: 0, v1: "0", rowId: Math.random().toString(36).substr(2, 9) };
                     }
                     return { ...lastAlim, base_tqs_per_cow: 0, v1: "0", rowId: Math.random().toString(36).substr(2, 9) };
                 });
