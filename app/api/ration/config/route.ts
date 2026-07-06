@@ -216,11 +216,16 @@ export async function GET() {
                 msPercentage: f.ms_percentage
             };
         });
+        // Fetch the absolute last pushed ration to be used as a template
+        const lastPushedRation = await prisma.pushedRation.findFirst({
+            orderBy: { id: 'desc' }
+        });
 
         return NextResponse.json({
             rationConfig,
             groups: virtualGroups,
-            availableAliments: Object.values(availableAliments)
+            availableAliments: Object.values(availableAliments),
+            lastPushedRation
         });
     } catch (error) {
         console.error('Error generating ration config:', error);

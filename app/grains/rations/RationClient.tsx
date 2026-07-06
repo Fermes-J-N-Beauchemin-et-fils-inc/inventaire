@@ -188,35 +188,106 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
           const initialGroups: GroupsState = {};
           const keys: GroupKey[] = [];
           const tour2InitialKeys: GroupKey[] = [];
+          const lastRation = data.lastPushedRation?.payload;
           
+          if (lastRation && lastRation.groups) {
+             if (lastRation.saison) setSaison(lastRation.saison);
+             if (lastRation.globalPluie) setGlobalPluie(lastRation.globalPluie);
+          }
+
           data.groups.forEach((g: any) => {
             const key = g.id.toString();
             keys.push(key);
+            
+            const lastGroup = lastRation?.groups?.[key];
+            
             if (g.summer_two_meals) {
                 tour2InitialKeys.push(key);
             }
+
+            const baseAliments = (data.rationConfig[key] || []);
+            let mergedAliments: any[] = [];
+            
+            if (lastGroup && lastGroup.aliments) {
+                mergedAliments = lastGroup.aliments.map((lastAlim: any) => {
+                    if (lastAlim.isInstruction || lastAlim.isDump) {
+                        return { ...lastAlim, rowId: Math.random().toString(36).substr(2, 9) };
+                    }
+                    const theoAlim = baseAliments.find((a: any) => a.id === lastAlim.id);
+                    if (theoAlim) {
+                        return { 
+                            ...lastAlim, 
+                            base_tqs_per_cow: theoAlim.base_tqs_per_cow,
+                            v1: theoAlim.v1, 
+                            rowId: Math.random().toString(36).substr(2, 9) 
+                        };
+                    }
+                    return { ...lastAlim, base_tqs_per_cow: 0, v1: "0", rowId: Math.random().toString(36).substr(2, 9) };
+                });
+                
+                baseAliments.forEach((theoAlim: any) => {
+                    if (!lastGroup.aliments.find((a: any) => a.id === theoAlim.id) && parseFloat(theoAlim.v1) > 0) {
+                        mergedAliments.push({
+                            ...theoAlim,
+                            rowId: Math.random().toString(36).substr(2, 9)
+                        });
+                    }
+                });
+            } else {
+                mergedAliments = baseAliments
+                    .filter((a: any) => parseFloat(a.v1) > 0)
+                    .map((a: any) => ({
+                      ...a,
+                      rowId: Math.random().toString(36).substr(2, 9)
+                    }));
+            }
+
             initialGroups[key] = {
               name: g.name,
               real: g.real_animal_count,
-              fed: g.animals_fed,
-              indice: g.performance_index.toString(),
-              indiceTour2: "0.25", // Default
-              time: "", // Could be added to DB later
-              note: "",
-              systemNote: "",
-              foinSec: "0",
-              aliments: (data.rationConfig[key] || [])
-                .filter((a: any) => parseFloat(a.v1) > 0)
-                .map((a: any) => ({
-                  ...a,
-                  rowId: Math.random().toString(36).substr(2, 9)
-                }))
+              fed: lastGroup?.fed ?? g.animals_fed,
+              indice: g.summer_two_meals ? "0.5" : "1",
+              indiceTour2: g.summer_two_meals ? "0.5" : "0.25",
+              time: "",
+              note: lastGroup?.note || "",
+              systemNote: lastGroup?.systemNote || "",
+              foinSec: lastGroup?.foinSec || "0",
+              aliments: mergedAliments
             };
+            
+            let currentRtm = 0;
+            initialGroups[key].aliments = initialGroups[key].aliments.map((a: any) => {
+              let v1Num = parseFloat(a.v1) || 0;
+              if (a.base_tqs_per_cow) {
+                  v1Num = Math.ceil(a.base_tqs_per_cow * initialGroups[key].fed);
+              }
+              a.v1 = v1Num.toString();
+              
+              if (a.isDump) {
+                  currentRtm -= v1Num;
+                  a.v2 = Math.max(0, currentRtm).toString();
+              } else {
+                  currentRtm += v1Num;
+                  a.v2 = Math.max(0, currentRtm).toString();
+              }
+              return a;
+            });
           });
 
           setGroups(initialGroups);
-          setTour1Keys([...keys]);
-          setTour2Keys(tour2InitialKeys);
+          
+          if (lastRation && lastRation.tour1Keys) {
+             const validTour1Keys = lastRation.tour1Keys.filter((k: string) => keys.includes(k));
+             const newKeys = keys.filter(k => !validTour1Keys.includes(k));
+             setTour1Keys([...validTour1Keys, ...newKeys]);
+             
+             const validTour2Keys = (lastRation.tour2Keys || []).filter((k: string) => tour2InitialKeys.includes(k));
+             const newTour2Keys = tour2InitialKeys.filter(k => !validTour2Keys.includes(k));
+             setTour2Keys([...validTour2Keys, ...newTour2Keys]);
+          } else {
+             setTour1Keys([...keys]);
+             setTour2Keys(tour2InitialKeys);
+          }
         }
       } catch (err) {
         console.error("Failed to fetch ration config", err);
