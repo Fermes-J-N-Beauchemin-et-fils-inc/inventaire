@@ -42,7 +42,7 @@ export async function GET() {
 
             // 1. Calculate the exact needs for each group
             const groupNeeds = groups.map(group => {
-                const needs: Record<string, { food: any, tqs: number, ms: number, isManual: boolean, manualName?: string }> = {};
+                const needs: Record<string, { food: any, tqs: number, tqs_per_cow: number, ms: number, isManual: boolean, manualName?: string }> = {};
                 
                 let totalMs = 0;
                 let totalTqs = 0;
@@ -50,7 +50,8 @@ export async function GET() {
                 group.daily_servings.forEach((serving: any) => {
                     if (serving.is_manual) {
                         const msPercentage = serving.manual_ms_percentage || 0;
-                        const tqs = serving.manual_qty_tqs ? serving.manual_qty_tqs * group.animals_fed : 0;
+                        const tqs_per_cow = serving.manual_qty_tqs || 0;
+                        const tqs = tqs_per_cow * group.animals_fed;
                         const ms = tqs * (msPercentage / 100);
                         totalMs += ms;
                         totalTqs += tqs;
@@ -59,6 +60,7 @@ export async function GET() {
                         needs[key] = {
                             food: { id: key, name: serving.manual_name || "Manuel", price_per_tqs: 0, price_per_ms: 0 },
                             tqs,
+                            tqs_per_cow,
                             ms,
                             isManual: true,
                             manualName: serving.manual_name
@@ -76,6 +78,7 @@ export async function GET() {
                         needs[key] = {
                             food: serving.food,
                             tqs,
+                            tqs_per_cow: baseTqsPerCow,
                             ms,
                             isManual: false
                         };
@@ -88,8 +91,7 @@ export async function GET() {
                     }
                 });
 
-                // Calculate water adjustment for this specific group
-                if (group.target_ms_per_cow) {
+                if (group.target_ms_per_cow && group.animals_fed > 0) {
                     const targetMsPercent = group.target_ms_per_cow;
                     const currentMsPercent = totalTqs > 0 ? (totalMs / totalTqs) * 100 : 0;
                     
@@ -99,6 +101,7 @@ export async function GET() {
                             needs['auto_water'] = {
                                 food: { id: 'auto_water', name: 'Eau (Ajustement)', price_per_tqs: 0, price_per_ms: 0 },
                                 tqs: waterToAdd,
+                                tqs_per_cow: waterToAdd / group.animals_fed,
                                 ms: 0,
                                 isManual: true
                             };
@@ -109,58 +112,91 @@ export async function GET() {
                 return { group, needs };
             });
 
-            // 2. Aggregate global needs for the entire batch
-            const globalNeeds: Record<string, number> = {};
+            // 2. Identify all unique ingredients across the batch
+            const allIngredientKeys = new Set<string>();
             groupNeeds.forEach(({ needs }) => {
-                Object.entries(needs).forEach(([key, data]) => {
-                    globalNeeds[key] = (globalNeeds[key] || 0) + data.tqs;
-                });
+                Object.keys(needs).forEach(key => allIngredientKeys.add(key));
             });
 
-            // 3. Generate Sequence (Load -> Dump -> Load -> Dump)
+            // 3. Determine the "Base Mix" (Minimum tqs_per_cow for each ingredient)
+            const baseMix: Record<string, number> = {};
+            allIngredientKeys.forEach(key => {
+                let minTqsPerCow = Infinity;
+                groupNeeds.forEach(({ needs }) => {
+                    const tqsPerCow = needs[key] ? needs[key].tqs_per_cow : 0;
+                    if (tqsPerCow < minTqsPerCow) {
+                        minTqsPerCow = tqsPerCow;
+                    }
+                });
+                baseMix[key] = minTqsPerCow;
+            });
+
             const sequence: any[] = [];
             let currentRtm = 0;
-            let hasDumped = false;
-            const loadedIngredients = new Set<string>();
             const totalAnimalsFedForBatch = groups.reduce((sum, g) => sum + g.animals_fed, 0);
 
-            groupNeeds.forEach(({ group, needs }) => {
-                // Phase A: Load any ingredients needed by this group that haven't been loaded yet
-                Object.entries(needs).forEach(([key, data]) => {
-                    if (!loadedIngredients.has(key)) {
-                        loadedIngredients.add(key);
-                        
-                        // We load the TOTAL amount needed for the entire batch for this ingredient!
-                        const amountToLoad = Math.round(globalNeeds[key]);
+            // 4. Generate Load instructions for the Base Mix
+            Object.entries(baseMix).forEach(([key, baseTqsPerCow]) => {
+                if (baseTqsPerCow > 0 && totalAnimalsFedForBatch > 0) {
+                    const amountToLoad = Math.round(baseTqsPerCow * totalAnimalsFedForBatch);
+                    
+                    if (amountToLoad > 0) {
                         currentRtm += amountToLoad;
                         
-                        let displayName = data.food.name;
-                        let highlightClass = undefined;
-                        
-                        if (!data.isManual) {
-                            if (hasDumped) {
-                                highlightClass = 'text-orange-600';
+                        let foodData: any = null;
+                        for (const { needs } of groupNeeds) {
+                            if (needs[key]) {
+                                foodData = needs[key];
+                                break;
                             }
                         }
                         
                         sequence.push({
-                            id: data.isManual ? key : data.food.id.toString(),
-                            name: displayName,
+                            id: foodData.isManual ? key : foodData.food.id.toString(),
+                            name: foodData.food.name,
                             v1: amountToLoad.toString(),
                             v2: currentRtm.toString(),
-                            base_tqs_per_cow: totalAnimalsFedForBatch > 0 ? amountToLoad / totalAnimalsFedForBatch : 0, 
-                            price_per_tqs: data.food.price_per_tqs,
-                            price_per_ms: data.food.price_per_ms,
-                            is_manual: data.isManual,
-                            highlight: highlightClass
+                            base_tqs_per_cow: baseTqsPerCow,
+                            price_per_tqs: foodData.food.price_per_tqs,
+                            price_per_ms: foodData.food.price_per_ms,
+                            is_manual: foodData.isManual,
+                            highlight: undefined
                         });
+                    }
+                }
+            });
+
+            // 5. Iterate through groups to generate Top-Dress and Dumps
+            groupNeeds.forEach(({ group, needs }) => {
+                // Phase A: Top-Dress for this group
+                Object.entries(needs).forEach(([key, data]) => {
+                    const baseTqsPerCow = baseMix[key] || 0;
+                    const topDressTqsPerCow = data.tqs_per_cow - baseTqsPerCow;
+                    
+                    // We only add top dress if the difference is significant (> 0.01 kg/cow)
+                    if (topDressTqsPerCow > 0.01 && group.animals_fed > 0) {
+                        const topDressAmount = Math.round(topDressTqsPerCow * group.animals_fed);
+                        if (topDressAmount > 0) {
+                            currentRtm += topDressAmount;
+                            
+                            sequence.push({
+                                id: data.isManual ? key : data.food.id.toString(),
+                                name: data.food.name,
+                                v1: topDressAmount.toString(),
+                                v2: currentRtm.toString(),
+                                base_tqs_per_cow: totalAnimalsFedForBatch > 0 ? topDressAmount / totalAnimalsFedForBatch : 0,
+                                price_per_tqs: data.food.price_per_tqs,
+                                price_per_ms: data.food.price_per_ms,
+                                is_manual: data.isManual,
+                                highlight: 'text-orange-600'
+                            });
+                        }
                     }
                 });
 
                 // Phase B: Dump to this group
                 const amountToDump = Math.round(Object.values(needs).reduce((sum, data) => sum + data.tqs, 0));
                 currentRtm -= amountToDump;
-                hasDumped = true;
 
                 const targetRtm = Math.max(0, currentRtm);
 
@@ -181,7 +217,6 @@ export async function GET() {
 
             rationConfig[batchId] = sequence;
 
-            // Compute total animals fed for the virtual group
             const totalAnimalsFed = groups.reduce((sum, g) => sum + g.animals_fed, 0);
             const totalRealAnimals = groups.reduce((sum, g) => sum + g.real_animal_count, 0);
 
@@ -190,8 +225,8 @@ export async function GET() {
                 name: batchName,
                 animals_fed: totalAnimalsFed,
                 real_animal_count: totalRealAnimals,
-                performance_index: summer_two_meals ? 0.5 : 1.0, // Default to 0.5 if two meals, the Tractor UI can adjust per tour
-                season: summer_two_meals ? 'ete' : 'hiver', // Enforce summer UI if two meals checked
+                performance_index: summer_two_meals ? 0.5 : 1.0,
+                season: summer_two_meals ? 'ete' : 'hiver',
                 summer_two_meals: summer_two_meals
             });
         };

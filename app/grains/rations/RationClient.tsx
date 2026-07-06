@@ -320,13 +320,16 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
   };
 
   const handleIndiceChange = (key: GroupKey, tour: 1 | 2, newIndice: string) => {
-    setGroups(prev => ({
-      ...prev,
-      [key]: {
+    setGroups(prev => {
+      const updatedGroup = {
         ...prev[key],
         [tour === 1 ? 'indice' : 'indiceTour2']: newIndice
-      }
-    }));
+      };
+      return {
+        ...prev,
+        [key]: recalculateGroupAliments(updatedGroup)
+      };
+    });
   };
 
   const handleNoteChange = (key: GroupKey, value: string) => {
