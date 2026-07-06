@@ -61,3 +61,40 @@ export async function GET() {
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
+
+import { auth } from "@/app/lib/auth";
+import { headers } from "next/headers";
+
+export async function POST(req: Request) {
+    try {
+        const session = await auth.api.getSession({
+            headers: await headers()
+        });
+
+        if (!session?.user || (session.user as any).role !== "admin") {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const data = await req.json();
+        const { updates } = data; // Array of { id, count }
+
+        if (!updates || !Array.isArray(updates)) {
+            return NextResponse.json({ error: "Invalid data format" }, { status: 400 });
+        }
+
+        // Use a transaction to perform all updates safely
+        await prisma.$transaction(
+            updates.map((update: any) => 
+                prisma.group.update({
+                    where: { id: parseInt(update.id) },
+                    data: { real_animal_count: parseInt(update.count) }
+                })
+            )
+        );
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error("Error updating live cows:", error);
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    }
+}

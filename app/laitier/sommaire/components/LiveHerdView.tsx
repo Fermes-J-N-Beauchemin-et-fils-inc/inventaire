@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRotateRight, faCircle, faCow } from '@fortawesome/free-solid-svg-icons';
 
+import toast from 'react-hot-toast';
+
 interface GroupData {
   id: number;
   name: string;
@@ -11,11 +13,14 @@ interface GroupData {
   category: string;
 }
 
-export default function LiveHerdView() {
+export default function LiveHerdView({ isAdmin = false }: { isAdmin?: boolean }) {
   const [data, setData] = useState<GroupData[]>([]);
   const [lastFetched, setLastFetched] = useState<Date | null>(null);
   const [loading, setLoading] = useState(false);
   const [timeAgo, setTimeAgo] = useState('à l\'instant');
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftData, setDraftData] = useState<Record<number, string>>({});
+  const [isSaving, setIsSaving] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -25,9 +30,16 @@ export default function LiveHerdView() {
       if (result.success) {
         setData(result.groups);
         setLastFetched(new Date(result.timestamp));
+        // Initialize draft data
+        const initialDraft: Record<number, string> = {};
+        result.groups.forEach((g: GroupData) => {
+           initialDraft[g.id] = g.count.toString();
+        });
+        setDraftData(initialDraft);
       }
     } catch (e) {
       console.error(e);
+      toast.error("Erreur de chargement des données");
     } finally {
       setLoading(false);
     }
@@ -47,6 +59,38 @@ export default function LiveHerdView() {
     }, 1000);
     return () => clearInterval(interval);
   }, [lastFetched]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const updates = Object.keys(draftData).map(id => ({
+        id: parseInt(id),
+        count: parseInt(draftData[parseInt(id)]) || 0
+      }));
+
+      const res = await fetch('/api/laitier/live-cows', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates })
+      });
+
+      if (res.ok) {
+        toast.success("Effectif mis à jour !");
+        setIsEditing(false);
+        await fetchData(); // Refresh data
+      } else {
+        toast.error("Erreur lors de la sauvegarde.");
+      }
+    } catch (e) {
+      toast.error("Erreur de connexion.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDraftChange = (id: number, value: string) => {
+     setDraftData(prev => ({ ...prev, [id]: value }));
+  };
 
   // Group the data by category
   const groupedData = data.reduce((acc, curr) => {
@@ -79,12 +123,39 @@ export default function LiveHerdView() {
           </span>
           <button 
             onClick={fetchData} 
-            disabled={loading}
+            disabled={loading || isEditing}
             className="w-10 h-10 rounded-full bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900 flex items-center justify-center transition-all disabled:opacity-50"
             title="Rafraîchir les données"
           >
             <FontAwesomeIcon icon={faRotateRight} className={loading ? "animate-spin" : ""} />
           </button>
+          
+          {isAdmin && !isEditing && (
+            <button 
+              onClick={() => setIsEditing(true)}
+              className="px-4 py-2 bg-zinc-100 text-zinc-700 font-bold rounded-lg hover:bg-zinc-200 transition-colors"
+            >
+              Modifier
+            </button>
+          )}
+          {isAdmin && isEditing && (
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setIsEditing(false)}
+                className="px-4 py-2 bg-zinc-100 text-zinc-700 font-bold rounded-lg hover:bg-zinc-200 transition-colors"
+                disabled={isSaving}
+              >
+                Annuler
+              </button>
+              <button 
+                onClick={handleSave}
+                disabled={isSaving}
+                className="px-4 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+              >
+                {isSaving ? "En cours..." : "Sauvegarder"}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -95,7 +166,11 @@ export default function LiveHerdView() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {Object.entries(groupedData).map(([category, items]) => {
-            const total = items.reduce((sum, item) => sum + item.count, 0);
+            // For total, use draft values if editing
+            const total = items.reduce((sum, item) => {
+                const val = isEditing ? parseInt(draftData[item.id]) || 0 : item.count;
+                return sum + val;
+            }, 0);
             
             // Assign colors based on category
             let colorClass = "bg-zinc-50 border-zinc-200 text-zinc-800";
@@ -106,7 +181,7 @@ export default function LiveHerdView() {
             if (category === 'Bœuf') { colorClass = "bg-orange-50 border-orange-100 text-orange-900"; dotClass = "bg-orange-500"; }
 
             return (
-              <div key={category} className={`p-4 rounded-xl border ${colorClass}`}>
+              <div key={category} className={`p-4 rounded-xl border ${colorClass} ${isEditing ? 'ring-2 ring-blue-400 ring-opacity-50' : ''}`}>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-bold flex items-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${dotClass}`}></div>
@@ -118,7 +193,17 @@ export default function LiveHerdView() {
                   {items.map(item => (
                     <div key={item.id} className="flex justify-between items-center text-sm">
                       <span className="opacity-80 font-medium">{item.name}</span>
-                      <span className="font-bold bg-white/50 px-2 py-0.5 rounded">{item.count}</span>
+                      {isEditing ? (
+                          <input 
+                              type="number"
+                              min="0"
+                              value={draftData[item.id] !== undefined ? draftData[item.id] : item.count}
+                              onChange={(e) => handleDraftChange(item.id, e.target.value)}
+                              className="w-16 px-2 py-1 text-right font-bold bg-white border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                      ) : (
+                          <span className="font-bold bg-white/50 px-2 py-0.5 rounded">{item.count}</span>
+                      )}
                     </div>
                   ))}
                 </div>

@@ -13,7 +13,7 @@ import { globalMocks, lactationGroups, releveGroups, releveTotal, tariesGroups, 
 
 import DateNavigator from '@/app/components/ui/DateNavigator';
 
-export default function SommaireClient() {
+export default function SommaireClient({ isAdmin = false }: { isAdmin?: boolean }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   
   // Mock date state for UI purposes
@@ -119,7 +119,7 @@ export default function SommaireClient() {
       {/* Tabs Menu */}
       <div className="min-h-[500px]">
         {activeTab === 'dashboard' && <DashboardTab mocks={mocks} setActiveTab={setActiveTab} />}
-        {activeTab === 'effectif' && <LiveHerdView />}
+        {activeTab === 'effectif' && <LiveHerdView isAdmin={isAdmin} />}
         {activeTab === 'lactation' && <LactationTab mocks={mocks} />}
         {activeTab === 'releve' && <ReleveTab mocks={mocks} />}
         {activeTab === 'taries' && <TariesTab mocks={mocks} />}
