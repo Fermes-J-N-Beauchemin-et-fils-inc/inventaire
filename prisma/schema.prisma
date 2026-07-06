@@ -129,6 +129,7 @@ model Group {
   weather           String?
   season            String?
   target_ms_per_cow Float?
+  category          String  @default("Autres")
 
   mix_batch_id      Int?
   mix_order         Int?

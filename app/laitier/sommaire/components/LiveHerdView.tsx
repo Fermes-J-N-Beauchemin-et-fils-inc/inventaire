@@ -20,6 +20,7 @@ export default function LiveHerdView({ isAdmin = false }: { isAdmin?: boolean })
   const [timeAgo, setTimeAgo] = useState('à l\'instant');
   const [isEditing, setIsEditing] = useState(false);
   const [draftData, setDraftData] = useState<Record<number, string>>({});
+  const [draftCategories, setDraftCategories] = useState<Record<number, string>>({});
   const [isSaving, setIsSaving] = useState(false);
 
   const fetchData = async () => {
@@ -32,10 +33,13 @@ export default function LiveHerdView({ isAdmin = false }: { isAdmin?: boolean })
         setLastFetched(new Date(result.timestamp));
         // Initialize draft data
         const initialDraft: Record<number, string> = {};
+        const initialCats: Record<number, string> = {};
         result.groups.forEach((g: GroupData) => {
            initialDraft[g.id] = g.count.toString();
+           initialCats[g.id] = g.category || 'Autres';
         });
         setDraftData(initialDraft);
+        setDraftCategories(initialCats);
       }
     } catch (e) {
       console.error(e);
@@ -65,7 +69,8 @@ export default function LiveHerdView({ isAdmin = false }: { isAdmin?: boolean })
     try {
       const updates = Object.keys(draftData).map(id => ({
         id: parseInt(id),
-        count: parseInt(draftData[parseInt(id)]) || 0
+        count: parseInt(draftData[parseInt(id)]) || 0,
+        category: draftCategories[parseInt(id)] || 'Autres'
       }));
 
       const res = await fetch('/api/laitier/live-cows', {
@@ -92,12 +97,37 @@ export default function LiveHerdView({ isAdmin = false }: { isAdmin?: boolean })
      setDraftData(prev => ({ ...prev, [id]: value }));
   };
 
-  // Group the data by category
+  const handleDragStart = (e: React.DragEvent, id: number) => {
+      e.dataTransfer.setData('text/plain', id.toString());
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+      e.preventDefault(); // Necessary to allow dropping
+  };
+
+  const handleDrop = (e: React.DragEvent, targetCategory: string) => {
+      e.preventDefault();
+      if (!isEditing) return;
+      const id = parseInt(e.dataTransfer.getData('text/plain'));
+      if (isNaN(id)) return;
+      setDraftCategories(prev => ({ ...prev, [id]: targetCategory }));
+  };
+
+  // Group the data by category (use draftCategories if editing)
   const groupedData = data.reduce((acc, curr) => {
-    if (!acc[curr.category]) acc[curr.category] = [];
-    acc[curr.category].push(curr);
+    const cat = isEditing ? (draftCategories[curr.id] || curr.category) : curr.category;
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(curr);
     return acc;
   }, {} as Record<string, GroupData[]>);
+  
+  // Ensure all standard categories always exist when editing to act as drop zones
+  if (isEditing) {
+      const standardCats = ['En Lait', 'Relève', 'Taries', 'Bœuf', 'Autres'];
+      standardCats.forEach(c => {
+          if (!groupedData[c]) groupedData[c] = [];
+      });
+  }
 
   return (
     <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -181,7 +211,12 @@ export default function LiveHerdView({ isAdmin = false }: { isAdmin?: boolean })
             if (category === 'Bœuf') { colorClass = "bg-orange-50 border-orange-100 text-orange-900"; dotClass = "bg-orange-500"; }
 
             return (
-              <div key={category} className={`p-4 rounded-xl border ${colorClass} ${isEditing ? 'ring-2 ring-blue-400 ring-opacity-50' : ''}`}>
+              <div 
+                key={category} 
+                className={`p-4 rounded-xl border ${colorClass} ${isEditing ? 'ring-2 ring-blue-400 ring-opacity-50 transition-all' : ''}`}
+                onDragOver={isEditing ? handleDragOver : undefined}
+                onDrop={isEditing ? (e) => handleDrop(e, category) : undefined}
+              >
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-bold flex items-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${dotClass}`}></div>
@@ -191,7 +226,12 @@ export default function LiveHerdView({ isAdmin = false }: { isAdmin?: boolean })
                 </div>
                 <div className="space-y-2">
                   {items.map(item => (
-                    <div key={item.id} className="flex justify-between items-center text-sm">
+                    <div 
+                        key={item.id} 
+                        className={`flex justify-between items-center text-sm ${isEditing ? 'cursor-grab active:cursor-grabbing p-2 -mx-2 hover:bg-black/5 rounded-lg' : ''}`}
+                        draggable={isEditing}
+                        onDragStart={isEditing ? (e) => handleDragStart(e, item.id) : undefined}
+                    >
                       <span className="opacity-80 font-medium">{item.name}</span>
                       {isEditing ? (
                           <input 

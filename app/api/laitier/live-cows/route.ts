@@ -8,24 +8,16 @@ export async function GET() {
                 id: true,
                 name: true,
                 real_animal_count: true,
+                category: true,
             }
         });
 
-        // Add some grouping logic (Lactation, Relève, etc.) based on group names
-        // Groups 1,2,3,4,5 are often Lactation, "Relève", "Taries", etc.
         let mappedGroups = groups.map(g => {
-            let category = 'Autres';
-            const name = g.name.toLowerCase();
-            if (name.includes('groupe') || name.includes('lait')) category = 'En Lait';
-            else if (name.includes('relève') || name.includes('releve') || name.includes('taure')) category = 'Relève';
-            else if (name.includes('tarie')) category = 'Taries';
-            else if (name.includes('boeuf') || name.includes('bœuf')) category = 'Bœuf';
-
             return {
                 id: g.id,
                 name: g.name,
                 count: g.real_animal_count,
-                category
+                category: g.category || 'Autres'
             };
         });
 
@@ -64,12 +56,16 @@ export async function POST(req: Request) {
 
         // Use a transaction to perform all updates safely
         await prisma.$transaction(
-            updates.map((update: any) => 
-                prisma.group.update({
+            updates.map((update: any) => {
+                const dataToUpdate: any = {};
+                if (update.count !== undefined) dataToUpdate.real_animal_count = parseInt(update.count);
+                if (update.category !== undefined) dataToUpdate.category = update.category;
+                
+                return prisma.group.update({
                     where: { id: parseInt(update.id) },
-                    data: { real_animal_count: parseInt(update.count) }
-                })
-            )
+                    data: dataToUpdate
+                });
+            })
         );
 
         return NextResponse.json({ success: true });
