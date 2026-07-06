@@ -163,6 +163,7 @@ model DailyServing {
   manual_name          String?
   manual_ms_percentage Float?
   manual_qty_tqs       Float?
+  is_top_dress         Boolean @default(false)
 
   food  Food?  @relation(fields: [food_id], references: [id])
   group Group @relation(fields: [group_id], references: [id], onDelete: Cascade)

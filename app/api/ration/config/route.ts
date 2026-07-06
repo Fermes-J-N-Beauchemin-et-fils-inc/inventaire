@@ -42,7 +42,7 @@ export async function GET() {
 
             // 1. Calculate the exact needs for each group
             const groupNeeds = groups.map(group => {
-                const needs: Record<string, { food: any, tqs: number, ms: number, isManual: boolean, manualName?: string }> = {};
+                const needs: Record<string, { food: any, tqs: number, ms: number, isManual: boolean, isTopDress?: boolean, manualName?: string }> = {};
                 
                 let totalMs = 0;
                 let totalTqs = 0;
@@ -61,6 +61,7 @@ export async function GET() {
                             tqs,
                             ms,
                             isManual: true,
+                            isTopDress: serving.is_top_dress || false,
                             manualName: serving.manual_name
                         };
                     } else if (serving.food) {
@@ -72,16 +73,17 @@ export async function GET() {
                         totalMs += ms;
                         totalTqs += tqs;
                         
-                        const key = serving.food.id.toString();
+                        const key = serving.is_top_dress ? `${serving.food.id}_topdress_${group.id}` : serving.food.id.toString();
                         needs[key] = {
                             food: serving.food,
                             tqs,
                             ms,
-                            isManual: false
+                            isManual: false,
+                            isTopDress: serving.is_top_dress || false
                         };
 
-                        availableAliments[key] = {
-                            id: key,
+                        availableAliments[serving.food.id.toString()] = {
+                            id: serving.food.id.toString(),
                             name: serving.food.name,
                             msPercentage: msPercentage
                         };
@@ -100,7 +102,8 @@ export async function GET() {
                                 food: { id: 'auto_water', name: 'Eau (Ajustement)', price_per_tqs: 0, price_per_ms: 0 },
                                 tqs: waterToAdd,
                                 ms: 0,
-                                isManual: true
+                                isManual: true,
+                                isTopDress: false
                             };
                         }
                     }
@@ -137,14 +140,12 @@ export async function GET() {
                         let displayName = data.food.name;
                         let highlightClass = undefined;
                         
-                        if (!data.isManual) {
-                            if (hasDumped) {
-                                highlightClass = 'text-orange-600';
-                            }
+                        if (data.isTopDress || (!data.isManual && hasDumped)) {
+                            highlightClass = 'text-orange-600';
                         }
                         
                         sequence.push({
-                            id: data.isManual ? key : data.food.id.toString(),
+                            id: (data.isManual || data.isTopDress) ? key : data.food.id.toString(),
                             name: displayName,
                             v1: amountToLoad.toString(),
                             v2: currentRtm.toString(),

@@ -3,7 +3,7 @@
 import { prisma } from "@/app/lib/db";
 import { revalidatePath } from "next/cache";
 
-export async function updateDailyServing(groupId: number, foodId: number, dailyKgServingMs: number) {
+export async function updateDailyServing(groupId: number, foodId: number, dailyKgServingMs: number, isTopDress: boolean = false) {
   if (dailyKgServingMs <= 0) {
     // If set to 0, delete it if it exists
     await prisma.dailyServing.deleteMany({
@@ -24,14 +24,15 @@ export async function updateDailyServing(groupId: number, foodId: number, dailyK
     if (existing) {
       await prisma.dailyServing.update({
         where: { id: existing.id },
-        data: { daily_kg_serving_ms: dailyKgServingMs }
+        data: { daily_kg_serving_ms: dailyKgServingMs, is_top_dress: isTopDress }
       });
     } else {
       await prisma.dailyServing.create({
         data: {
           group_id: groupId,
           food_id: foodId,
-          daily_kg_serving_ms: dailyKgServingMs
+          daily_kg_serving_ms: dailyKgServingMs,
+          is_top_dress: isTopDress
         }
       });
     }
@@ -93,7 +94,8 @@ export async function upsertManualServing(
   servingId: number | null,
   name: string,
   msPercentage: number,
-  qtyTqs: number
+  qtyTqs: number,
+  isTopDress: boolean = false
 ) {
   const dailyKgServingMs = qtyTqs * (msPercentage / 100);
 
@@ -104,7 +106,8 @@ export async function upsertManualServing(
         manual_name: name,
         manual_ms_percentage: msPercentage,
         manual_qty_tqs: qtyTqs,
-        daily_kg_serving_ms: dailyKgServingMs
+        daily_kg_serving_ms: dailyKgServingMs,
+        is_top_dress: isTopDress
       }
     });
   } else {
@@ -115,7 +118,8 @@ export async function upsertManualServing(
         manual_name: name,
         manual_ms_percentage: msPercentage,
         manual_qty_tqs: qtyTqs,
-        daily_kg_serving_ms: dailyKgServingMs
+        daily_kg_serving_ms: dailyKgServingMs,
+        is_top_dress: isTopDress
       }
     });
   }

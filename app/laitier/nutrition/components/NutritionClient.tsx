@@ -29,6 +29,7 @@ interface GroupData {
     manual_name: string | null;
     manual_ms_percentage: number | null;
     manual_qty_tqs: number | null;
+    is_top_dress: boolean;
   }[];
 }
 
@@ -63,6 +64,17 @@ export default function NutritionClient({ groups, foods }: Props) {
     return initialState;
   });
 
+  const [topDress, setTopDress] = useState<{ [groupId: number]: { [foodId: number]: boolean } }>(() => {
+    const initialState: any = {};
+    groups.forEach(g => {
+      initialState[g.id] = {};
+      g.daily_servings.filter(ds => !ds.is_manual).forEach(ds => {
+        initialState[g.id][ds.food_id as number] = ds.is_top_dress || false;
+      });
+    });
+    return initialState;
+  });
+
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   
   // State for adding a new manual ingredient
@@ -70,6 +82,7 @@ export default function NutritionClient({ groups, foods }: Props) {
   const [manualName, setManualName] = useState('');
   const [manualMs, setManualMs] = useState<number>(0);
   const [manualQty, setManualQty] = useState<number>(0);
+  const [manualIsTopDress, setManualIsTopDress] = useState<boolean>(false);
 
   const [isPending, startTransition] = useTransition();
 
@@ -80,6 +93,16 @@ export default function NutritionClient({ groups, foods }: Props) {
       [groupId]: {
         ...prev[groupId],
         [foodId]: numValue
+      }
+    }));
+  };
+
+  const handleTopDressChange = (groupId: number, foodId: number, isTopDress: boolean) => {
+    setTopDress(prev => ({
+      ...prev,
+      [groupId]: {
+        ...prev[groupId],
+        [foodId]: isTopDress
       }
     }));
   };
@@ -100,7 +123,8 @@ export default function NutritionClient({ groups, foods }: Props) {
         
         const promises = foods.map(food => {
           const val = groupServings[food.id] || 0;
-          return updateDailyServing(groupId, food.id, val);
+          const isTopDress = topDress[groupId]?.[food.id] || false;
+          return updateDailyServing(groupId, food.id, val, isTopDress);
         });
 
         // Save target MS
@@ -123,12 +147,13 @@ export default function NutritionClient({ groups, foods }: Props) {
     startTransition(async () => {
       try {
         const qtyTqs = manualMs > 0 ? manualQty / (manualMs / 100) : manualQty;
-        await upsertManualServing(groupId, null, manualName, manualMs, qtyTqs);
+        await upsertManualServing(groupId, null, manualName, manualMs, qtyTqs, manualIsTopDress);
         toast.success("Ingrédient ajouté");
         setIsAddingManual(false);
         setManualName('');
         setManualMs(0);
         setManualQty(0);
+        setManualIsTopDress(false);
       } catch (err) {
         toast.error("Erreur d'ajout");
       }
@@ -291,6 +316,7 @@ export default function NutritionClient({ groups, foods }: Props) {
                   <th className="pb-4 w-32">% MS</th>
                   <th className="pb-4 w-48">Kg MS / Vache</th>
                   <th className="pb-4 w-48">Kg Tel Quel (estimé)</th>
+                  <th className="pb-4 w-32 text-center">Top Dress</th>
                   <th className="pb-4 w-12"></th>
                 </tr>
               </thead>
@@ -317,6 +343,15 @@ export default function NutritionClient({ groups, foods }: Props) {
                       <td className="py-4 font-bold text-zinc-400">
                         {kgTqs > 0 ? kgTqs.toFixed(2) : '-'} kg
                       </td>
+                      <td className="py-4 text-center">
+                        <input 
+                          type="checkbox"
+                          checked={topDress[selectedGroup.id]?.[food.id] || false}
+                          onChange={(e) => handleTopDressChange(selectedGroup.id, food.id, e.target.checked)}
+                          disabled={kgMs === 0}
+                          className="w-5 h-5 rounded border-zinc-300 text-orange-500 focus:ring-orange-500"
+                        />
+                      </td>
                       <td className="py-4"></td>
                     </tr>
                   );
@@ -332,6 +367,11 @@ export default function NutritionClient({ groups, foods }: Props) {
                     <td className="py-4 font-medium text-blue-600">{manual.manual_ms_percentage}%</td>
                     <td className="py-4 font-black text-blue-900">{manual.daily_kg_serving_ms.toFixed(2)}</td>
                     <td className="py-4 font-bold text-blue-700">{manual.manual_qty_tqs?.toFixed(2)} kg</td>
+                    <td className="py-4 text-center">
+                      <span className={`text-xs font-bold px-2 py-1 rounded-full ${manual.is_top_dress ? 'bg-orange-100 text-orange-700' : 'bg-zinc-100 text-zinc-500'}`}>
+                        {manual.is_top_dress ? 'Oui' : 'Non'}
+                      </span>
+                    </td>
                     <td className="py-4">
                       <button 
                         onClick={() => handleDeleteManual(manual.id)}
@@ -396,6 +436,14 @@ export default function NutritionClient({ groups, foods }: Props) {
                       ) : (
                         manualQty > 0 ? (manualQty / (manualMs / 100)).toFixed(2) + ' kg' : '-'
                       )}
+                    </td>
+                    <td className="py-4 text-center">
+                      <input 
+                        type="checkbox"
+                        checked={manualIsTopDress}
+                        onChange={(e) => setManualIsTopDress(e.target.checked)}
+                        className="w-5 h-5 rounded border-zinc-300 text-orange-500 focus:ring-orange-500"
+                      />
                     </td>
                     <td className="py-4 flex gap-2">
                       <button 
