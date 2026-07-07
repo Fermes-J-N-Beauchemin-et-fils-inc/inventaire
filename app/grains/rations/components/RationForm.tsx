@@ -277,8 +277,8 @@ export default function RationForm({
                           ) : (
                             <div className="flex-1 px-3 py-2 text-base font-black border-2 border-transparent flex justify-between items-center">
                               <span className={aliment.highlight || "text-black"}>
-                                {aliment.isDump && aliment.name.includes('(Qte:') 
-                                  ? aliment.name.replace(/\(Qte: (\d+) kg\)/, `(Qte: ${scaledV1} kg)`) 
+                                {aliment.isDump && aliment.name.includes("jusqu'à") 
+                                  ? aliment.name.replace(/jusqu'à (\d+) RTM/, `jusqu'à ${scaledV1} RTM`) 
                                   : aliment.name}
                               </span>
                               {scaledV1 !== "0" && (
