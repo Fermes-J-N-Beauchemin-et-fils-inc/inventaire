@@ -252,14 +252,14 @@ export async function GET() {
 
                 sequence.push({
                     id: `dump_${group.id}`,
-                    name: `DUMP au ${group.name} jusqu'à ${targetRtm} RTM`,
-                    v1: amountToDump.toString(),
-                    v2: targetRtm.toString(),
+                    name: `DUMP au ${group.name} (Qte: ${amountToDump} kg)`,
+                    v1: targetRtm.toString(),
+                    v2: 'RTM',
                     base_tqs_per_cow: totalAnimalsFedForBatch > 0 ? amountToDump / totalAnimalsFedForBatch : 0,
                     price_per_tqs: 0,
                     price_per_ms: 0,
                     is_manual: true,
-                    highlight: 'text-green-700',
+                    highlight: 'text-green-700 font-bold bg-green-50/50',
                     isDump: true,
                     targetGroupName: group.name
                 });
