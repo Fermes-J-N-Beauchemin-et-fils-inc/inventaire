@@ -66,7 +66,7 @@ export async function GET() {
                                 if (!ds.is_manual && ds.food) {
                                     refTotalMs += ds.daily_kg_serving_ms;
                                     refTotalTqs += ds.daily_kg_serving_ms / (ds.food.ms_percentage / 100);
-                                } else if (ds.is_manual && ds.manual_ms_percentage) {
+                                } else if (ds.is_manual && ds.manual_ms_percentage !== null) {
                                     refTotalMs += ds.daily_kg_serving_ms;
                                     refTotalTqs += ds.manual_qty_tqs || 0;
                                 }
