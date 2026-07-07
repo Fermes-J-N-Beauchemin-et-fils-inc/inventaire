@@ -182,7 +182,7 @@ export async function GET() {
                         totalMs += ms;
                         totalTqs += tqs;
                         
-                        const key = serving.is_top_dress ? `${serving.food.id}_topdress_${group.id}` : serving.food.id.toString();
+                        const key = serving.is_top_dress ? `${serving.food.id}_topdress` : serving.food.id.toString();
                         if (!needs[key]) {
                             needs[key] = {
                                 food: serving.food,
