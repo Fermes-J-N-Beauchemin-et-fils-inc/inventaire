@@ -72,13 +72,23 @@ export async function GET() {
                                 }
                             });
                             
+                            let refAutoWaterTqs = 0;
+                            if (refGroup.target_ms_per_cow) {
+                                const targetMsPercent = refGroup.target_ms_per_cow;
+                                const currentMsPercent = refTotalTqs > 0 ? (refTotalMs / refTotalTqs) * 100 : 0;
+                                if (currentMsPercent > targetMsPercent) {
+                                    refAutoWaterTqs = (refTotalMs * 100 / targetMsPercent) - refTotalTqs;
+                                }
+                            }
+                            
+                            const actualRefTotalTqs = refTotalTqs + refAutoWaterTqs;
                             const targetTqsForWholeGroup = serving.manual_qty_tqs ? serving.manual_qty_tqs * group.animals_fed : 0;
                             
                             if (refTotalTqs > 0) {
                                 baseServings.forEach((ds: any) => {
                                     if (!ds.is_manual && ds.food) {
                                         const originalTqs = ds.daily_kg_serving_ms / (ds.food.ms_percentage / 100);
-                                        const proportion = originalTqs / refTotalTqs;
+                                        const proportion = originalTqs / actualRefTotalTqs;
                                         
                                         const proportionalTqs = targetTqsForWholeGroup * proportion;
                                         const proportionalMs = proportionalTqs * (ds.food.ms_percentage / 100);
@@ -100,7 +110,7 @@ export async function GET() {
                                         };
                                     } else if (ds.is_manual) {
                                         const originalTqs = ds.manual_qty_tqs || 0;
-                                        const proportion = originalTqs / refTotalTqs;
+                                        const proportion = originalTqs / actualRefTotalTqs;
                                         
                                         const proportionalTqs = targetTqsForWholeGroup * proportion;
                                         const proportionalMs = proportionalTqs * ((ds.manual_ms_percentage || 0) / 100);
@@ -123,6 +133,24 @@ export async function GET() {
                                         needs[key].ms += proportionalMs;
                                     }
                                 });
+                                
+                                if (refAutoWaterTqs > 0) {
+                                    const proportion = refAutoWaterTqs / actualRefTotalTqs;
+                                    const proportionalTqs = targetTqsForWholeGroup * proportion;
+                                    
+                                    totalTqs += proportionalTqs;
+                                    
+                                    if (!needs['auto_water']) {
+                                        needs['auto_water'] = {
+                                            food: { id: 'auto_water', name: 'Eau (Ajustement)', price_per_tqs: 0, price_per_ms: 0 },
+                                            tqs: 0,
+                                            ms: 0,
+                                            isManual: true,
+                                            isTopDress: false
+                                        };
+                                    }
+                                    needs['auto_water'].tqs += proportionalTqs;
+                                }
                             }
                         }
                     } else if (serving.is_manual) {
