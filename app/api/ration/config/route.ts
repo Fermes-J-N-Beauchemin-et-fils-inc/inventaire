@@ -273,6 +273,7 @@ export async function GET() {
 
                 // Phase B: Dump to this group
                 const amountToDump = Math.round(Object.values(needs).reduce((sum, data) => sum + data.tqs, 0));
+                console.log(`DUMP GR ${group.id}`, "amountToDump", amountToDump, "currentRtm before", currentRtm, "currentRtm after", currentRtm - amountToDump);
                 currentRtm -= amountToDump;
                 hasDumped = true;
 
@@ -281,8 +282,8 @@ export async function GET() {
                 sequence.push({
                     id: `dump_${group.id}`,
                     name: `Vider au ${group.name} jusqu'à ${targetRtm} RTM`,
-                    v1: targetRtm.toString(),
-                    v2: 'RTM',
+                    v1: amountToDump.toString(),
+                    v2: targetRtm.toString(),
                     base_tqs_per_cow: totalAnimalsFedForBatch > 0 ? amountToDump / totalAnimalsFedForBatch : 0,
                     price_per_tqs: 0,
                     price_per_ms: 0,

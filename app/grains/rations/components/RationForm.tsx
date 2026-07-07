@@ -246,6 +246,9 @@ export default function RationForm({
                     const v1Num = parseFloat(aliment.v1);
                     const scaledV1 = isNaN(v1Num) ? aliment.v1 : Math.ceil(v1Num * indiceNum).toString();
                     
+                    const v2Num = parseFloat(aliment.v2);
+                    const scaledV2 = isNaN(v2Num) ? aliment.v2 : Math.ceil(v2Num * indiceNum).toString();
+                    
                     return (
                     <Draggable key={`aliment-${key}-${uniqueId}`} draggableId={`aliment-${key}-${uniqueId}`} index={index} isDragDisabled={isReadOnly}>
                       {(provided, snapshot) => (
@@ -278,7 +281,7 @@ export default function RationForm({
                             <div className="flex-1 px-3 py-2 text-base font-black border-2 border-transparent flex justify-between items-center">
                               <span className={aliment.highlight || "text-black"}>
                                 {aliment.isDump && aliment.name.includes("jusqu'à") 
-                                  ? aliment.name.replace(/jusqu'à (\d+) RTM/, `jusqu'à ${scaledV1} RTM`) 
+                                  ? aliment.name.replace(/jusqu'à (\d+) RTM/, `jusqu'à ${scaledV2} RTM`) 
                                   : aliment.name}
                               </span>
                               {scaledV1 !== "0" && (
