@@ -3,7 +3,7 @@
 import React, { useState, useTransition } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFlask, faExclamationTriangle, faSave, faCheckCircle, faSpinner, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
-import { updateDailyServing, updateGroupTargetMs, upsertManualServing, deleteManualServing } from '../actions';
+import { updateDailyServing, updateGroupTargetMs, upsertManualServing, deleteManualServing, upsertReferenceServing } from '../actions';
 import GroupManager from './GroupManager';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -30,6 +30,7 @@ interface GroupData {
     manual_ms_percentage: number | null;
     manual_qty_tqs: number | null;
     is_top_dress: boolean;
+    reference_group_id?: number | null;
   }[];
 }
 
@@ -83,6 +84,11 @@ export default function NutritionClient({ groups, foods }: Props) {
   const [manualMs, setManualMs] = useState<number>(0);
   const [manualQty, setManualQty] = useState<number>(0);
   const [manualIsTopDress, setManualIsTopDress] = useState<boolean>(false);
+
+  // State for adding a reference group
+  const [isAddingReference, setIsAddingReference] = useState(false);
+  const [referenceGroupIdState, setReferenceGroupIdState] = useState<number>(0);
+  const [referenceQtyTqs, setReferenceQtyTqs] = useState<number>(0);
 
   const [isPending, startTransition] = useTransition();
 
@@ -167,6 +173,51 @@ export default function NutritionClient({ groups, foods }: Props) {
         toast.success("Ingrédient supprimé");
       } catch (err) {
         toast.error("Erreur de suppression");
+      }
+    });
+  };
+
+  const handleAddReferenceServing = async (groupId: number) => {
+    if (!referenceGroupIdState) {
+      toast.error("Veuillez sélectionner un groupe");
+      return;
+    }
+    if (referenceQtyTqs <= 0) {
+      toast.error("La quantité doit être supérieure à 0");
+      return;
+    }
+    
+    startTransition(async () => {
+      try {
+        // Find the reference group to calculate average MS%
+        const refGroup = groups.find(g => g.id === referenceGroupIdState);
+        let totalMs = 0;
+        let totalTqs = 0;
+        
+        if (refGroup) {
+          refGroup.daily_servings.filter(ds => !ds.is_top_dress && !ds.reference_group_id).forEach(ds => {
+            if (!ds.is_manual && ds.food_id) {
+               const f = foods.find(food => food.id === ds.food_id);
+               if (f) {
+                 totalMs += ds.daily_kg_serving_ms;
+                 totalTqs += ds.daily_kg_serving_ms / (f.ms_percentage / 100);
+               }
+            } else if (ds.is_manual && ds.manual_ms_percentage) {
+               totalMs += ds.daily_kg_serving_ms;
+               totalTqs += ds.manual_qty_tqs || 0;
+            }
+          });
+        }
+        
+        const avgMsPercentage = totalTqs > 0 ? (totalMs / totalTqs) * 100 : 0;
+        
+        await upsertReferenceServing(groupId, null, referenceGroupIdState, referenceQtyTqs, avgMsPercentage);
+        toast.success("Base ajoutée");
+        setIsAddingReference(false);
+        setReferenceGroupIdState(0);
+        setReferenceQtyTqs(0);
+      } catch (err) {
+        toast.error("Erreur d'ajout");
       }
     });
   };
@@ -357,35 +408,46 @@ export default function NutritionClient({ groups, foods }: Props) {
                   );
                 })}
                 
-                {/* Manual Servings */}
-                {selectedGroup.daily_servings.filter(ds => ds.is_manual).map(manual => (
-                  <tr key={`manual_${manual.id}`} className="transition-colors hover:bg-zinc-50 bg-blue-50/30">
-                    <td className="py-4 font-bold text-blue-900 flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                      {manual.manual_name}
-                    </td>
-                    <td className="py-4 font-medium text-blue-600">{manual.manual_ms_percentage}%</td>
-                    <td className="py-4 font-black text-blue-900">{manual.daily_kg_serving_ms.toFixed(2)}</td>
-                    <td className="py-4 font-bold text-blue-700">{manual.manual_qty_tqs?.toFixed(2)} kg</td>
-                    <td className="py-4 text-center">
-                      <span className={`text-xs font-bold px-2 py-1 rounded-full ${manual.is_top_dress ? 'bg-orange-100 text-orange-700' : 'bg-zinc-100 text-zinc-500'}`}>
-                        {manual.is_top_dress ? 'Oui' : 'Non'}
-                      </span>
-                    </td>
-                    <td className="py-4">
-                      <button 
-                        onClick={() => handleDeleteManual(manual.id)}
-                        className="text-red-400 hover:text-red-600 p-2"
-                        title="Supprimer cet ingrédient manuel"
-                      >
-                        <FontAwesomeIcon icon={faTrash} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {/* Manual & Reference Servings */}
+                {selectedGroup.daily_servings.filter(ds => ds.is_manual).map(manual => {
+                  const isReference = !!manual.reference_group_id;
+                  const refGroup = isReference ? groups.find(g => g.id === manual.reference_group_id) : null;
+                  const displayName = isReference ? `Recette: ${refGroup?.name || 'Inconnu'}` : manual.manual_name;
+                  
+                  return (
+                    <tr key={`manual_${manual.id}`} className={`transition-colors hover:bg-zinc-50 ${isReference ? 'bg-indigo-50/50' : 'bg-blue-50/30'}`}>
+                      <td className="py-4 font-bold text-blue-900 flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${isReference ? 'bg-indigo-500' : 'bg-blue-500'}`}></div>
+                        {displayName}
+                      </td>
+                      <td className="py-4 font-medium text-blue-600">{manual.manual_ms_percentage?.toFixed(1)}%</td>
+                      <td className="py-4 font-black text-blue-900">{manual.daily_kg_serving_ms.toFixed(2)}</td>
+                      <td className="py-4 font-bold text-blue-700">{manual.manual_qty_tqs?.toFixed(2)} kg</td>
+                      <td className="py-4 text-center">
+                        {!isReference && (
+                          <span className={`text-xs font-bold px-2 py-1 rounded-full ${manual.is_top_dress ? 'bg-orange-100 text-orange-700' : 'bg-zinc-100 text-zinc-500'}`}>
+                            {manual.is_top_dress ? 'Oui' : 'Non'}
+                          </span>
+                        )}
+                        {isReference && (
+                          <span className="text-xs font-bold px-2 py-1 rounded-full bg-indigo-100 text-indigo-700">Base Commune</span>
+                        )}
+                      </td>
+                      <td className="py-4">
+                        <button 
+                          onClick={() => handleDeleteManual(manual.id)}
+                          className="text-red-400 hover:text-red-600 p-2"
+                          title="Supprimer cet ingrédient"
+                        >
+                          <FontAwesomeIcon icon={faTrash} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
 
                 {/* Add Manual Form */}
-                {isAddingManual ? (
+                {isAddingManual && (
                   <tr className="bg-zinc-50">
                     <td className="py-4">
                       <input 
@@ -460,15 +522,75 @@ export default function NutritionClient({ groups, foods }: Props) {
                       </button>
                     </td>
                   </tr>
-                ) : (
+                )}
+                {/* Add Reference Form */}
+                {isAddingReference && (
+                  <tr className="bg-indigo-50/50">
+                    <td className="py-4">
+                      <select 
+                        value={referenceGroupIdState}
+                        onChange={(e) => setReferenceGroupIdState(parseInt(e.target.value))}
+                        className="w-full px-3 py-2 border-2 border-zinc-300 rounded-lg font-medium outline-none focus:border-indigo-500 text-black"
+                      >
+                        <option value={0}>Sélectionnez un groupe...</option>
+                        {groups.filter(g => g.id !== selectedGroup.id).map(g => (
+                          <option key={g.id} value={g.id}>{g.name}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="py-4">
+                      <span className="text-indigo-600 text-sm italic">Calculé auto</span>
+                    </td>
+                    <td className="py-4">
+                       <span className="text-indigo-600 text-sm italic">Calculé auto</span>
+                    </td>
+                    <td className="py-4 font-bold text-zinc-500">
+                        <input 
+                          type="number"
+                          step="0.01"
+                          value={referenceQtyTqs || ''}
+                          onChange={(e) => setReferenceQtyTqs(parseFloat(e.target.value) || 0)}
+                          placeholder="Kg TQS"
+                          className="w-24 px-3 py-2 border-2 border-zinc-300 rounded-lg font-medium outline-none focus:border-indigo-500 text-black"
+                        />
+                    </td>
+                    <td className="py-4 text-center">
+                      <span className="text-xs font-bold px-2 py-1 rounded-full bg-indigo-100 text-indigo-700">Base Commune</span>
+                    </td>
+                    <td className="py-4 flex gap-2">
+                      <button 
+                        onClick={() => handleAddReferenceServing(selectedGroup.id)}
+                        className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-indigo-700"
+                      >
+                        OK
+                      </button>
+                      <button 
+                        onClick={() => setIsAddingReference(false)}
+                        className="text-zinc-500 hover:text-zinc-800 font-bold px-2"
+                      >
+                        Annuler
+                      </button>
+                    </td>
+                  </tr>
+                )}
+
+                {!isAddingManual && !isAddingReference && (
                   <tr>
-                    <td colSpan={5} className="py-6 text-center border-t-2 border-dashed border-zinc-200">
+                    <td colSpan={6} className="py-6 text-center border-t-2 border-dashed border-zinc-200 flex flex-col sm:flex-row items-center justify-center gap-4">
                       <button 
                         onClick={() => setIsAddingManual(true)}
-                        className="text-blue-600 font-bold hover:text-blue-800 transition-colors flex items-center justify-center gap-2 mx-auto"
+                        className="text-blue-600 font-bold hover:text-blue-800 transition-colors flex items-center justify-center gap-2"
                       >
                         <FontAwesomeIcon icon={faPlus} />
-                        Ajouter un ingrédient manuel (non inventorié)
+                        Ingrédient Manuel
+                      </button>
+                      <div className="w-1 h-1 rounded-full bg-zinc-300 hidden sm:block"></div>
+                      <button 
+                        onClick={() => setIsAddingReference(true)}
+                        className="text-indigo-600 font-bold hover:text-indigo-800 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <FontAwesomeIcon icon={faPlus} />
+                        Recette de Base (Ex: Restant Taries)
                       </button>
                     </td>
                   </tr>

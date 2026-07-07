@@ -5,6 +5,14 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
+        const allGroupsFlat = await prisma.group.findMany({
+            include: {
+                daily_servings: {
+                    include: { food: true }
+                }
+            }
+        });
+
         const batches = await prisma.mixBatch.findMany({
             include: {
                 groups: {
@@ -48,7 +56,76 @@ export async function GET() {
                 let totalTqs = 0;
 
                 group.daily_servings.forEach((serving: any) => {
-                    if (serving.is_manual) {
+                    if (serving.reference_group_id) {
+                        const refGroup = allGroupsFlat.find(g => g.id === serving.reference_group_id);
+                        if (refGroup) {
+                            let refTotalMs = 0;
+                            let refTotalTqs = 0;
+                            const baseServings = refGroup.daily_servings.filter((ds: any) => !ds.is_top_dress && !ds.reference_group_id);
+                            baseServings.forEach((ds: any) => {
+                                if (!ds.is_manual && ds.food) {
+                                    refTotalMs += ds.daily_kg_serving_ms;
+                                    refTotalTqs += ds.daily_kg_serving_ms / (ds.food.ms_percentage / 100);
+                                } else if (ds.is_manual && ds.manual_ms_percentage) {
+                                    refTotalMs += ds.daily_kg_serving_ms;
+                                    refTotalTqs += ds.manual_qty_tqs || 0;
+                                }
+                            });
+                            
+                            const targetTqsForWholeGroup = serving.manual_qty_tqs ? serving.manual_qty_tqs * group.animals_fed : 0;
+                            
+                            if (refTotalTqs > 0) {
+                                baseServings.forEach((ds: any) => {
+                                    if (!ds.is_manual && ds.food) {
+                                        const originalTqs = ds.daily_kg_serving_ms / (ds.food.ms_percentage / 100);
+                                        const proportion = originalTqs / refTotalTqs;
+                                        
+                                        const proportionalTqs = targetTqsForWholeGroup * proportion;
+                                        const proportionalMs = proportionalTqs * (ds.food.ms_percentage / 100);
+                                        
+                                        totalMs += proportionalMs;
+                                        totalTqs += proportionalTqs;
+                                        
+                                        const key = ds.food.id.toString();
+                                        if (!needs[key]) {
+                                            needs[key] = { food: ds.food, tqs: 0, ms: 0, isManual: false, isTopDress: false };
+                                        }
+                                        needs[key].tqs += proportionalTqs;
+                                        needs[key].ms += proportionalMs;
+                                        
+                                        availableAliments[ds.food.id.toString()] = {
+                                            id: ds.food.id.toString(),
+                                            name: ds.food.name,
+                                            msPercentage: ds.food.ms_percentage
+                                        };
+                                    } else if (ds.is_manual) {
+                                        const originalTqs = ds.manual_qty_tqs || 0;
+                                        const proportion = originalTqs / refTotalTqs;
+                                        
+                                        const proportionalTqs = targetTqsForWholeGroup * proportion;
+                                        const proportionalMs = proportionalTqs * ((ds.manual_ms_percentage || 0) / 100);
+                                        
+                                        totalMs += proportionalMs;
+                                        totalTqs += proportionalTqs;
+                                        
+                                        const key = `manual_${ds.id}_unpacked`;
+                                        if (!needs[key]) {
+                                            needs[key] = { 
+                                                food: { id: key, name: ds.manual_name || "Manuel", price_per_tqs: 0, price_per_ms: 0 }, 
+                                                tqs: 0, 
+                                                ms: 0, 
+                                                isManual: true, 
+                                                isTopDress: false,
+                                                manualName: ds.manual_name
+                                            };
+                                        }
+                                        needs[key].tqs += proportionalTqs;
+                                        needs[key].ms += proportionalMs;
+                                    }
+                                });
+                            }
+                        }
+                    } else if (serving.is_manual) {
                         const msPercentage = serving.manual_ms_percentage || 0;
                         const tqs = serving.manual_qty_tqs ? serving.manual_qty_tqs * group.animals_fed : 0;
                         const ms = tqs * (msPercentage / 100);
@@ -56,14 +133,18 @@ export async function GET() {
                         totalTqs += tqs;
                         
                         const key = `manual_${serving.id}`;
-                        needs[key] = {
-                            food: { id: key, name: serving.manual_name || "Manuel", price_per_tqs: 0, price_per_ms: 0 },
-                            tqs,
-                            ms,
-                            isManual: true,
-                            isTopDress: serving.is_top_dress || false,
-                            manualName: serving.manual_name
-                        };
+                        if (!needs[key]) {
+                            needs[key] = {
+                                food: { id: key, name: serving.manual_name || "Manuel", price_per_tqs: 0, price_per_ms: 0 },
+                                tqs: 0,
+                                ms: 0,
+                                isManual: true,
+                                isTopDress: serving.is_top_dress || false,
+                                manualName: serving.manual_name
+                            };
+                        }
+                        needs[key].tqs += tqs;
+                        needs[key].ms += ms;
                     } else if (serving.food) {
                         const msPercentage = serving.food.ms_percentage || 100;
                         const baseMsPerCow = serving.daily_kg_serving_ms;
@@ -74,13 +155,17 @@ export async function GET() {
                         totalTqs += tqs;
                         
                         const key = serving.is_top_dress ? `${serving.food.id}_topdress_${group.id}` : serving.food.id.toString();
-                        needs[key] = {
-                            food: serving.food,
-                            tqs,
-                            ms,
-                            isManual: false,
-                            isTopDress: serving.is_top_dress || false
-                        };
+                        if (!needs[key]) {
+                            needs[key] = {
+                                food: serving.food,
+                                tqs: 0,
+                                ms: 0,
+                                isManual: false,
+                                isTopDress: serving.is_top_dress || false
+                            };
+                        }
+                        needs[key].tqs += tqs;
+                        needs[key].ms += ms;
 
                         availableAliments[serving.food.id.toString()] = {
                             id: serving.food.id.toString(),

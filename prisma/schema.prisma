@@ -135,6 +135,7 @@ model Group {
   mix_order         Int?
 
   daily_servings  DailyServing[]
+  referenced_by_servings DailyServing[] @relation("GroupReference")
   group_snapshots GroupSnapshot[]
   mix_batch       MixBatch? @relation(fields: [mix_batch_id], references: [id])
 
@@ -167,6 +168,9 @@ model DailyServing {
 
   food  Food?  @relation(fields: [food_id], references: [id])
   group Group @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  
+  reference_group_id  Int?
+  reference_group     Group? @relation("GroupReference", fields: [reference_group_id], references: [id])
 
   @@map("daily_serving")
 }

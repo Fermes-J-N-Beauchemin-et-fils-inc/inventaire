@@ -143,3 +143,38 @@ export async function updateFoodMs(foodId: number, msPercentage: number) {
   revalidatePath('/laitier/nutrition');
   revalidatePath('/grains/rations');
 }
+
+export async function upsertReferenceServing(
+  groupId: number,
+  servingId: number | null,
+  referenceGroupId: number,
+  qtyTqs: number,
+  msPercentage: number
+) {
+  const dailyKgServingMs = qtyTqs * (msPercentage / 100);
+
+  if (servingId) {
+    await prisma.dailyServing.update({
+      where: { id: servingId },
+      data: {
+        reference_group_id: referenceGroupId,
+        manual_ms_percentage: msPercentage,
+        manual_qty_tqs: qtyTqs,
+        daily_kg_serving_ms: dailyKgServingMs
+      }
+    });
+  } else {
+    await prisma.dailyServing.create({
+      data: {
+        group_id: groupId,
+        is_manual: true,
+        reference_group_id: referenceGroupId,
+        manual_ms_percentage: msPercentage,
+        manual_qty_tqs: qtyTqs,
+        daily_kg_serving_ms: dailyKgServingMs
+      }
+    });
+  }
+  revalidatePath('/laitier/nutrition');
+  revalidatePath('/grains/rations');
+}
