@@ -242,6 +242,10 @@ export default function RationForm({
                     const uniqueId = aliment.rowId || aliment.id;
                     const isReadOnly = aliment.isDump || !aliment.isInstruction;
                     
+                    const indiceNum = parseFloat(isRound2 ? (group.indiceTour2 || "1") : (group.indice || "1")) || 1;
+                    const v1Num = parseFloat(aliment.v1);
+                    const scaledV1 = isNaN(v1Num) ? aliment.v1 : Math.ceil(v1Num * indiceNum).toString();
+                    
                     return (
                     <Draggable key={`aliment-${key}-${uniqueId}`} draggableId={`aliment-${key}-${uniqueId}`} index={index} isDragDisabled={isReadOnly}>
                       {(provided, snapshot) => (
@@ -272,10 +276,14 @@ export default function RationForm({
                             />
                           ) : (
                             <div className="flex-1 px-3 py-2 text-base font-black border-2 border-transparent flex justify-between items-center">
-                              <span className={aliment.highlight || "text-black"}>{aliment.name}</span>
-                              {aliment.v1 !== "0" && (
+                              <span className={aliment.highlight || "text-black"}>
+                                {aliment.isDump && aliment.name.includes('(Qte:') 
+                                  ? aliment.name.replace(/\(Qte: (\d+) kg\)/, `(Qte: ${scaledV1} kg)`) 
+                                  : aliment.name}
+                              </span>
+                              {scaledV1 !== "0" && (
                                 <span className="text-zinc-600 bg-zinc-100 px-3 py-1 rounded-lg shadow-sm">
-                                  {aliment.v1} kg
+                                  {scaledV1} kg
                                 </span>
                               )}
                             </div>
