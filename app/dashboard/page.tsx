@@ -42,7 +42,7 @@ export default async function DashboardPage() {
                             {new Date().toLocaleDateString('fr-CA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                         </div>
                         <h1 className="text-4xl sm:text-5xl font-black text-zinc-900 tracking-tight flex items-center gap-4 mt-2">
-                            Bonjour, {userName}
+                            Hello, {userName}
                         </h1>
                         <p className="text-xl text-zinc-500 font-medium mt-4 max-w-3xl">
                             Voici un aperçu de vos activités de la journée.
@@ -57,7 +57,7 @@ export default async function DashboardPage() {
                             Alertes & Messages
                         </h2>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <AlertCard
                             href="/inventaire"
