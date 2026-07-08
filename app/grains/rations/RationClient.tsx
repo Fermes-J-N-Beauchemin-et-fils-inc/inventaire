@@ -190,8 +190,10 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
           const tour2InitialKeys: GroupKey[] = [];
           const lastRation = data.lastPushedRation?.payload;
           
-          if (lastRation && lastRation.groups) {
-             if (lastRation.saison) setSaison(lastRation.saison);
+          let currentSaison: Saison = 'hiver';
+          if (lastRation && lastRation.saison) {
+             currentSaison = lastRation.saison;
+             setSaison(currentSaison);
              if (lastRation.globalPluie) setGlobalPluie(lastRation.globalPluie);
           }
 
@@ -252,8 +254,9 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
               name: g.name,
               real: g.real_animal_count,
               fed: lastGroup?.fed ?? g.animals_fed,
-              indice: lastGroup?.indice ?? (g.summer_two_meals ? "0.5" : "1"),
-              indiceTour2: lastGroup?.indiceTour2 ?? (g.summer_two_meals ? "0.5" : "0.25"),
+              summer_two_meals: g.summer_two_meals,
+              indice: lastGroup?.indice ?? (currentSaison === 'ete' ? (g.summer_two_meals ? "0.5" : "1") : "1"),
+              indiceTour2: lastGroup?.indiceTour2 ?? (currentSaison === 'ete' ? (g.summer_two_meals ? "0.5" : "0.25") : "0.25"),
               time: "",
               note: lastGroup?.note || "",
               systemNote: lastGroup?.systemNote || "",
@@ -569,7 +572,10 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
         setGroups(g => {
           const updated = { ...g };
           (Object.keys(g) as GroupKey[]).forEach(k => {
-            if (updated[k]) updated[k] = { ...updated[k], indice: '0.50', indiceTour2: '0.50' };
+            if (updated[k]) {
+              const isTwoMeals = updated[k].summer_two_meals;
+              updated[k] = { ...updated[k], indice: isTwoMeals ? '0.50' : '1.00', indiceTour2: isTwoMeals ? '0.50' : '0.25' };
+            }
           });
           return updated;
         });

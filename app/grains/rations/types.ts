@@ -32,6 +32,7 @@ export type GroupData = {
   aliments: RationAliment[];
   completedAt?: string;
   completedAtTour2?: string;
+  summer_two_meals?: boolean;
 };
 
 export type GroupsState = Record<GroupKey, GroupData>;

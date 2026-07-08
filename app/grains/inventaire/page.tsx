@@ -31,10 +31,10 @@ export default async function InventairePage() {
                 <div className="w-16 h-16 bg-blue-600 text-white rounded-[1.5rem] flex items-center justify-center shadow-lg shadow-blue-600/30">
                   <FontAwesomeIcon icon={faBoxOpen} />
                 </div>
-                Inventaire des consommables
+                Inventaire des consommables 
               </h1>
               <p className="text-xl text-zinc-500 font-medium mt-4 max-w-3xl">
-                Gérez vos stocks, commandes et réceptions d'aliments au quotidien. <span className="capitalize">{todayDate}</span>
+                Gérez vos stocks, commandes et réceptions d'aliments au quotidien.  <span className="capitalize">{todayDate}</span>
               </p>
             </div>
           </div>
