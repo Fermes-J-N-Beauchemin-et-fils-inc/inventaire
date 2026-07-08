@@ -47,7 +47,9 @@ export async function GET(request: Request) {
         // Sum up from transactions
         dailyTransactions.forEach(t => {
             const consumedKg = Math.abs(t.quantity); // negative in DB
-            const cost = consumedKg * ((t.food?.price_per_tqs || 0) / 1000);
+            const cost = t.financial_cost !== null 
+                ? t.financial_cost 
+                : consumedKg * ((t.food?.price_per_tqs || 0) / 1000);
             
             // Foin sec nourris à part (id 8 typically or by name)
             if (t.food?.id === 8 || t.food?.name.toLowerCase().includes('foin sec')) {
@@ -85,7 +87,9 @@ export async function GET(request: Request) {
         annualTransactions.forEach(t => {
             const monthIndex = t.recorded_at.getMonth();
             const consumedKg = Math.abs(t.quantity);
-            const cost = consumedKg * ((t.food?.price_per_tqs || 0) / 1000);
+            const cost = t.financial_cost !== null 
+                ? t.financial_cost 
+                : consumedKg * ((t.food?.price_per_tqs || 0) / 1000);
             
             monthlyCosts[monthIndex] += cost;
             annualTotalCost += cost;
@@ -107,69 +111,158 @@ export async function GET(request: Request) {
         };
 
         // Parse groups from pushedRation payload for the GroupsDataView
-        const allFoods = await prisma.food.findMany();
-        const groups: any[] = [];
-        let totalGroupCost = 0;
-        
-        const dbGroups = await prisma.group.findMany({
-            include: {
-                daily_servings: true
+        // Try to get FoodSnapshots for that day to use historical prices/MS
+        const dailyFoodSnapshots = await prisma.foodSnapshot.findMany({
+            where: {
+                recorded_at: {
+                    gte: startOfDay,
+                    lte: endOfDay
+                }
             }
         });
 
-        dbGroups.forEach(g => {
-            let groupCost = 0;
-            let groupVolume = 0;
-            let groupMs = 0;
-            const alimentData: any[] = [];
+        const allFoods = await prisma.food.findMany();
+        
+        const getFoodData = (foodId: number) => {
+            const snapshot = dailyFoodSnapshots.find(s => s.food_id === foodId);
+            const currentFood = allFoods.find(f => f.id === foodId);
+            if (!currentFood) return null;
+            if (snapshot) {
+                return {
+                    id: foodId,
+                    name: currentFood.name,
+                    ms_percentage: snapshot.ms_percentage,
+                    price_per_ms: snapshot.price_per_ms,
+                    price_per_tqs: snapshot.price_per_tqs
+                };
+            }
+            return currentFood;
+        };
 
-            g.daily_servings.forEach(ds => {
-                if (ds.is_manual) return;
-                const foodRecord = allFoods.find(f => f.id === ds.food_id);
-                if (!foodRecord) return;
-                
-                const priceTqs = foodRecord.price_per_tqs || 0;
-                const priceMs = foodRecord.price_per_ms || 0;
-                const msPercentage = foodRecord.ms_percentage;
+        const groups: any[] = [];
+        let totalGroupCost = 0;
 
-                const kgMsPerCow = ds.daily_kg_serving_ms;
-                const tqsPerCow = kgMsPerCow / (msPercentage / 100);
+        if (pushedRation && (pushedRation.payload as any)?.groups) {
+            // HISTORICAL MODE: Use groups from pushedRation payload
+            const payloadGroups = (pushedRation.payload as any).groups;
+            Object.entries(payloadGroups).forEach(([key, gData]: [string, any]) => {
+                let groupCost = 0;
+                let groupVolume = 0;
+                let groupMs = 0;
+                const alimentData: any[] = [];
                 
-                const tqs = tqsPerCow * g.real_animal_count;
-                const ms = kgMsPerCow * g.real_animal_count;
-                
-                const costDay = tqs * (priceTqs / 1000);
+                const cowsCount = parseInt(gData.fed, 10) || parseInt(gData.realCount, 10) || parseInt(gData.real, 10) || 0;
 
-                alimentData.push({
-                    id: foodRecord.id,
-                    name: foodRecord.name,
-                    msPercentage,
-                    humPercentage: 100 - msPercentage,
-                    priceMs,
-                    priceTqs,
-                    kgMs: ms,
-                    kgTqs: tqs,
-                    costDay: costDay,
-                    costYear: costDay * 365
+                if (gData.aliments && Array.isArray(gData.aliments)) {
+                    gData.aliments.forEach((aliment: any) => {
+                        const foodId = parseInt(aliment.id, 10);
+                        const foodRecord = getFoodData(foodId);
+                        if (!foodRecord) return;
+
+                        // v1 is the total kg of TQS for the fed animals in that group
+                        const tqs = parseFloat(aliment.v1);
+                        if (isNaN(tqs) || tqs <= 0) return;
+
+                        const priceTqs = foodRecord.price_per_tqs || 0;
+                        const priceMs = foodRecord.price_per_ms || 0;
+                        const msPercentage = foodRecord.ms_percentage || 0;
+                        
+                        const ms = tqs * (msPercentage / 100);
+                        const costDay = tqs * (priceTqs / 1000);
+
+                        alimentData.push({
+                            id: foodRecord.id,
+                            name: foodRecord.name,
+                            msPercentage,
+                            humPercentage: 100 - msPercentage,
+                            priceMs,
+                            priceTqs,
+                            kgMs: ms,
+                            kgTqs: tqs,
+                            costDay: costDay,
+                            costYear: costDay * 365
+                        });
+                        
+                        groupCost += costDay;
+                        groupVolume += tqs;
+                        groupMs += ms;
+                    });
+                }
+
+                groups.push({
+                    id: key,
+                    name: gData.name,
+                    cows: cowsCount,
+                    totalKgTqs: groupVolume,
+                    totalKgMs: groupMs,
+                    totalCostDay: groupCost,
+                    totalCostYear: groupCost * 365,
+                    aliments: alimentData
                 });
-                
-                groupCost += costDay;
-                groupVolume += tqs;
-                groupMs += ms;
+                totalGroupCost += groupCost;
+            });
+        } else {
+            // FALLBACK: Use current DB groups if no pushedRation is found
+            const dbGroups = await prisma.group.findMany({
+                include: {
+                    daily_servings: true
+                }
             });
 
-            groups.push({
-                id: `group_${g.id}`,
-                name: g.name,
-                cows: g.real_animal_count,
-                totalKgTqs: groupVolume,
-                totalKgMs: groupMs,
-                totalCostDay: groupCost,
-                totalCostYear: groupCost * 365,
-                aliments: alimentData
+            dbGroups.forEach(g => {
+                let groupCost = 0;
+                let groupVolume = 0;
+                let groupMs = 0;
+                const alimentData: any[] = [];
+
+                g.daily_servings.forEach(ds => {
+                    if (ds.is_manual) return;
+                    const foodRecord = getFoodData(ds.food_id || -1);
+                    if (!foodRecord) return;
+                    
+                    const priceTqs = foodRecord.price_per_tqs || 0;
+                    const priceMs = foodRecord.price_per_ms || 0;
+                    const msPercentage = foodRecord.ms_percentage;
+
+                    const kgMsPerCow = ds.daily_kg_serving_ms;
+                    const tqsPerCow = kgMsPerCow / (msPercentage / 100);
+                    
+                    const tqs = tqsPerCow * g.real_animal_count;
+                    const ms = kgMsPerCow * g.real_animal_count;
+                    
+                    const costDay = tqs * (priceTqs / 1000);
+
+                    alimentData.push({
+                        id: foodRecord.id,
+                        name: foodRecord.name,
+                        msPercentage,
+                        humPercentage: 100 - msPercentage,
+                        priceMs,
+                        priceTqs,
+                        kgMs: ms,
+                        kgTqs: tqs,
+                        costDay: costDay,
+                        costYear: costDay * 365
+                    });
+                    
+                    groupCost += costDay;
+                    groupVolume += tqs;
+                    groupMs += ms;
+                });
+
+                groups.push({
+                    id: `group_${g.id}`,
+                    name: g.name,
+                    cows: g.real_animal_count,
+                    totalKgTqs: groupVolume,
+                    totalKgMs: groupMs,
+                    totalCostDay: groupCost,
+                    totalCostYear: groupCost * 365,
+                    aliments: alimentData
+                });
+                totalGroupCost += groupCost;
             });
-            totalGroupCost += groupCost;
-        });
+        }
 
         const totalGroup = {
             id: 'total',
@@ -262,7 +355,9 @@ export async function GET(request: Request) {
             const dateStr = t.recorded_at.toISOString().split('T')[0];
             if (dailyCostsMap[dateStr] !== undefined) {
                 const consumedKg = Math.abs(t.quantity);
-                const cost = consumedKg * ((t.food?.price_per_tqs || 0) / 1000);
+                const cost = t.financial_cost !== null 
+                    ? t.financial_cost 
+                    : consumedKg * ((t.food?.price_per_tqs || 0) / 1000);
                 dailyCostsMap[dateStr] += cost;
             }
         });

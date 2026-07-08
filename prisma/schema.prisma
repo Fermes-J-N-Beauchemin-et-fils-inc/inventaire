@@ -391,6 +391,7 @@ model StockTransaction {
   pushed_ration_id Int? // Link to a pushed ration for rollback
   quantity         Float // Negative for consumption, positive for delivery/adjustment
   transaction_type String // "CONSUMPTION", "DELIVERY", "ADJUSTMENT"
+  financial_cost   Float? // Total cost associated with this transaction (useful for historical accounting)
   recorded_at      DateTime @default(now())
 
   food          Food          @relation(fields: [food_id], references: [id], onDelete: Cascade)

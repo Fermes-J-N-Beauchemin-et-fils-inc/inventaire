@@ -86,6 +86,8 @@ export async function POST(request: Request) {
                         });
                     }
 
+                    const cost = (quantityInKg / 1000) * (food?.price_per_tqs || 0);
+
                     // Log transaction with pushed_ration_id
                     await tx.stockTransaction.create({
                         data: {
@@ -93,12 +95,12 @@ export async function POST(request: Request) {
                             storage_id: storageIdToLog,
                             pushed_ration_id: parseInt(id),
                             quantity: -quantity,
-                            transaction_type: "CONSUMPTION"
+                            transaction_type: "CONSUMPTION",
+                            financial_cost: cost
                         }
                     });
 
                     // Log financial transaction for this food in this group
-                    const cost = (quantityInKg / 1000) * (food?.price_per_tqs || 0);
                     if (cost > 0) {
                         await tx.financialTransaction.create({
                             data: {
