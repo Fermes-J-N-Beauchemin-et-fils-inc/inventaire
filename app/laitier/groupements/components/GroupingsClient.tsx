@@ -6,7 +6,7 @@ import { faPlus, faTrash, faGripVertical, faSave, faSun } from '@fortawesome/fre
 import { DndContext, DragOverlay, closestCorners, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { createMixBatch, updateMixBatch, deleteMixBatch, saveGroupingsState } from '../actions';
+import { createMixBatch, updateMixBatch, deleteMixBatch, saveGroupingsState, updateGroupSummer } from '../actions';
 import toast, { Toaster } from 'react-hot-toast';
 
 interface Group {
@@ -15,6 +15,7 @@ interface Group {
   real_animal_count: number;
   mix_order: number | null;
   mix_batch_id: number | null;
+  summer_two_meals: boolean;
 }
 
 interface MixBatch {
@@ -54,6 +55,24 @@ function SortableGroupItem({ group }: { group: Group }) {
           <p className="text-xs text-zinc-500 font-medium">{group.real_animal_count} vaches</p>
         </div>
       </div>
+      
+      {!group.mix_batch_id && (
+        <label className="flex items-center gap-2 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200/50 cursor-pointer ml-auto">
+          <input 
+            type="checkbox" 
+            checked={group.summer_two_meals} 
+            onChange={(e) => {
+              // We need a prop to handle this
+              if ((group as any).onSummerChange) {
+                (group as any).onSummerChange(group.id, e.target.checked);
+              }
+            }}
+            className="accent-amber-600 w-3 h-3 cursor-pointer"
+          />
+          <FontAwesomeIcon icon={faSun} />
+          2x/jour
+        </label>
+      )}
     </div>
   );
 }
@@ -197,6 +216,13 @@ export default function GroupingsClient({ initialBatches, initialUnassigned }: G
     });
   };
 
+  const handleGroupSummerChange = async (id: number, val: boolean) => {
+    setUnassigned(prev => prev.map(g => g.id === id ? { ...g, summer_two_meals: val } : g));
+    startTransition(async () => {
+      await updateGroupSummer(id, val);
+    });
+  };
+
   const handleDragStart = (event: any) => {
     const { active } = event;
     if (active.data.current?.type === 'Group') {
@@ -337,7 +363,7 @@ export default function GroupingsClient({ initialBatches, initialUnassigned }: G
                   {unassigned.length === 0 ? (
                     <p className="text-sm text-zinc-400 italic">Tous les groupes sont assignés.</p>
                   ) : (
-                    unassigned.map(g => <SortableGroupItem key={g.id} group={g} />)
+                    unassigned.map(g => <SortableGroupItem key={g.id} group={{...g, onSummerChange: handleGroupSummerChange} as any} />)
                   )}
                 </div>
               </SortableContext>

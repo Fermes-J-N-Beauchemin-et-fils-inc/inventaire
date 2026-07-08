@@ -150,3 +150,18 @@ export async function saveGroupingsState(batches: {id: number, groupIds: number[
   }
 }
 
+export async function updateGroupSummer(id: number, summer_two_meals: boolean) {
+  try {
+    const group = await prisma.group.update({
+      where: { id },
+      data: { summer_two_meals }
+    });
+    revalidatePath('/laitier/groupements');
+    revalidatePath('/api/ration/config');
+    return group;
+  } catch (error) {
+    console.error("Erreur update group summer:", error);
+    throw error;
+  }
+}
+

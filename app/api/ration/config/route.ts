@@ -278,10 +278,12 @@ export async function GET() {
                 hasDumped = true;
 
                 const targetRtm = Math.max(0, currentRtm);
+                
+                const dumpInstruction = targetRtm <= 2 ? `Vider au ${group.name}` : `Vider au ${group.name} jusqu'à ${targetRtm} RTM`;
 
                 sequence.push({
                     id: `dump_${group.id}`,
-                    name: `Vider au ${group.name} jusqu'à ${targetRtm} RTM`,
+                    name: dumpInstruction,
                     v1: amountToDump.toString(),
                     v2: targetRtm.toString(),
                     base_tqs_per_cow: totalAnimalsFedForBatch > 0 ? amountToDump / totalAnimalsFedForBatch : 0,
@@ -318,7 +320,7 @@ export async function GET() {
 
         // Process unassigned groups as individual batches
         unassignedGroups.forEach(group => {
-            processBatch(`group_${group.id}`, group.name, [group], false);
+            processBatch(group.id.toString(), group.name, [group], group.summer_two_meals);
         });
 
         // Also fetch all active foods for the "Add ingredient" modal

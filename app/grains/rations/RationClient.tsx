@@ -395,6 +395,27 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
     });
   };
 
+  const handleResetGroup = (groupKey: GroupKey) => {
+    if (isDistributor) return;
+    
+    setGroups(prev => {
+      const group = prev[groupKey];
+      if (!group) return prev;
+      
+      const baseAliments = originalConfig[groupKey] || [];
+      const mergedAliments = baseAliments
+          .filter((a: any) => parseFloat(a.v1) > 0)
+          .map((a: any) => ({
+            ...a,
+            rowId: Math.random().toString(36).substr(2, 9)
+          }));
+          
+      const updatedGroup = { ...group, aliments: mergedAliments };
+      return { ...prev, [groupKey]: recalculateGroupAliments(updatedGroup) };
+    });
+    toast.success("Ration réinitialisée pour ce groupe");
+  };
+
   const handleUpdateAliment = (groupKey: GroupKey, idOrRowId: string, field: 'name' | 'v1' | 'v2' | 'change_food', value: string) => {
     setGroups(prev => {
       if (field === 'change_food') {
@@ -664,6 +685,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
           handleRemoveAliment={handleRemoveAliment}
           handleUpdateAliment={handleUpdateAliment}
           handleReorderAliments={handleReorderAliments}
+          handleResetGroup={handleResetGroup}
           notes={notes}
           setNotes={setNotes}
           onGenerate={() => {

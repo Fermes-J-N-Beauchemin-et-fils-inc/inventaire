@@ -25,6 +25,7 @@ interface RationFormProps {
   handleUpdateAliment: (groupKey: GroupKey, id: string, field: 'name' | 'v1' | 'v2' | 'change_food', value: string) => void;
   handleRemoveAliment: (groupKey: GroupKey, id: string) => void;
   handleReorderAliments: (groupKey: GroupKey, startIndex: number, endIndex: number) => void;
+  handleResetGroup: (groupKey: GroupKey) => void;
   onGenerate: () => void;
 }
 
@@ -32,7 +33,7 @@ export default function RationForm({
   groups, saison, tour1Keys, tour2Keys, availableAliments, handleReorderGroups, handleSaisonToggle, globalPluie, setGlobalPluie, handleGroupPluieChange,
   notes, setNotes, handleGroupChange, handleNoteChange, handleSystemNoteChange,
   handleAddAliment, handleUpdateAliment, handleRemoveAliment, handleReorderAliments,
-  onGenerate 
+  handleResetGroup, onGenerate 
 }: RationFormProps) {
   
   // To avoid hydration mismatch with dnd
@@ -136,6 +137,17 @@ export default function RationForm({
                 </div>
                 {group.name} {saison === 'ete' && <span className="text-blue-600 text-base ml-2">({isRound2 ? '2ème' : '1ère'} tournée)</span>}
               </h3>
+              <button
+                onClick={() => {
+                  if (confirm("Voulez-vous réinitialiser les ingrédients de ce groupe à leur configuration initiale ?")) {
+                    handleResetGroup(key);
+                  }
+                }}
+                title="Réinitialiser les aliments"
+                className="text-zinc-400 hover:text-amber-600 transition-colors bg-white px-3 py-1 rounded-lg border-2 border-zinc-200 hover:border-amber-400 shadow-sm text-sm font-bold flex items-center gap-2"
+              >
+                Réinitialiser la ration
+              </button>
             </div>
         
         {/* Global Settings */}

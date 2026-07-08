@@ -121,23 +121,24 @@ model FoodStorage {
 model Group {
   id                Int     @id @default(autoincrement())
   name              String
-  real_animal_count Int
-  animals_fed       Int
+  real_animal_count Int     @default(0)
+  animals_fed       Int     @default(0)
   notes             String?
   important_notes   String?
-  performance_index Float
+  performance_index Float   @default(1.0)
   weather           String?
   season            String?
   target_ms_per_cow Float?
   category          String  @default("Autres")
+  summer_two_meals  Boolean @default(false)
 
-  mix_batch_id      Int?
-  mix_order         Int?
+  mix_batch_id Int?
+  mix_order    Int?
 
-  daily_servings  DailyServing[]
-  referenced_by_servings DailyServing[] @relation("GroupReference")
-  group_snapshots GroupSnapshot[]
-  mix_batch       MixBatch? @relation(fields: [mix_batch_id], references: [id])
+  daily_servings         DailyServing[]
+  referenced_by_servings DailyServing[]  @relation("GroupReference")
+  group_snapshots        GroupSnapshot[]
+  mix_batch              MixBatch?       @relation(fields: [mix_batch_id], references: [id])
 
   @@map("group")
 }
@@ -149,7 +150,7 @@ model MixBatch {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  groups           Group[]
+  groups Group[]
 
   @@map("mix_batch")
 }
@@ -166,11 +167,11 @@ model DailyServing {
   manual_qty_tqs       Float?
   is_top_dress         Boolean @default(false)
 
-  food  Food?  @relation(fields: [food_id], references: [id])
+  food  Food? @relation(fields: [food_id], references: [id])
   group Group @relation(fields: [group_id], references: [id], onDelete: Cascade)
-  
-  reference_group_id  Int?
-  reference_group     Group? @relation("GroupReference", fields: [reference_group_id], references: [id])
+
+  reference_group_id Int?
+  reference_group    Group? @relation("GroupReference", fields: [reference_group_id], references: [id])
 
   @@map("daily_serving")
 }
@@ -229,7 +230,7 @@ model Contract {
 }
 
 model SubContract {
-  id                 Int    @id @default(autoincrement())
+  id                 Int     @id @default(autoincrement())
   contract_id        Int
   name               String // ex: "Janvier 2026"
   custom_id          String? // ex: "C34"
@@ -279,16 +280,16 @@ model Client {
 }
 
 model Sale {
-  id                Int       @id @default(autoincrement())
-  client_id         Int?
-  food_id           Int
-  quantity_sold     Float
-  date_expected     DateTime
-  date_sold         DateTime?
+  id            Int       @id @default(autoincrement())
+  client_id     Int?
+  food_id       Int
+  quantity_sold Float
+  date_expected DateTime
+  date_sold     DateTime?
 
-  food                  Food                        @relation(fields: [food_id], references: [id])
-  client                Client?                     @relation(fields: [client_id], references: [id])
-  sale_subcontracts     SaleSubContractAllocation[]
+  food              Food                        @relation(fields: [food_id], references: [id])
+  client            Client?                     @relation(fields: [client_id], references: [id])
+  sale_subcontracts SaleSubContractAllocation[]
 
   @@map("sale")
 }
@@ -312,15 +313,15 @@ model SaleContract {
 }
 
 model SaleSubContract {
-  id                 Int    @id @default(autoincrement())
+  id                 Int     @id @default(autoincrement())
   sale_contract_id   Int
   name               String // ex: "Janvier 2026"
   custom_id          String? // ex: "C34"
   expected_kg        Float
   kg_left_to_deliver Float
 
-  contract             SaleContract              @relation(fields: [sale_contract_id], references: [id], onDelete: Cascade)
-  sale_allocations     SaleSubContractAllocation[]
+  contract         SaleContract                @relation(fields: [sale_contract_id], references: [id], onDelete: Cascade)
+  sale_allocations SaleSubContractAllocation[]
 
   @@map("sale_sub_contract")
 }
@@ -330,13 +331,12 @@ model SaleSubContractAllocation {
   sale_sub_contract_id Int
   quantity             Float
 
-  sale              Sale              @relation(fields: [sale_id], references: [id], onDelete: Cascade)
-  sale_sub_contract SaleSubContract   @relation(fields: [sale_sub_contract_id], references: [id], onDelete: Cascade)
+  sale              Sale            @relation(fields: [sale_id], references: [id], onDelete: Cascade)
+  sale_sub_contract SaleSubContract @relation(fields: [sale_sub_contract_id], references: [id], onDelete: Cascade)
 
   @@id([sale_id, sale_sub_contract_id])
   @@map("sale_sub_contract_allocation")
 }
-
 
 model Storage {
   id           Int     @id @default(autoincrement())
@@ -447,10 +447,10 @@ model MilkSale {
 }
 
 model FinancialTransaction {
-  id          Int      @id @default(autoincrement())
-  date        DateTime
-  type        String   // "IN" (Revenu) ou "OUT" (Dépense)
-  category    String   // ex: "Vétérinaire", "Électricité", "Vente Animaux"
+  id               Int      @id @default(autoincrement())
+  date             DateTime
+  type             String // "IN" (Revenu) ou "OUT" (Dépense)
+  category         String // ex: "Vétérinaire", "Électricité", "Vente Animaux"
   amount           Float
   description      String?
   pushed_ration_id Int?
