@@ -48,7 +48,7 @@ export async function GET() {
         const virtualGroups: any[] = [];
 
         // Helper to process a list of groups into a single batch sequence
-        const processBatch = (batchId: string, batchName: string, groups: any[], summer_two_meals: boolean) => {
+        const processBatch = (batchId: string, batchName: string, groups: any[], summer_two_meals: boolean, aliments_order: any) => {
             if (groups.length === 0) return;
 
             // 1. Calculate the exact needs for each group
@@ -299,6 +299,17 @@ export async function GET() {
                 });
             });
 
+            if (aliments_order && Array.isArray(aliments_order)) {
+                sequence.sort((a, b) => {
+                    const indexA = aliments_order.indexOf(a.id);
+                    const indexB = aliments_order.indexOf(b.id);
+                    if (indexA === -1 && indexB === -1) return 0;
+                    if (indexA === -1) return 1;
+                    if (indexB === -1) return -1;
+                    return indexA - indexB;
+                });
+            }
+
             rationConfig[batchId] = sequence;
 
             // Compute total animals fed for the virtual group
@@ -320,12 +331,12 @@ export async function GET() {
 
         // Process actual batches
         batches.forEach(batch => {
-            processBatch(`batch_${batch.id}`, batch.name, batch.groups, batch.summer_two_meals);
+            processBatch(`batch_${batch.id}`, batch.name, batch.groups, batch.summer_two_meals, batch.aliments_order);
         });
 
         // Process unassigned groups as individual batches
         unassignedGroups.forEach(group => {
-            processBatch(group.id.toString(), group.name, [group], group.summer_two_meals);
+            processBatch(group.id.toString(), group.name, [group], group.summer_two_meals, group.aliments_order);
         });
 
         // Also fetch all active foods for the "Add ingredient" modal

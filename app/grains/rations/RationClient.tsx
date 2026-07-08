@@ -498,7 +498,17 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
       const updatedGroup = { ...prev[groupKey], aliments: newAliments };
       const recalculated = recalculateGroupAliments(updatedGroup);
       
-      // If a ration is currently pushed, we also update the payload in the DB!
+      // Always update the base configuration order for persistence across days
+      fetch('/api/ration/save-aliment-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              groupKey,
+              orderedIds: recalculated.aliments.map((a: any) => a.id)
+          })
+      }).catch(console.error);
+
+      // If a ration is currently pushed, we also update the payload in the DB for live sync!
       if (pushedRation) {
          fetch('/api/ration/update-aliment-order', {
              method: 'POST',
