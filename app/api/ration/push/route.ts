@@ -44,7 +44,7 @@ export async function POST(request: Request) {
             prisma.pushedRation.create({
                 data: {
                     groups_total,
-                    payload: { groups, tour1Keys, tour2Keys, saison, globalPluie },
+                    payload: { version: 1, groups, tour1Keys, tour2Keys, saison, globalPluie },
                     completed_keys: [],
                 }
             }),

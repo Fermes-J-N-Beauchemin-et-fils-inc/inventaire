@@ -52,6 +52,10 @@ export async function POST(request: Request) {
             });
 
             // Deduct inventory and log transactions
+            let totalGroupCost = 0;
+            let totalGroupKgMs = 0;
+            let totalGroupKgTqs = 0;
+
             if (consumed && Array.isArray(consumed)) {
                 for (const item of consumed) {
                     if (!item.food_id || isNaN(item.consumed_tqs)) continue;
@@ -87,6 +91,11 @@ export async function POST(request: Request) {
                     }
 
                     const cost = (quantityInKg / 1000) * (food?.price_per_tqs || 0);
+                    const ms = quantityInKg * (food?.ms_percentage || 0) / 100;
+                    
+                    totalGroupCost += cost;
+                    totalGroupKgTqs += quantityInKg;
+                    totalGroupKgMs += ms;
 
                     // Log transaction with pushed_ration_id
                     await tx.stockTransaction.create({
@@ -114,6 +123,29 @@ export async function POST(request: Request) {
                         });
                     }
                 }
+            }
+
+            const groupId = parseInt(group_key.split('-')[0]);
+            let cowsFed = 0;
+            const payload = pushedRation.payload as any;
+            if (payload && payload.groups && payload.groups[group_key]) {
+                cowsFed = parseInt(payload.groups[group_key].fed) || parseInt(payload.groups[group_key].real) || 0;
+            } else if (payload && payload.groups && payload.groups[groupId]) {
+                cowsFed = parseInt(payload.groups[groupId].fed) || parseInt(payload.groups[groupId].real) || 0;
+            }
+
+            if (!isNaN(groupId) && totalGroupKgTqs > 0) {
+                await tx.groupPerformanceHistory.create({
+                    data: {
+                        group_id: groupId,
+                        date: new Date(),
+                        pushed_ration_id: parseInt(id),
+                        cows_fed: cowsFed,
+                        total_kg_ms: totalGroupKgMs,
+                        total_kg_tqs: totalGroupKgTqs,
+                        total_cost: totalGroupCost
+                    }
+                });
             }
             
             return updatedRation;

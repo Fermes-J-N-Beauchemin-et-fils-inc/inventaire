@@ -135,10 +135,11 @@ model Group {
   mix_batch_id Int?
   mix_order    Int?
 
-  daily_servings         DailyServing[]
-  referenced_by_servings DailyServing[]  @relation("GroupReference")
-  group_snapshots        GroupSnapshot[]
-  mix_batch              MixBatch?       @relation(fields: [mix_batch_id], references: [id])
+  daily_servings            DailyServing[]
+  referenced_by_servings    DailyServing[]            @relation("GroupReference")
+  group_snapshots           GroupSnapshot[]
+  mix_batch                 MixBatch?                 @relation(fields: [mix_batch_id], references: [id])
+  groupPerformanceHistories GroupPerformanceHistory[]
 
   @@map("group")
 }
@@ -426,8 +427,9 @@ model PushedRation {
   payload        Json // Le contenu figé de la ration (groupes, aliments, quantités)
   completed_keys Json? // Liste des clés de groupes terminés (ex: ["g1", "taries"])
 
-  stock_transactions     StockTransaction[]
-  financial_transactions FinancialTransaction[]
+  stock_transactions        StockTransaction[]
+  financial_transactions    FinancialTransaction[]
+  groupPerformanceHistories GroupPerformanceHistory[]
 
   @@map("pushed_ration")
 }
@@ -459,4 +461,22 @@ model FinancialTransaction {
   pushed_ration PushedRation? @relation(fields: [pushed_ration_id], references: [id], onDelete: Cascade)
 
   @@map("financial_transaction")
+}
+
+model GroupPerformanceHistory {
+  id               Int      @id @default(autoincrement())
+  group_id         Int
+  date             DateTime
+  pushed_ration_id Int?
+
+  cows_fed     Int
+  total_kg_ms  Float
+  total_kg_tqs Float
+  total_cost   Float
+
+  group         Group         @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  pushed_ration PushedRation? @relation(fields: [pushed_ration_id], references: [id], onDelete: Cascade)
+
+  @@index([group_id, date])
+  @@map("group_performance_history")
 }
