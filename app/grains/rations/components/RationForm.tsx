@@ -26,6 +26,7 @@ interface RationFormProps {
   handleRemoveAliment: (groupKey: GroupKey, id: string) => void;
   handleReorderAliments: (groupKey: GroupKey, startIndex: number, endIndex: number) => void;
   handleResetGroup: (groupKey: GroupKey) => void;
+  handleResetAll: () => void;
   onGenerate: () => void;
 }
 
@@ -33,7 +34,7 @@ export default function RationForm({
   groups, saison, tour1Keys, tour2Keys, availableAliments, handleReorderGroups, handleSaisonToggle, globalPluie, setGlobalPluie, handleGroupPluieChange,
   notes, setNotes, handleGroupChange, handleNoteChange, handleSystemNoteChange,
   handleAddAliment, handleUpdateAliment, handleRemoveAliment, handleReorderAliments,
-  handleResetGroup, onGenerate 
+  handleResetGroup, handleResetAll, onGenerate 
 }: RationFormProps) {
   
   // To avoid hydration mismatch with dnd
@@ -108,6 +109,27 @@ export default function RationForm({
     } else if (type === 'aliment') {
       const parts = source.droppableId.split('-');
       const key = parts[1] as GroupKey;
+      
+      const groupAliments = groups[key]?.aliments || [];
+      const draggedAliment = groupAliments[source.index];
+      
+      // Check if we crossed a dump
+      const minIndex = Math.min(source.index, destination.index);
+      const maxIndex = Math.max(source.index, destination.index);
+      
+      let crossedDump = false;
+      for (let i = minIndex; i <= maxIndex; i++) {
+         if (i !== source.index && groupAliments[i]?.isDump) {
+             crossedDump = true;
+             break;
+         }
+      }
+      
+      if (crossedDump) {
+          toast.error("Interdit: Vous ne pouvez pas déplacer un ingrédient par-dessus une étape de vidange (DUMP).");
+          return;
+      }
+      
       handleReorderAliments(key, source.index, destination.index);
     }
   };
@@ -358,7 +380,18 @@ export default function RationForm({
             </div>
           </div>
           
-          <div className="flex items-center bg-zinc-100 p-2 rounded-2xl border-2 border-zinc-200 h-fit">
+          <div className="flex items-center gap-4 bg-zinc-100 p-2 rounded-2xl border-2 border-zinc-200 h-fit">
+            <button
+              onClick={() => {
+                if(confirm("Êtes-vous sûr de vouloir tout réinitialiser ? L'ordre et les aliments de TOUS les groupes seront remis à zéro.")) {
+                  handleResetAll();
+                }
+              }}
+              className="px-4 py-3 rounded-xl font-bold text-red-600 hover:bg-red-100 transition-all border border-transparent hover:border-red-300 mr-2"
+            >
+              Réinitialiser Tout
+            </button>
+            <div className="h-8 w-px bg-zinc-300"></div>
             <button
               onClick={saison === 'ete' ? handleSaisonToggle : undefined}
               className={`px-6 py-3 rounded-xl font-bold text-lg flex items-center gap-3 transition-all ${saison === 'hiver' ? 'bg-white text-blue-700 shadow-md border border-zinc-300' : 'text-zinc-500 hover:text-black'}`}
@@ -391,7 +424,7 @@ export default function RationForm({
                     {...provided.droppableProps}
                     className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start min-h-[200px]"
                   >
-                    {tour1Keys.map((key, index) => renderGroupCard(key, 1, index))}
+                    {tour1Keys.filter(key => groups[key]?.fed > 0).map((key, index) => renderGroupCard(key, 1, index))}
                     {provided.placeholder}
                   </div>
                 )}
@@ -411,7 +444,7 @@ export default function RationForm({
                       {...provided.droppableProps}
                       className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start min-h-[200px]"
                     >
-                      {tour2Keys.map((key, index) => renderGroupCard(key, 2, index))}
+                      {tour2Keys.filter(key => groups[key]?.fed > 0).map((key, index) => renderGroupCard(key, 2, index))}
                       {provided.placeholder}
                     </div>
                   )}

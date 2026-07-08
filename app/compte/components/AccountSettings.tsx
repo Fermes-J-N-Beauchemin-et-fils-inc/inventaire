@@ -57,7 +57,7 @@ export default function AccountSettings({ user, currentSessionId }: { user: User
                         }
 
                         const parser = new UAParser(s.userAgent || "");
-                        const browser = parser.getBrowser().name || "Navigateur inconnu";
+                        const browser = parser.getBrowser().name || "Navigateur inconnu ";
                         const os = parser.getOS().name || "OS inconnu";
                         
                         return { ...s, location, browser, os };

@@ -51,6 +51,8 @@ export async function POST(request: Request) {
                 }
             });
 
+            const groupId = parseInt(group_key.split('-')[0]);
+
             // Restore inventory and log adjustment transactions
             if (consumed && Array.isArray(consumed)) {
                 for (const item of consumed) {
@@ -70,30 +72,58 @@ export async function POST(request: Request) {
                     }
                     const quantity = quantityInKg / rationToKg; // Convert kg to stored units
 
-                    // Update stock to the storage that has the most stock
-                    const bestStorage = await tx.foodStorage.findFirst({
-                        where: { food_id: foodId },
-                        orderBy: { current_stock: 'desc' }
+                    // Cancel original consumption transaction
+                    const originalTx = await tx.stockTransaction.findFirst({
+                        where: {
+                            pushed_ration_id: parseInt(id),
+                            food_id: foodId,
+                            quantity: -quantity,
+                            transaction_type: "CONSUMPTION"
+                        }
                     });
 
-                    let storageIdToLog = null;
+                    if (originalTx) {
+                        await tx.stockTransaction.update({
+                            where: { id: originalTx.id },
+                            data: { transaction_type: "CANCELLED_CONSUMPTION" }
+                        });
+                        
+                        // Restore exactly from where it was taken
+                        if (originalTx.storage_id) {
+                            await tx.foodStorage.update({
+                                where: { food_id_storage_id: { food_id: foodId, storage_id: originalTx.storage_id } },
+                                data: { current_stock: { increment: quantity } }
+                            });
+                        }
 
-                    if (bestStorage) {
-                        storageIdToLog = bestStorage.storage_id;
-                        await tx.foodStorage.update({
-                            where: { food_id_storage_id: { food_id: foodId, storage_id: bestStorage.storage_id } },
-                            data: { current_stock: { increment: quantity } }
+                        // Log adjustment transaction
+                        await tx.stockTransaction.create({
+                            data: {
+                                food_id: foodId,
+                                storage_id: originalTx.storage_id,
+                                quantity: quantity, // positive quantity to restore
+                                transaction_type: "ROLLBACK_ADJUSTMENT",
+                                pushed_ration_id: parseInt(id),
+                                group_id: isNaN(groupId) ? null : groupId
+                            }
                         });
                     }
+                }
+            }
 
-                    // Log adjustment transaction
-                    await tx.stockTransaction.create({
-                        data: {
-                            food_id: foodId,
-                            storage_id: storageIdToLog,
-                            quantity: quantity, // positive quantity to restore
-                            transaction_type: "ADJUSTMENT"
-                        }
+            // Delete financial transactions
+            await tx.financialTransaction.deleteMany({
+                where: { pushed_ration_id: parseInt(id), description: { contains: `(Groupe ${group_key})` } }
+            });
+
+            // Delete GroupPerformanceHistory (we just delete one matching entry if multiple exist for tours)
+            if (!isNaN(groupId)) {
+                const historyEntry = await tx.groupPerformanceHistory.findFirst({
+                    where: { pushed_ration_id: parseInt(id), group_id: groupId }
+                });
+                if (historyEntry) {
+                    await tx.groupPerformanceHistory.delete({
+                        where: { id: historyEntry.id }
                     });
                 }
             }

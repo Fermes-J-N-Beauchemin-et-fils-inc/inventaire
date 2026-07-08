@@ -58,6 +58,11 @@ export async function POST(req: Request) {
                 await tx.financialTransaction.deleteMany({
                     where: { pushed_ration_id: id }
                 });
+
+                // Delete the performance history associated with this ration
+                await tx.groupPerformanceHistory.deleteMany({
+                    where: { pushed_ration_id: id }
+                });
             });
             return NextResponse.json({ success: true, message: "Ration annulée et inventaire restauré." });
         }

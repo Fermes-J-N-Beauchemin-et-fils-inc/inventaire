@@ -134,12 +134,15 @@ model Group {
 
   mix_batch_id Int?
   mix_order    Int?
+  tour1_order  Int? // Persist UI order for tour 1
+  tour2_order  Int? // Persist UI order for tour 2
 
   daily_servings            DailyServing[]
   referenced_by_servings    DailyServing[]            @relation("GroupReference")
   group_snapshots           GroupSnapshot[]
   mix_batch                 MixBatch?                 @relation(fields: [mix_batch_id], references: [id])
   groupPerformanceHistories GroupPerformanceHistory[]
+  stockTransactions         StockTransaction[]
 
   @@map("group")
 }
@@ -390,6 +393,7 @@ model StockTransaction {
   food_id          Int
   storage_id       Int? // Optional for older transactions or if not silo-specific
   pushed_ration_id Int? // Link to a pushed ration for rollback
+  group_id         Int? // Link to the specific group fed (for undo)
   quantity         Float // Negative for consumption, positive for delivery/adjustment
   transaction_type String // "CONSUMPTION", "DELIVERY", "ADJUSTMENT"
   financial_cost   Float? // Total cost associated with this transaction (useful for historical accounting)
@@ -398,6 +402,7 @@ model StockTransaction {
   food          Food          @relation(fields: [food_id], references: [id], onDelete: Cascade)
   storage       Storage?      @relation(fields: [storage_id], references: [id], onDelete: Cascade)
   pushed_ration PushedRation? @relation(fields: [pushed_ration_id], references: [id], onDelete: Cascade)
+  group         Group?        @relation(fields: [group_id], references: [id], onDelete: Cascade)
 
   @@map("stock_transaction")
 }

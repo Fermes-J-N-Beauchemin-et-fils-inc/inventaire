@@ -34,7 +34,10 @@ export async function GET() {
                     include: { food: true }
                 }
             },
-            orderBy: { id: 'asc' }
+            orderBy: [
+                { tour1_order: 'asc' },
+                { id: 'asc' }
+            ]
         });
 
         // We will transform MixBatches into "virtual groups" for the Tractor UI.
@@ -309,7 +312,9 @@ export async function GET() {
                 real_animal_count: totalRealAnimals,
                 performance_index: summer_two_meals ? 0.5 : 1.0, // Default to 0.5 if two meals, the Tractor UI can adjust per tour
                 season: summer_two_meals ? 'ete' : 'hiver', // Enforce summer UI if two meals checked
-                summer_two_meals: summer_two_meals
+                summer_two_meals: summer_two_meals,
+                tour1_order: groups[0]?.tour1_order || 999,
+                tour2_order: groups[0]?.tour2_order || 999
             });
         };
 

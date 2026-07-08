@@ -21,12 +21,13 @@ interface TractorUIProps {
   isReadOnly?: boolean;
   onForceCancel?: () => void;
   onForceFinish?: () => void;
+  onReorderAliments?: (groupKey: GroupKey, startIndex: number, endIndex: number) => void;
 }
 
 export default function TractorUI({
   groups, saison, tour1Keys, tour2Keys, globalPluie, handleReorderGroups,
   onToggleGroupCompletion, onFinishAll, onAdjustAlimentWeight, onIndiceChange, onGroupPluieChange,
-  pushedRationId, completedKeys, isReadOnly, onForceCancel, onForceFinish
+  pushedRationId, completedKeys, isReadOnly, onForceCancel, onForceFinish, onReorderAliments
 }: TractorUIProps) {
   const [mounted, setMounted] = useState(false);
   React.useEffect(() => setMounted(true), []);
@@ -222,6 +223,34 @@ export default function TractorUI({
     );
   };
 
+  const onAlimentDragEnd = (result: DropResult) => {
+    if (!result.destination || !activeGroup || !onReorderAliments || isReadOnly) return;
+    
+    const { key } = activeGroup;
+    const groupAliments = groups[key]?.aliments || [];
+    
+    // Check if we crossed a dump
+    const minIndex = Math.min(result.source.index, result.destination.index);
+    const maxIndex = Math.max(result.source.index, result.destination.index);
+    
+    let crossedDump = false;
+    for (let i = minIndex; i <= maxIndex; i++) {
+       if (i !== result.source.index && groupAliments[i]?.isDump) {
+           crossedDump = true;
+           break;
+       }
+    }
+    
+    if (crossedDump) {
+        import('react-hot-toast').then(({ default: toast }) => {
+            toast.error("Interdit: Vous ne pouvez pas déplacer un ingrédient par-dessus une étape de vidange (DUMP).");
+        });
+        return;
+    }
+    
+    onReorderAliments(key, result.source.index, result.destination.index);
+  };
+
   // --- DETAIL VIEW ---
   if (activeGroup) {
     const { key, tour } = activeGroup;
@@ -320,63 +349,89 @@ export default function TractorUI({
           )}
 
           {/* Huge List of Aliments */}
+          <DragDropContext onDragEnd={onAlimentDragEnd}>
           <div className="space-y-4 mb-12">
-            {group.aliments.map((aliment, idx) => {
-              const val2Num = parseFloat(aliment.v2);
-              const val1Num = parseFloat(aliment.v1);
-              const scaledV2 = isNaN(val2Num) ? aliment.v2 : Math.ceil(val2Num * indice);
-              const scaledV1 = isNaN(val1Num) ? aliment.v1 : Math.ceil(val1Num * indice);
+            {mounted && (
+              <Droppable droppableId={`tractor-aliments-${key}`} type="tractor-aliment">
+                {(provided) => (
+                  <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-4">
+                    {group.aliments.map((aliment, idx) => {
+                      const val2Num = parseFloat(aliment.v2);
+                      const val1Num = parseFloat(aliment.v1);
+                      const scaledV2 = isNaN(val2Num) ? aliment.v2 : Math.ceil(val2Num * indice);
+                      const scaledV1 = isNaN(val1Num) ? aliment.v1 : Math.ceil(val1Num * indice);
+                      const isDragDisabled = isReadOnly || aliment.isDump;
 
-              return (
-                <div
-                  key={aliment.id}
-                  className={`flex flex-col xl:flex-row xl:justify-between xl:items-center p-6 sm:p-8 rounded-2xl border-b-2 gap-6 ${aliment.isInstruction ? 'bg-red-50 border-red-200 shadow-sm' : (idx % 2 === 0 ? 'bg-zinc-50 border-zinc-100' : 'bg-white border-zinc-100')}`}
-                >
-                  <div className="flex items-center gap-6">
-                    <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center font-black text-xl sm:text-2xl shrink-0 ${aliment.isInstruction ? 'bg-red-200 text-red-800' : 'bg-blue-100 text-blue-700'}`}>
-                      {aliment.isInstruction ? <FontAwesomeIcon icon={faExclamationTriangle} /> : (idx + 1)}
-                    </div>
-                    <div>
-                      <span className={`text-2xl sm:text-4xl font-black ${aliment.isInstruction ? 'text-red-700' : 'text-black'} ${aliment.highlight || ''}`}>
-                        {aliment.name}
-                      </span>
-                      {aliment.extra && !aliment.isInstruction && (
-                        <span className={`ml-4 text-lg sm:text-2xl ${aliment.extraColor || 'text-red-500'}`}>
-                          ({aliment.extra})
-                        </span>
-                      )}
-                    </div>
+                      return (
+                        <Draggable key={`tractor-alim-${aliment.id}-${idx}`} draggableId={`tractor-alim-${aliment.id}-${idx}`} index={idx} isDragDisabled={isDragDisabled}>
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              style={provided.draggableProps.style}
+                              className={`flex flex-col xl:flex-row xl:justify-between xl:items-center p-6 sm:p-8 rounded-2xl border-b-2 gap-6 ${snapshot.isDragging ? 'border-blue-500 shadow-2xl scale-[1.02] z-50 ring-4 ring-blue-500/20' : ''} ${aliment.isInstruction ? 'bg-red-50 border-red-200 shadow-sm' : (idx % 2 === 0 ? 'bg-zinc-50 border-zinc-100' : 'bg-white border-zinc-100')}`}
+                            >
+                              <div className="flex items-center gap-6">
+                                {!isDragDisabled && (
+                                  <div
+                                    {...provided.dragHandleProps}
+                                    className="w-10 h-10 bg-zinc-200/60 rounded-lg flex items-center justify-center text-zinc-400 hover:text-black hover:bg-zinc-300 transition-colors shrink-0 cursor-grab active:cursor-grabbing mr-2"
+                                  >
+                                    <FontAwesomeIcon icon={faGripVertical} className="text-xl" />
+                                  </div>
+                                )}
+                                <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center font-black text-xl sm:text-2xl shrink-0 ${aliment.isInstruction ? 'bg-red-200 text-red-800' : 'bg-blue-100 text-blue-700'}`}>
+                                  {aliment.isInstruction ? <FontAwesomeIcon icon={faExclamationTriangle} /> : (idx + 1)}
+                                </div>
+                                <div>
+                                  <span className={`text-2xl sm:text-4xl font-black ${aliment.isInstruction ? 'text-red-700' : 'text-black'} ${aliment.highlight || ''}`}>
+                                    {aliment.name}
+                                  </span>
+                                  {aliment.extra && !aliment.isInstruction && (
+                                    <span className={`ml-4 text-lg sm:text-2xl ${aliment.extraColor || 'text-red-500'}`}>
+                                      ({aliment.extra})
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {!aliment.isInstruction && (
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-4 sm:gap-10 xl:ml-auto bg-white xl:bg-transparent p-4 sm:p-5 xl:p-0 rounded-2xl shadow-sm xl:shadow-none border-2 xl:border-none border-zinc-200 w-full xl:w-auto">
+                                  {aliment.v1 !== "0" && aliment.v1 !== aliment.v2 && (
+                                    <div className="flex flex-col items-end">
+                                      <span className="text-xs sm:text-sm font-bold text-zinc-600 uppercase tracking-widest mb-1">{aliment.isDump ? "Quantité" : "Aliment"}</span>
+                                      <span className="text-2xl sm:text-3xl font-black text-zinc-800">{scaledV1} <span className="text-lg sm:text-xl font-bold text-zinc-600">kg</span></span>
+                                    </div>
+                                  )}
+                                  <div className={`flex flex-col items-end ${aliment.v1 !== "0" && aliment.v1 !== aliment.v2 ? 'sm:pl-10 sm:border-l-2 border-zinc-200 pt-4 sm:pt-0 mt-4 sm:mt-0 border-t-2 sm:border-t-0' : ''}`}>
+                                    <span className="text-xs sm:text-sm font-black text-blue-600 uppercase tracking-widest mb-1">RTM (Balance)</span>
+                                    <span className="text-4xl sm:text-5xl font-black text-blue-700">{scaledV2} <span className="text-2xl sm:text-3xl font-bold text-blue-500/70">kg</span></span>
+                                  </div>
+                                  {/* Ajuster button */}
+                                  {typeof scaledV2 === 'number' && !isReadOnly && (
+                                    <button
+                                      onClick={() => { setAdjustModal({ key, tour, alimentId: aliment.id, alimentName: aliment.name, targetV2: scaledV2 }); setAdjustValue(""); }}
+                                      className="ml-0 sm:ml-4 mt-4 sm:mt-0 w-full sm:w-auto shrink-0 bg-blue-100 hover:bg-blue-200 text-blue-900 px-4 py-3 rounded-xl border border-blue-300 font-bold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-sm"
+                                      title="Corriger si erreur de balance"
+                                    >
+                                      <FontAwesomeIcon icon={faScaleBalanced} />
+                                      <span className="xl:hidden">Ajuster erreur</span>
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </Draggable>
+                      );
+                    })}
+                    {provided.placeholder}
                   </div>
-
-                  {!aliment.isInstruction && (
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-4 sm:gap-10 xl:ml-auto bg-white xl:bg-transparent p-4 sm:p-5 xl:p-0 rounded-2xl shadow-sm xl:shadow-none border-2 xl:border-none border-zinc-200 w-full xl:w-auto">
-                      {aliment.v1 !== "0" && aliment.v1 !== aliment.v2 && (
-                        <div className="flex flex-col items-end">
-                          <span className="text-xs sm:text-sm font-bold text-zinc-600 uppercase tracking-widest mb-1">{aliment.isDump ? "Quantité" : "Aliment"}</span>
-                          <span className="text-2xl sm:text-3xl font-black text-zinc-800">{scaledV1} <span className="text-lg sm:text-xl font-bold text-zinc-600">kg</span></span>
-                        </div>
-                      )}
-                      <div className={`flex flex-col items-end ${aliment.v1 !== "0" && aliment.v1 !== aliment.v2 ? 'sm:pl-10 sm:border-l-2 border-zinc-200 pt-4 sm:pt-0 mt-4 sm:mt-0 border-t-2 sm:border-t-0' : ''}`}>
-                        <span className="text-xs sm:text-sm font-black text-blue-600 uppercase tracking-widest mb-1">RTM (Balance)</span>
-                        <span className="text-4xl sm:text-5xl font-black text-blue-700">{scaledV2} <span className="text-2xl sm:text-3xl font-bold text-blue-500/70">kg</span></span>
-                      </div>
-                      {/* Ajuster button */}
-                      {typeof scaledV2 === 'number' && !isReadOnly && (
-                        <button
-                          onClick={() => { setAdjustModal({ key, tour, alimentId: aliment.id, alimentName: aliment.name, targetV2: scaledV2 }); setAdjustValue(""); }}
-                          className="ml-0 sm:ml-4 mt-4 sm:mt-0 w-full sm:w-auto shrink-0 bg-blue-100 hover:bg-blue-200 text-blue-900 px-4 py-3 rounded-xl border border-blue-300 font-bold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-sm"
-                          title="Corriger si erreur de balance"
-                        >
-                          <FontAwesomeIcon icon={faScaleBalanced} />
-                          <span className="xl:hidden">Ajuster erreur</span>
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                )}
+              </Droppable>
+            )}
           </div>
+          </DragDropContext>
 
           {!isReadOnly && (
               <button

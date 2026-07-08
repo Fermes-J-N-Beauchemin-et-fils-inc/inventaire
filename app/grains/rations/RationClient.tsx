@@ -285,18 +285,18 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
 
           setGroups(initialGroups);
           
-          if (lastRation && lastRation.tour1Keys) {
-             const validTour1Keys = lastRation.tour1Keys.filter((k: string) => keys.includes(k));
-             const newKeys = keys.filter(k => !validTour1Keys.includes(k));
-             setTour1Keys([...validTour1Keys, ...newKeys]);
-             
-             const validTour2Keys = (lastRation.tour2Keys || []).filter((k: string) => tour2InitialKeys.includes(k));
-             const newTour2Keys = tour2InitialKeys.filter(k => !validTour2Keys.includes(k));
-             setTour2Keys([...validTour2Keys, ...newTour2Keys]);
-          } else {
-             setTour1Keys([...keys]);
-             setTour2Keys(tour2InitialKeys);
-          }
+          // We use the order provided by the config endpoint directly
+          const sortedTour1Keys = [...keys];
+          
+          // For tour 2, we sort them based on the config's tour2_order or fallback to tour1_order
+          const sortedTour2Keys = [...tour2InitialKeys].sort((a, b) => {
+              const orderA = data.groups.find((g: any) => g.id.toString() === a)?.tour2_order ?? 999;
+              const orderB = data.groups.find((g: any) => g.id.toString() === b)?.tour2_order ?? 999;
+              return orderA - orderB;
+          });
+
+          setTour1Keys(sortedTour1Keys);
+          setTour2Keys(sortedTour2Keys);
         }
       } catch (err) {
         console.error("Failed to fetch ration config", err);
@@ -378,12 +378,29 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
     if (sourceTour === destTour) {
       sourceList.splice(destIndex, 0, moved);
       setList(sourceTour, sourceList);
+      // Persist to DB in the background
+      fetch('/api/ration/save-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              tour1Keys: sourceTour === 1 ? sourceList : tour1Keys,
+              tour2Keys: sourceTour === 2 ? sourceList : tour2Keys
+          })
+      }).catch(console.error);
     } else {
-      // Éviter les doublons dans la même tournée
       if (!destList.includes(moved)) {
         destList.splice(destIndex, 0, moved);
         setList(sourceTour, sourceList);
         setList(destTour, destList);
+        // Persist to DB in the background
+        fetch('/api/ration/save-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                tour1Keys: sourceTour === 1 ? sourceList : (destTour === 1 ? destList : tour1Keys),
+                tour2Keys: sourceTour === 2 ? sourceList : (destTour === 2 ? destList : tour2Keys)
+            })
+        }).catch(console.error);
       }
     }
   };
@@ -416,7 +433,29 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
       const updatedGroup = { ...group, aliments: mergedAliments };
       return { ...prev, [groupKey]: recalculateGroupAliments(updatedGroup) };
     });
-    toast.success("Ration réinitialisée pour ce groupe");
+    toast.success(`Ration réinitialisée pour ${groups[groupKey]?.name}`);
+  };
+
+  const handleResetAll = () => {
+    if (isDistributor) return;
+    
+    setGroups(prev => {
+      const updatedGroups = { ...prev };
+      Object.keys(updatedGroups).forEach(groupKey => {
+        const group = updatedGroups[groupKey];
+        const baseAliments = originalConfig[groupKey] || [];
+        const mergedAliments = baseAliments
+            .filter((a: any) => parseFloat(a.v1) > 0)
+            .map((a: any) => ({
+              ...a,
+              rowId: Math.random().toString(36).substr(2, 9)
+            }));
+            
+        updatedGroups[groupKey] = recalculateGroupAliments({ ...group, aliments: mergedAliments });
+      });
+      return updatedGroups;
+    });
+    toast.success("Tous les groupes ont été réinitialisés à leur configuration de base.");
   };
 
   const handleUpdateAliment = (groupKey: GroupKey, idOrRowId: string, field: 'name' | 'v1' | 'v2' | 'change_food', value: string) => {
@@ -457,7 +496,37 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
       const [removed] = newAliments.splice(startIndex, 1);
       newAliments.splice(endIndex, 0, removed);
       const updatedGroup = { ...prev[groupKey], aliments: newAliments };
-      return { ...prev, [groupKey]: recalculateGroupAliments(updatedGroup) };
+      const recalculated = recalculateGroupAliments(updatedGroup);
+      
+      // If a ration is currently pushed, we also update the payload in the DB!
+      if (pushedRation) {
+         fetch('/api/ration/update-aliment-order', {
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify({
+                 rationId: pushedRation.id,
+                 groupKey,
+                 aliments: recalculated.aliments
+             })
+         }).catch(console.error);
+         
+         // Update the pushedRation state locally
+         setPushedRation((currentPr: any) => {
+             if (!currentPr) return currentPr;
+             return {
+                 ...currentPr,
+                 payload: {
+                     ...currentPr.payload,
+                     groups: {
+                         ...(currentPr.payload.groups || currentPr.payload),
+                         [groupKey]: recalculated
+                     }
+                 }
+             };
+         });
+      }
+      
+      return { ...prev, [groupKey]: recalculated };
     });
   };
 
@@ -692,6 +761,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
           handleUpdateAliment={handleUpdateAliment}
           handleReorderAliments={handleReorderAliments}
           handleResetGroup={handleResetGroup}
+          handleResetAll={handleResetAll}
           notes={notes}
           setNotes={setNotes}
           onGenerate={() => {
@@ -744,6 +814,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
           isReadOnly={!isDistributor}
           onForceCancel={() => handleAdminAction('cancel')}
           onForceFinish={() => handleAdminAction('finish')}
+          onReorderAliments={handleReorderAliments}
         />
     );
   }

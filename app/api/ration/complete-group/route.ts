@@ -39,6 +39,7 @@ export async function POST(request: Request) {
         completedKeys.push(group_key);
         const newGroupsDone = completedKeys.length;
         const newStatus = newGroupsDone >= pushedRation.groups_total ? "TERMINEE" : "EN_COURS";
+        const groupId = parseInt(group_key.split('-')[0]);
 
         // Handle inventory deduction and status update in a transaction
         const updated = await prisma.$transaction(async (tx) => {
@@ -103,6 +104,7 @@ export async function POST(request: Request) {
                             food_id: foodId,
                             storage_id: storageIdToLog,
                             pushed_ration_id: parseInt(id),
+                            group_id: isNaN(groupId) ? null : groupId,
                             quantity: -quantity,
                             transaction_type: "CONSUMPTION",
                             financial_cost: cost
@@ -125,7 +127,6 @@ export async function POST(request: Request) {
                 }
             }
 
-            const groupId = parseInt(group_key.split('-')[0]);
             let cowsFed = 0;
             const payload = pushedRation.payload as any;
             if (payload && payload.groups && payload.groups[group_key]) {
