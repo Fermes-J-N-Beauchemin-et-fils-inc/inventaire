@@ -424,7 +424,7 @@ export default function RationForm({
                 </h2>
               )}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start min-h-[200px]">
-                {tour1Keys.filter(key => groups[key]?.fed > 0).map((key, index) => renderGroupCard(key, 1, index))}
+                {tour1Keys.filter(key => groups[key]).map((key) => renderGroupCard(key, 1, tour1Keys.indexOf(key)))}
               </div>
             </div>
 
@@ -435,7 +435,7 @@ export default function RationForm({
                   Deuxième tournée <span className="text-xl text-zinc-500 font-medium">(Groupes en lactation)</span>
                 </h2>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start min-h-[200px]">
-                  {tour2Keys.filter(key => groups[key]?.fed > 0).map((key, index) => renderGroupCard(key, 2, index))}
+                  {tour2Keys.filter(key => groups[key]).map((key) => renderGroupCard(key, 2, tour2Keys.indexOf(key)))}
                 </div>
               </div>
             )}

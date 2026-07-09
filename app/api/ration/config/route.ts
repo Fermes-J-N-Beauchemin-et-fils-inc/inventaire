@@ -51,7 +51,7 @@ export async function GET() {
         const virtualGroups: any[] = [];
 
         // Helper to process a list of groups into a single batch sequence
-        const processBatch = (batchId: string, batchName: string, groups: any[], summer_two_meals: boolean, aliments_order: any, saved_instructions: any) => {
+        const processBatch = (batchId: string, batchName: string, groups: any[], summer_two_meals: boolean, aliments_order: any, saved_instructions: any, explicitTour1Order?: number | null, explicitTour2Order?: number | null) => {
             if (groups.length === 0) return;
 
             // 1. Calculate the exact needs for each group
@@ -355,20 +355,20 @@ export async function GET() {
                 performance_index: summer_two_meals ? 0.5 : 1.0, // Default to 0.5 if two meals, the Tractor UI can adjust per tour
                 season: summer_two_meals ? 'ete' : 'hiver', // Enforce summer UI if two meals checked
                 summer_two_meals: summer_two_meals,
-                tour1_order: groups[0]?.tour1_order || 999,
-                tour2_order: groups[0]?.tour2_order || 999,
+                tour1_order: explicitTour1Order !== undefined && explicitTour1Order !== null ? explicitTour1Order : (groups[0]?.tour1_order || 999),
+                tour2_order: explicitTour2Order !== undefined && explicitTour2Order !== null ? explicitTour2Order : (groups[0]?.tour2_order || 999),
                 aliments_order: aliments_order
             });
         };
 
         // Process actual batches
         batches.forEach(batch => {
-            processBatch(`batch_${batch.id}`, batch.name, batch.groups, batch.summer_two_meals, batch.aliments_order, batch.saved_instructions);
+            processBatch(`batch_${batch.id}`, batch.name, batch.groups, batch.summer_two_meals, batch.aliments_order, batch.saved_instructions, batch.tour1_order, batch.tour2_order);
         });
 
         // Process unassigned groups as individual batches
         unassignedGroups.forEach(group => {
-            processBatch(group.id.toString(), group.name, [group], group.summer_two_meals, group.aliments_order, group.saved_instructions);
+            processBatch(group.id.toString(), group.name, [group], group.summer_two_meals, group.aliments_order, group.saved_instructions, group.tour1_order, group.tour2_order);
         });
 
         // Finally, sort ALL virtual groups by tour1_order so that MixBatches and Unassigned groups are correctly interleaved
