@@ -293,7 +293,7 @@ export default function ExpeditionView({ inventory, clients, storages }: Expedit
                     <div className="flex justify-between items-end mb-2">
                       <span className="text-sm font-bold text-zinc-500">Allocation Contrats</span>
                       <span className="text-lg font-black text-indigo-600">
-                        {totalContractAllocated.toFixed(1)} <span className="text-sm text-zinc-400 font-medium">kg alloués</span>
+                        {totalContractAllocated.toFixed(2)} <span className="text-sm text-zinc-400 font-medium">kg alloués</span>
                       </span>
                     </div>
                     <div className="w-full bg-zinc-100 rounded-full h-3 overflow-hidden">
@@ -327,7 +327,7 @@ export default function ExpeditionView({ inventory, clients, storages }: Expedit
                         <div key={st.id} className="bg-white p-5 rounded-2xl shadow-sm border border-amber-100 flex flex-col gap-4">
                           <div className="flex justify-between items-center">
                             <h4 className="font-bold text-zinc-800 text-lg">{st.name}</h4>
-                            <span className="text-sm font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full">Stock: {availableKg.toFixed(1)} kg</span>
+                            <span className="text-sm font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full">Stock: {availableKg.toFixed(2)} kg</span>
                           </div>
                           <div className="flex items-center gap-4">
                             <button 
@@ -370,7 +370,7 @@ export default function ExpeditionView({ inventory, clients, storages }: Expedit
                     <div className="flex justify-between items-end mb-2">
                       <span className="text-sm font-bold text-zinc-500">Stock Sorti</span>
                       <span className={`text-lg font-black text-amber-600`}>
-                        {totalStorageAllocated.toFixed(1)} <span className="text-sm text-zinc-400 font-medium">/ {totalKg} kg</span>
+                        {totalStorageAllocated.toFixed(2)} <span className="text-sm text-zinc-400 font-medium">/ {totalKg} kg</span>
                       </span>
                     </div>
                     <div className="w-full bg-zinc-100 rounded-full h-3 overflow-hidden">

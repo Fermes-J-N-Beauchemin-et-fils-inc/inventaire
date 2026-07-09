@@ -48,8 +48,7 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
       if (sale) {
         setClientId(sale.partner_id);
         setFoodId(sale.food_id);
-        const q = sale.unit.toLowerCase() === 'tm' ? sale.quantity * 1000 : sale.quantity;
-        setTotalKg(q);
+        setTotalKg(0); // Auto-fill removed per user request: force manual entry of actual quantity
       }
     } else {
       setClientId('');
@@ -86,13 +85,11 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
   }, [foodId, storages]);
 
   const totalContractAllocated = Object.values(contractAllocations).reduce((sum, val) => sum + (val || 0), 0);
-  const totalStorageAllocated = Object.values(storageAllocations).reduce((sum, val) => sum + (val || 0), 0);
 
   const isValid = 
     clientId !== '' && 
     foodId !== '' && 
-    totalKg > 0 && 
-    Math.abs(totalStorageAllocated - totalKg) < 0.1;
+    totalKg > 0;
 
   const handleContractChange = (id: number, val: number) => {
     const sc = activeSubContracts.find(c => c.id === id);
@@ -100,33 +97,21 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
     setContractAllocations(prev => ({ ...prev, [id]: Math.min(Math.max(0, val), max) }));
   };
 
-  const handleStorageChange = (id: number, val: number) => {
-    const st = activeStoragesWithFood.find(s => s.id === id);
-    const fs = (st?.food_storages || []).find(f => f.food_id === foodId);
-    if (!fs) return;
-    const isTm = fs.food?.unit_type?.name?.toLowerCase() === 'tm';
-    const availableKg = isTm ? fs.current_stock * 1000 : fs.current_stock;
-    setStorageAllocations(prev => ({ ...prev, [id]: Math.min(Math.max(0, val), availableKg) }));
-  };
 
-  const handleAutoFillContracts = () => {
-    let remaining = totalKg;
-    const newAllocations: { [id: number]: number } = {};
-    for (const sc of activeSubContracts) {
-      if (remaining <= 0) break;
-      const toAllocate = Math.min(sc.kg_left_to_deliver, remaining);
-      newAllocations[sc.id] = toAllocate;
-      remaining -= toAllocate;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isValid) {
+      toast.error("Veuillez remplir les champs obligatoires.");
+      return;
     }
-    setContractAllocations(newAllocations);
-  };
 
-  const handleAutoFillStorages = () => {
-    let remaining = totalKg;
-    const newAllocations: { [id: number]: number } = {};
+    // Auto-allocate storages
+    const autoStorageAllocations: { [id: number]: number } = {};
+    let remainingToAllocate = totalKg;
+    
     for (const st of activeStoragesWithFood) {
-      if (remaining <= 0) break;
-      
+      if (remainingToAllocate <= 0) break;
       const fs = (st.food_storages || []).find(f => f.food_id === foodId);
       if (!fs) continue;
 
@@ -134,36 +119,15 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
       const availableKg = isTm ? fs.current_stock * 1000 : fs.current_stock;
 
       if (availableKg > 0) {
-        const toAllocate = Math.min(availableKg, remaining);
-        newAllocations[st.id] = toAllocate;
-        remaining -= toAllocate;
+        const toAllocate = Math.min(availableKg, remainingToAllocate);
+        autoStorageAllocations[st.id] = toAllocate;
+        remainingToAllocate -= toAllocate;
       }
     }
-    setStorageAllocations(newAllocations);
-  };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isValid) {
-      toast.error("Veuillez vérifier les répartitions. Le total des silos doit correspondre à la quantité vendue.");
+    if (remainingToAllocate > 0) {
+      toast.error("Stock insuffisant dans les silos pour cette quantité.");
       return;
-    }
-
-    for (const [stIdStr, qty] of Object.entries(storageAllocations)) {
-      const stId = parseInt(stIdStr);
-      if (qty <= 0) continue;
-      const st = activeStoragesWithFood.find(s => s.id === stId);
-      const fs = (st?.food_storages || []).find(f => f.food_id === foodId);
-      if (!fs) {
-         toast.error("Erreur de sélection de silo.");
-         return;
-      }
-      const isTm = fs.food?.unit_type?.name?.toLowerCase() === 'tm';
-      const availableKg = isTm ? fs.current_stock * 1000 : fs.current_stock;
-      if (qty > availableKg + 0.1) {
-         toast.error(`Quantité excessive pour le silo ${st?.name}. Maximum: ${Math.round(availableKg)} kg.`);
-         return;
-      }
     }
 
     const formData = new FormData();
@@ -176,7 +140,7 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
     }
     
     const scPayload = Object.entries(contractAllocations).map(([id, qty]) => ({ sub_contract_id: parseInt(id), quantity: qty }));
-    const stPayload = Object.entries(storageAllocations).map(([id, qty]) => ({ storage_id: parseInt(id), quantity: qty }));
+    const stPayload = Object.entries(autoStorageAllocations).map(([id, qty]) => ({ storage_id: parseInt(id), quantity: qty }));
 
     formData.append("sub_contracts", JSON.stringify(scPayload));
     formData.append("storages", JSON.stringify(stPayload));
@@ -190,7 +154,6 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
         setFoodId('');
         setTotalKg(0);
         setContractAllocations({});
-        setStorageAllocations({});
       } catch(e: any) {
         toast.error(e.message || "Erreur lors de l'enregistrement de la vente.");
       }
@@ -265,7 +228,7 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
 
             {/* Step 2 & 3: Répartition */}
             {clientId && foodId && totalKg > 0 && (
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 animate-in slide-in-from-bottom-8 duration-500">
+              <div className="grid grid-cols-1 gap-8 animate-in slide-in-from-bottom-8 duration-500">
                 {/* Contrats */}
                 <div className="bg-fuchsia-50 p-8 rounded-3xl border border-fuchsia-100 shadow-sm flex flex-col">
                   <div className="flex justify-between items-center mb-8">
@@ -328,89 +291,13 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
                     <div className="flex justify-between items-end mb-3">
                       <span className="text-sm font-black text-fuchsia-400 uppercase tracking-widest">Allocation Contrats</span>
                       <span className={`text-3xl font-black ${Math.abs(totalContractAllocated - totalKg) < 0.1 ? 'text-green-500' : 'text-fuchsia-600'}`}>
-                        {totalContractAllocated.toFixed(1)} <span className="text-lg text-fuchsia-300 font-bold">/ {totalKg} kg</span>
+                        {totalContractAllocated.toFixed(2)} <span className="text-lg text-fuchsia-300 font-bold">/ {totalKg} kg</span>
                       </span>
                     </div>
-                  </div>
-                </div>
-
-                {/* Silos */}
-                <div className="bg-amber-50 p-8 rounded-3xl border border-amber-100 shadow-sm flex flex-col">
-                  <div className="flex justify-between items-center mb-8">
-                    <h3 className="text-2xl font-black text-amber-900 flex items-center gap-4">
-                      <span className="w-10 h-10 rounded-2xl bg-amber-200 text-amber-800 flex items-center justify-center text-lg">3</span>
-                      Sortir des silos
-                    </h3>
-                    <button type="button" onClick={handleAutoFillStorages} className="px-4 py-2 bg-amber-200 text-amber-800 hover:bg-amber-300 rounded-xl text-sm font-black transition-all">Auto-répartir</button>
-                  </div>
-
-                  <div className="space-y-4 flex-1">
-                    {activeStoragesWithFood.map(st => {
-                      const fs = (st.food_storages || []).find(f => f.food_id === foodId);
-                      if (!fs) return null;
-                      
-                      const isTm = fs.food?.unit_type?.name?.toLowerCase() === 'tm';
-                      const availableKg = isTm ? fs.current_stock * 1000 : fs.current_stock;
-
-                      return (
-                        <div key={st.id} className="bg-white p-5 rounded-2xl shadow-sm border border-amber-100/50 flex flex-col gap-4 hover:border-amber-300 transition-colors">
-                          <div className="flex justify-between items-center">
-                            <h4 className="font-black text-amber-950 text-lg">{st.name}</h4>
-                            <span className="text-sm font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-100">Stock: {Math.round(availableKg)} kg</span>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <button 
-                              type="button"
-                              onClick={() => handleStorageChange(st.id, Math.min(availableKg, (storageAllocations[st.id] || 0) + (totalKg - totalStorageAllocated)))}
-                              className="text-xs font-black bg-amber-100 text-amber-700 hover:bg-amber-200 px-3 py-3 rounded-xl transition-colors shrink-0"
-                            >
-                              MAX
-                            </button>
-                            <input
-                              type="range"
-                              min="0"
-                              max={availableKg}
-                              step="0.1"
-                              value={storageAllocations[st.id] ?? 0}
-                              onChange={(e) => handleStorageChange(st.id, Number(e.target.value) || 0)}
-                              className="flex-1 h-3 bg-amber-100 rounded-full appearance-none cursor-pointer accent-amber-500"
-                            />
-                            <div className="relative shrink-0">
-                              <input 
-                                type="number"
-                                step="0.1"
-                                min="0"
-                                max={availableKg}
-                                value={storageAllocations[st.id] ?? ''}
-                                onChange={(e) => handleStorageChange(st.id, Number(e.target.value) || 0)}
-                                className="w-32 p-3 pr-10 border-2 border-amber-200 rounded-xl font-black text-amber-900 text-right focus:border-amber-500 outline-none transition-colors"
-                                placeholder="0"
-                              />
-                              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-amber-400">kg</span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {activeStoragesWithFood.length === 0 && (
-                      <div className="h-full flex flex-col items-center justify-center p-8 bg-white/50 rounded-2xl border-2 border-dashed border-amber-200">
-                        <span className="text-4xl mb-3">🪣</span>
-                        <p className="text-amber-400 font-bold text-center">Aucun silo ne contient cet aliment.</p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-8 bg-white p-6 rounded-2xl border border-amber-100 shadow-sm">
-                    <div className="flex justify-between items-end mb-3">
-                      <span className="text-sm font-black text-amber-500 uppercase tracking-widest">Sortie Silos</span>
-                      <span className={`text-3xl font-black ${Math.abs(totalStorageAllocated - totalKg) < 0.1 ? 'text-green-500' : 'text-amber-500'}`}>
-                        {totalStorageAllocated.toFixed(1)} <span className="text-lg text-amber-300 font-bold">/ {totalKg} kg</span>
-                      </span>
-                    </div>
-                    <div className="w-full bg-amber-50 rounded-full h-4 overflow-hidden border border-amber-100">
+                    <div className="w-full bg-fuchsia-50 rounded-full h-4 overflow-hidden border border-fuchsia-100">
                       <div 
-                        className={`h-full rounded-full transition-all duration-500 ${Math.abs(totalStorageAllocated - totalKg) < 0.1 ? 'bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]' : totalStorageAllocated > totalKg ? 'bg-red-500' : 'bg-gradient-to-r from-amber-400 to-orange-400'}`}
-                        style={{ width: `${totalKg > 0 ? Math.min(100, (totalStorageAllocated / totalKg) * 100) : 0}%` }}
+                        className={`h-full rounded-full transition-all duration-500 ${Math.abs(totalContractAllocated - totalKg) < 0.1 ? 'bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]' : totalContractAllocated > totalKg ? 'bg-red-500' : 'bg-gradient-to-r from-fuchsia-400 to-pink-400'}`}
+                        style={{ width: `${totalKg > 0 ? Math.min(100, (totalContractAllocated / totalKg) * 100) : 0}%` }}
                       ></div>
                     </div>
                   </div>
@@ -425,11 +312,6 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
               className="w-full py-8 bg-gradient-to-r from-orange-600 to-amber-500 disabled:from-orange-200 disabled:to-amber-100 disabled:shadow-none hover:from-orange-700 hover:to-amber-600 text-white font-black text-3xl rounded-[2rem] shadow-2xl shadow-orange-500/40 transition-all flex flex-col items-center justify-center gap-2 transform active:scale-[0.98]"
             >
               <span>{isPending ? 'Enregistrement en cours...' : 'Valider la vente'}</span>
-              {!isValid && !isPending && (
-                <span className="text-sm font-black text-white/60 uppercase tracking-[0.2em] mt-1">
-                  Veuillez répartir exactement tout le stock dans les silos
-                </span>
-              )}
             </button>
           </form>
         </div>

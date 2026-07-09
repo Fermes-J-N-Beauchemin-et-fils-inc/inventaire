@@ -32,6 +32,8 @@ export default function StockageView({ storages }: Props) {
 
   const [isPending, startTransition] = useTransition();
 
+  const formatNum = (val: number) => new Intl.NumberFormat('fr-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
+
   const handleCapacityChange = (id: number, val: string) => {
     setCapacities(prev => ({ ...prev, [id]: val }));
   };
@@ -206,7 +208,7 @@ export default function StockageView({ storages }: Props) {
                     {storage.food_storages.map((fs: any) => (
                       <div key={fs.food_id} className="flex justify-between items-center bg-white p-2 rounded-lg border border-zinc-100 shadow-sm text-sm font-bold">
                         <span className="text-zinc-800">{fs.food.name}</span>
-                        <span className="text-indigo-600">{fs.current_stock} {fs.food.unit_type?.name}</span>
+                        <span className="text-indigo-600">{formatNum(fs.current_stock)} {fs.food.unit_type?.name}</span>
                       </div>
                     ))}
                   </div>

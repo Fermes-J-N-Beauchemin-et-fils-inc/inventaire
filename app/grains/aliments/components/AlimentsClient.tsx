@@ -16,6 +16,8 @@ export default function AlimentsClient({ initialAliments }: AlimentsClientProps)
   const [searchQuery, setSearchQuery] = useState("");
   const [isPending, startTransition] = React.useTransition();
 
+  const formatNum = (val: number) => new Intl.NumberFormat('fr-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
+
   const filteredAliments = initialAliments.filter(aliment => 
     aliment.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (aliment.commonName && aliment.commonName !== "N/A" && aliment.commonName.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -124,21 +126,29 @@ export default function AlimentsClient({ initialAliments }: AlimentsClientProps)
               </div>
 
               {/* Metrics */}
-              <div className="grid grid-cols-2 gap-4 mb-8">
-                <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
-                  <div className="text-zinc-500 text-sm font-bold flex items-center gap-2 mb-1">
+              <div className="grid grid-cols-3 gap-3 mb-8">
+                <div className="bg-zinc-50 p-3 rounded-2xl border border-zinc-100 flex flex-col justify-center">
+                  <div className="text-zinc-500 text-xs font-bold flex items-center gap-1.5 mb-1">
                     <FontAwesomeIcon icon={faBoxesStacked} /> Stock
                   </div>
-                  <div className="text-xl font-black text-zinc-900">
-                    {aliment.currentStock} <span className="text-sm font-bold text-zinc-500">{aliment.unit}</span>
+                  <div className="text-lg font-black text-zinc-900 leading-tight">
+                    {formatNum(aliment.currentStock)} <span className="text-xs font-bold text-zinc-500">{aliment.unit}</span>
                   </div>
                 </div>
-                <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
-                  <div className="text-zinc-500 text-sm font-bold flex items-center gap-2 mb-1">
+                <div className="bg-zinc-50 p-3 rounded-2xl border border-zinc-100 flex flex-col justify-center">
+                  <div className="text-zinc-500 text-xs font-bold flex items-center gap-1.5 mb-1">
                     <FontAwesomeIcon icon={faChartLine} /> Conso.
                   </div>
-                  <div className="text-xl font-black text-zinc-900">
-                    {aliment.consumptionRate} <span className="text-sm font-bold text-zinc-500">/j</span>
+                  <div className="text-lg font-black text-zinc-900 leading-tight">
+                    {formatNum(aliment.consumptionRate)} <span className="text-xs font-bold text-zinc-500">/j</span>
+                  </div>
+                </div>
+                <div className="bg-zinc-50 p-3 rounded-2xl border border-zinc-100 flex flex-col justify-center">
+                  <div className="text-zinc-500 text-xs font-bold flex items-center gap-1.5 mb-1">
+                    M.S.
+                  </div>
+                  <div className="text-lg font-black text-zinc-900 leading-tight">
+                    {formatNum(aliment.msPercentage)} <span className="text-xs font-bold text-zinc-500">%</span>
                   </div>
                 </div>
               </div>
@@ -147,7 +157,7 @@ export default function AlimentsClient({ initialAliments }: AlimentsClientProps)
               <div className="space-y-2 mb-6">
                 <div className="flex justify-between text-sm font-bold">
                   <span className={isLowStock ? 'text-red-600' : 'text-zinc-600'}>Niveau de stock</span>
-                  <span className="text-zinc-500">{aliment.currentStock} / {aliment.maxStock} {aliment.unit} <span className="text-zinc-400 ml-1">({Math.round(stockPercentage)}%)</span></span>
+                  <span className="text-zinc-500">{formatNum(aliment.currentStock)} / {formatNum(aliment.maxStock)} {aliment.unit} <span className="text-zinc-400 ml-1">({Math.round(stockPercentage)}%)</span></span>
                 </div>
                 <div className="w-full h-3 bg-zinc-100 rounded-full overflow-hidden">
                   <div 

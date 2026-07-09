@@ -13,7 +13,7 @@ export default function InventaireTable({ inventory }: InventaireTableProps) {
     return 'bg-green-100 text-green-700 ring-green-200 shadow-sm ring-1';
   };
 
-  const formatNum = (val: number) => new Intl.NumberFormat('fr-CA', { maximumFractionDigits: 2 }).format(val);
+  const formatNum = (val: number) => new Intl.NumberFormat('fr-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
 
   const [searchTerm, setSearchTerm] = React.useState('');
 
@@ -41,6 +41,7 @@ export default function InventaireTable({ inventory }: InventaireTableProps) {
             <tr className="bg-zinc-50 border-b border-zinc-200">
               <th className="py-4 px-6 font-black text-zinc-500 text-sm uppercase tracking-wider">Aliment</th>
               <th className="py-4 px-6 font-black text-zinc-500 text-sm uppercase tracking-wider">Stockage</th>
+              <th className="py-4 px-6 font-black text-zinc-500 text-sm uppercase tracking-wider text-right">% M.S.</th>
               <th className="py-4 px-6 font-black text-zinc-500 text-sm uppercase tracking-wider text-right">Consommation (M.S. / jour)</th>
               <th className="py-4 px-6 font-black text-zinc-500 text-sm uppercase tracking-wider text-right">Inventaire Actuel</th>
               <th className="py-4 px-6 font-black text-zinc-500 text-sm uppercase tracking-wider text-center border-l border-zinc-200">Reste Pour</th>
@@ -70,6 +71,9 @@ export default function InventaireTable({ inventory }: InventaireTableProps) {
                   </td>
                   <td className="py-4 px-6 text-zinc-600 text-base font-bold">
                     {storageNames}
+                  </td>
+                  <td className="py-4 px-6 text-zinc-600 text-right font-medium">
+                    {item.ms_percentage} %
                   </td>
                   <td className="py-4 px-6 text-zinc-600 text-right font-medium">
                     {dailyConsumption > 0 ? formatNum(dailyConsumption) : '-'} <span className="text-zinc-400 text-sm">kg MS</span>

@@ -15,6 +15,8 @@ export default function LivraisonsView({ deliveries, suppliers }: LivraisonsView
   const selectedSupplier = suppliers.find(s => s.id.toString() === selectedSupplierId);
   const availableContracts = selectedSupplier ? selectedSupplier.contracts : [];
 
+  const formatNum = (val: number) => new Intl.NumberFormat('fr-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
+
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-10 mt-4 mb-10">
       {/* Chronological Deliveries List */}
@@ -64,7 +66,7 @@ export default function LivraisonsView({ deliveries, suppliers }: LivraisonsView
                         </div>
                         <div className="flex items-center gap-4">
                           <span className="text-xl font-black text-zinc-900">
-                            {delivery.quantity_received} <span className="text-sm text-zinc-500">{delivery.food.unit_type.name}</span>
+                            {formatNum(delivery.quantity_received)} <span className="text-sm text-zinc-500">{delivery.food.unit_type.name}</span>
                           </span>
                           {!isPast ? (
                             <div className="flex items-center gap-2">
@@ -164,7 +166,7 @@ export default function LivraisonsView({ deliveries, suppliers }: LivraisonsView
                     {availableContracts.map(c => {
                       const kgLeft = c.sub_contracts?.reduce((sum: number, sc: any) => sum + sc.kg_left_to_deliver, 0) || 0;
                       return (
-                        <option key={c.id} value={c.id}>{c.name} - {c.food.name} ({kgLeft}kg restants)</option>
+                        <option key={c.id} value={c.id}>{c.name} - {c.food.name} ({formatNum(kgLeft)}kg restants)</option>
                       );
                     })}
                   </select>

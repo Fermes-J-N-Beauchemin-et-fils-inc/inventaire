@@ -8,7 +8,7 @@ interface OrderEstimationProps {
 }
 
 export default function OrderEstimation({ inventory, daysToOrder, setDaysToOrder }: OrderEstimationProps) {
-  const formatNum = (val: number) => new Intl.NumberFormat('fr-CA', { maximumFractionDigits: 1 }).format(val);
+  const formatNum = (val: number) => new Intl.NumberFormat('fr-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
 
   return (
     <div>
@@ -53,7 +53,7 @@ export default function OrderEstimation({ inventory, daysToOrder, setDaysToOrder
               const currentStockMsKg = currentStockKg * (item.ms_percentage / 100);
 
               let calculatedOrder = (dailyConsumption * daysToOrder) - currentStockMsKg;
-              calculatedOrder = Math.round(calculatedOrder * 10) / 10;
+              calculatedOrder = Math.round(calculatedOrder * 100) / 100;
               const isRed = calculatedOrder < 0;
 
               return (
@@ -63,7 +63,7 @@ export default function OrderEstimation({ inventory, daysToOrder, setDaysToOrder
                     {formatNum(current_stock)} <span className="text-zinc-500 text-xs">{item.unit_type.name}</span>
                   </td>
                   <td className={`py-3 px-4 text-right font-black text-lg bg-yellow-50 ${isRed ? 'text-red-600' : 'text-black'}`}>
-                    {calculatedOrder !== 0 ? (isRed ? `(${Math.abs(calculatedOrder)})` : Math.max(0, calculatedOrder)) : '0'}
+                    {calculatedOrder !== 0 ? (isRed ? `(${formatNum(Math.abs(calculatedOrder))})` : formatNum(Math.max(0, calculatedOrder))) : '0.00'}
                   </td>
                   <td className="py-3 px-4 text-right border-l border-zinc-100 bg-zinc-50">
                     <span className="font-bold text-black">{formatNum(annualConsumption)}</span>
