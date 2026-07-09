@@ -28,6 +28,12 @@ export interface GroupAlimentData {
   kgTqs: number;
   costDay: number;
   costYear: number;
+  diffYesterday?: number;
+  diff7Days?: number;
+  diff30Days?: number;
+  diffCostYesterday?: number;
+  diffCost7Days?: number;
+  diffCost30Days?: number;
 }
 
 export interface GroupData {
@@ -39,6 +45,12 @@ export interface GroupData {
   totalCostDay: number;
   totalCostYear: number;
   aliments: GroupAlimentData[];
+  diffYesterday?: number;
+  diff7Days?: number;
+  diff30Days?: number;
+  diffCostYesterday?: number;
+  diffCost7Days?: number;
+  diffCost30Days?: number;
 }
 
 export interface ComptabiliteData {

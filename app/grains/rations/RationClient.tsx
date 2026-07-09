@@ -99,7 +99,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
       const res = await fetch('/api/ration/admin-action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: pushedRation.id, action })
+        body: JSON.stringify({ id: pushedRation.id, action, currentGroups: groups, globalPluie })
       });
       if (res.ok) {
         toast.success(action === 'cancel' ? "Distribution annulée." : "Distribution terminée.");
@@ -124,6 +124,13 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
   const [groups, setGroups] = useState<GroupsState>({});
   const [isConfigLoading, setIsConfigLoading] = useState(true);
   const [originalConfig, setOriginalConfig] = useState<Record<string, any[]>>({});
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    groupKey: GroupKey;
+    tour: 1 | 2;
+    sum: number;
+    groupName: string;
+  } | null>(null);
 
   // Fetch Ration Config if no pushed ration is active
   
@@ -139,7 +146,10 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
       if (a.isDump) {
         currentRtm -= v1Num;
         const groupName = a.targetGroupName || group.name;
-        newName = `DUMP au ${groupName} jusqu'à ${Math.max(0, currentRtm)} RTM`;
+        const targetRtm = Math.max(0, currentRtm);
+        newName = targetRtm < 10
+            ? `Vider tout au ${groupName}`
+            : `DUMP au ${groupName} jusqu'à ${targetRtm} RTM`;
       } else {
         currentRtm += v1Num;
       }
@@ -211,36 +221,38 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
             let mergedAliments: any[] = [];
             
             if (lastGroup && lastGroup.aliments) {
-                mergedAliments = lastGroup.aliments.map((lastAlim: any) => {
+                const itemsMap = new Map();
+                
+                baseAliments.forEach((a: any) => itemsMap.set(a.id, a));
+                
+                lastGroup.aliments.forEach((lastAlim: any) => {
                     if (lastAlim.isInstruction && !lastAlim.isDump) {
-                        return { ...lastAlim, rowId: Math.random().toString(36).substr(2, 9) };
-                    }
-                    const theoAlim = baseAliments.find((a: any) => a.id === lastAlim.id);
-                    if (theoAlim) {
-                        return { 
+                        itemsMap.set(lastAlim.id, { ...lastAlim, rowId: Math.random().toString(36).substr(2, 9) });
+                    } else if (itemsMap.has(lastAlim.id)) {
+                        const theoAlim = itemsMap.get(lastAlim.id);
+                        itemsMap.set(lastAlim.id, { 
                             ...lastAlim, 
                             base_tqs_per_cow: theoAlim.base_tqs_per_cow,
                             v1: theoAlim.v1, 
                             rowId: Math.random().toString(36).substr(2, 9) 
-                        };
-                    }
-                    if (lastAlim.isDump) {
-                        // Si le dump n'existe plus dans la config theorique, on le garde quand même
-                        // mais on met 0 par sécurité (ou on le supprime ?)
-                        // On garde 0 pour forcer l'utilisateur à voir qu'il a changé.
-                        return { ...lastAlim, base_tqs_per_cow: 0, v1: "0", rowId: Math.random().toString(36).substr(2, 9) };
-                    }
-                    return { ...lastAlim, base_tqs_per_cow: 0, v1: "0", rowId: Math.random().toString(36).substr(2, 9) };
-                });
-                
-                baseAliments.forEach((theoAlim: any) => {
-                    if (!lastGroup.aliments.find((a: any) => a.id === theoAlim.id) && parseFloat(theoAlim.v1) > 0) {
-                        mergedAliments.push({
-                            ...theoAlim,
-                            rowId: Math.random().toString(36).substr(2, 9)
                         });
+                    } else if (lastAlim.isDump) {
+                        itemsMap.set(lastAlim.id, { ...lastAlim, base_tqs_per_cow: 0, v1: "0", rowId: Math.random().toString(36).substr(2, 9) });
                     }
                 });
+
+                mergedAliments = Array.from(itemsMap.values()).filter((a: any) => parseFloat(a.v1) > 0 || a.isInstruction || a.isDump);
+                
+                if (g.aliments_order && Array.isArray(g.aliments_order)) {
+                    mergedAliments.sort((a, b) => {
+                        const indexA = g.aliments_order.indexOf(a.id);
+                        const indexB = g.aliments_order.indexOf(b.id);
+                        if (indexA === -1 && indexB === -1) return 0;
+                        if (indexA === -1) return 1;
+                        if (indexB === -1) return -1;
+                        return indexA - indexB;
+                    });
+                }
             } else {
                 mergedAliments = baseAliments
                     .filter((a: any) => parseFloat(a.v1) > 0)
@@ -324,10 +336,40 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
 
   const handleIndiceChange = (key: GroupKey, tour: 1 | 2, newIndice: string) => {
     setGroups(prev => {
+      let updatedIndice = prev[key].indice;
+      let updatedIndiceTour2 = prev[key].indiceTour2 || "1.00";
+      
+      if (tour === 1) {
+          updatedIndice = newIndice;
+      } else {
+          updatedIndiceTour2 = newIndice;
+      }
+
+      if (saison === 'ete' && prev[key].summer_two_meals) {
+          const val = parseFloat(newIndice);
+          if (!isNaN(val)) {
+              if (tour === 1) {
+                  const isTour2Completed = pushedRation?.completed_keys?.includes(`${key}-tour2`);
+                  if (!isTour2Completed) {
+                      updatedIndiceTour2 = Math.max(0, 1 - val).toFixed(3).replace(/\.?0+$/, '');
+                      if (updatedIndiceTour2 === "") updatedIndiceTour2 = "0";
+                  }
+              } else {
+                  const isTour1Completed = pushedRation?.completed_keys?.includes(`${key}-tour1`);
+                  if (!isTour1Completed) {
+                      updatedIndice = Math.max(0, 1 - val).toFixed(3).replace(/\.?0+$/, '');
+                      if (updatedIndice === "") updatedIndice = "0";
+                  }
+              }
+          }
+      }
+
       const updatedGroup = {
         ...prev[key],
-        [tour === 1 ? 'indice' : 'indiceTour2']: newIndice
+        indice: updatedIndice,
+        indiceTour2: updatedIndiceTour2
       };
+      
       return {
         ...prev,
         [key]: recalculateGroupAliments(updatedGroup)
@@ -444,18 +486,55 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
       Object.keys(updatedGroups).forEach(groupKey => {
         const group = updatedGroups[groupKey];
         const baseAliments = originalConfig[groupKey] || [];
-        const mergedAliments = baseAliments
-            .filter((a: any) => parseFloat(a.v1) > 0)
-            .map((a: any) => ({
-              ...a,
-              rowId: Math.random().toString(36).substr(2, 9)
-            }));
-            
-        updatedGroups[groupKey] = recalculateGroupAliments({ ...group, aliments: mergedAliments });
+        
+        const newAliments = group.aliments.map((alim: any) => {
+           if (alim.isInstruction && !alim.isDump) return alim;
+           const baseAlim = baseAliments.find((a: any) => a.id === alim.id);
+           if (baseAlim) {
+               return { ...alim, base_tqs_per_cow: baseAlim.base_tqs_per_cow, v1: baseAlim.v1 };
+           }
+           if (alim.isDump) {
+               return { ...alim, base_tqs_per_cow: 0, v1: "0" };
+           }
+           return alim;
+        });
+
+        baseAliments.forEach((baseAlim: any) => {
+            if (!newAliments.some((a: any) => a.id === baseAlim.id) && parseFloat(baseAlim.v1) > 0) {
+                newAliments.push({ ...baseAlim, rowId: Math.random().toString(36).substr(2, 9) });
+            }
+        });
+
+        updatedGroups[groupKey] = recalculateGroupAliments({ ...group, aliments: newAliments });
       });
       return updatedGroups;
     });
-    toast.success("Tous les groupes ont été réinitialisés à leur configuration de base.");
+    toast.success("Les quantités ont été réinitialisées, l'ordre et vos instructions sont conservés.");
+  };
+
+  const handleSaveAlimentOrder = (groupKey: GroupKey) => {
+    setGroups(prev => {
+      const group = prev[groupKey];
+      if (!group) return prev;
+      
+      fetch('/api/ration/save-aliment-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              groupKey,
+              orderedIds: group.aliments.map((a: any) => a.id),
+              instructions: group.aliments
+                  .filter((a: any) => a.isInstruction && !a.isDump)
+                  .map((a: any) => ({
+                      id: a.id,
+                      name: a.name,
+                      highlight: a.highlight
+                  }))
+          })
+      }).catch(console.error);
+
+      return prev;
+    });
   };
 
   const handleUpdateAliment = (groupKey: GroupKey, idOrRowId: string, field: 'name' | 'v1' | 'v2' | 'change_food', value: string) => {
@@ -504,7 +583,14 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
               groupKey,
-              orderedIds: recalculated.aliments.map((a: any) => a.id)
+              orderedIds: recalculated.aliments.map((a: any) => a.id),
+              instructions: recalculated.aliments
+                  .filter((a: any) => a.isInstruction && !a.isDump)
+                  .map((a: any) => ({
+                      id: a.id,
+                      name: a.name,
+                      highlight: a.highlight
+                  }))
           })
       }).catch(console.error);
 
@@ -543,6 +629,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
   const handleAdjustAlimentWeight = (groupKey: GroupKey, tour: 1 | 2, alimentId: string, actualScaledV2: number) => {
     setGroups(prev => {
       const group = prev[groupKey];
+
       const oldIndice = parseFloat(tour === 1 ? group.indice : (group.indiceTour2 || "1.00")) || 1;
       
       const targetAliment = group.aliments.find(a => a.id === alimentId);
@@ -555,17 +642,46 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
       const ratio = actualScaledV2 / originalTargetScaledV2;
       const newIndice = (oldIndice * ratio).toFixed(3);
 
+      let updatedIndice = group.indice;
+      let updatedIndiceTour2 = group.indiceTour2 || "1.00";
+
+      if (tour === 1) {
+          updatedIndice = newIndice;
+      } else {
+          updatedIndiceTour2 = newIndice;
+      }
+
+      if (saison === 'ete' && group.summer_two_meals) {
+          const val = parseFloat(newIndice);
+          if (!isNaN(val)) {
+              if (tour === 1) {
+                  const isTour2Completed = pushedRation?.completed_keys?.includes(`${groupKey}-tour2`);
+                  if (!isTour2Completed) {
+                      updatedIndiceTour2 = Math.max(0, 1 - val).toFixed(3).replace(/\.?0+$/, '');
+                      if (updatedIndiceTour2 === "") updatedIndiceTour2 = "0";
+                  }
+              } else {
+                  const isTour1Completed = pushedRation?.completed_keys?.includes(`${groupKey}-tour1`);
+                  if (!isTour1Completed) {
+                      updatedIndice = Math.max(0, 1 - val).toFixed(3).replace(/\.?0+$/, '');
+                      if (updatedIndice === "") updatedIndice = "0";
+                  }
+              }
+          }
+      }
+
       return {
         ...prev,
         [groupKey]: {
           ...group,
-          [tour === 1 ? 'indice' : 'indiceTour2']: newIndice
+          indice: updatedIndice,
+          indiceTour2: updatedIndiceTour2
         }
       };
     });
   };
 
-  const handleToggleGroupCompletion = async (key: GroupKey, tour: 1 | 2 = 1) => {
+  const handleToggleGroupCompletion = async (key: GroupKey, tour: 1 | 2 = 1, skipCheck = false) => {
     const fullKey = `${key}-tour${tour}`;
     if (pushedRation && isDistributor) {
       const isAlreadyCompleted = pushedRation.completed_keys?.includes(fullKey);
@@ -599,6 +715,22 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
         }
       } else {
         // COMPLETE
+        if (!skipCheck && saison === 'ete' && group.summer_two_meals) {
+            const i1 = parseFloat(group.indice) || 0;
+            const i2 = parseFloat(group.indiceTour2 || "1.00") || 0;
+            const sum = i1 + i2;
+            if (Math.abs(sum - 1.0) > 0.01) {
+                setConfirmModal({
+                    isOpen: true,
+                    groupKey: key,
+                    tour,
+                    sum,
+                    groupName: group.name
+                });
+                return;
+            }
+        }
+
         try {
            const res = await fetch('/api/ration/complete-group', {
                method: 'POST',
@@ -606,7 +738,9 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
                body: JSON.stringify({ 
                    id: pushedRation.id, 
                    group_key: fullKey,
-                   consumed: consumedAliments
+                   consumed: consumedAliments,
+                   updatedGroupData: group,
+                   globalPluie
                })
            });
            if (res.ok) {
@@ -677,10 +811,42 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
 
   // Helper to wrap content
   const renderLayout = (content: React.ReactNode) => {
+    const modalContent = confirmModal?.isOpen ? (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-6 mx-auto">
+              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            </div>
+            <h3 className="text-3xl font-black text-center text-zinc-900 mb-4">Êtes-vous sûr ?</h3>
+            <p className="text-xl text-center text-zinc-600 mb-8 font-medium">
+              Le groupe <span className="font-bold text-zinc-900">{confirmModal.groupName}</span> est nourri à <span className="font-bold text-red-600">{confirmModal.sum.toFixed(2)}</span> au total.
+            </p>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setConfirmModal(null)}
+                className="flex-1 px-6 py-4 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-bold text-xl rounded-2xl transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => {
+                  handleToggleGroupCompletion(confirmModal.groupKey, confirmModal.tour, true);
+                  setConfirmModal(null);
+                }}
+                className="flex-1 px-6 py-4 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xl rounded-2xl transition-colors shadow-lg shadow-amber-500/30"
+              >
+                Confirmer
+              </button>
+            </div>
+          </div>
+        </div>
+    ) : null;
+
     if (isDistributor) {
       return (
         <div className="min-h-screen bg-zinc-100 flex flex-col">
           <Toaster position="top-center" />
+          {modalContent}
           <header className="bg-white shadow-sm border-b border-zinc-200 px-6 py-4 flex justify-end items-center print:hidden">
             <button 
               onClick={async () => {
@@ -699,7 +865,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
         </div>
       );
     }
-    return <Sidenav initials={""}><Toaster position="top-center" />{content}</Sidenav>;
+    return <Sidenav initials={""}><Toaster position="top-center" />{modalContent}{content}</Sidenav>;
   };
 
   if (isLoadingPushed || isConfigLoading) {
@@ -731,9 +897,11 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
               <h2 className="text-3xl font-black text-zinc-900 mb-2">Ration finie pour aujourd'hui</h2>
               <p className="text-lg text-zinc-500 max-w-md mb-6">Excellent travail. Tous les groupes ont été nourris.</p>
               <div className="flex flex-col gap-3">
-                <Link href="/comptabilite/rations" className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all inline-flex items-center justify-center gap-2">
-                   Veuillez consulter comptabilité/ration pour les détails d'aujourd'hui
-                </Link>
+                {!isDistributor && (
+                  <Link href="/comptabilite/rations" className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all inline-flex items-center justify-center gap-2">
+                     Veuillez consulter comptabilité/ration pour les détails d'aujourd'hui
+                  </Link>
+                )}
                 {!isDistributor && (
                   <button 
                     onClick={() => {
@@ -770,6 +938,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
           handleRemoveAliment={handleRemoveAliment}
           handleUpdateAliment={handleUpdateAliment}
           handleReorderAliments={handleReorderAliments}
+          handleSaveAlimentOrder={handleSaveAlimentOrder}
           handleResetGroup={handleResetGroup}
           handleResetAll={handleResetAll}
           notes={notes}

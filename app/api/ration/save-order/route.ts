@@ -13,24 +13,34 @@ export async function POST(req: Request) {
         await prisma.$transaction(async (tx) => {
             // Update Tour 1 orders
             for (let i = 0; i < tour1Keys.length; i++) {
-                const groupId = parseInt(tour1Keys[i]);
-                if (!isNaN(groupId)) {
-                    await tx.group.update({
-                        where: { id: groupId },
-                        data: { tour1_order: i }
-                    });
+                const key = tour1Keys[i];
+                if (key.startsWith('batch_')) {
+                    const batchId = parseInt(key.replace('batch_', ''));
+                    if (!isNaN(batchId)) {
+                        await tx.mixBatch.update({ where: { id: batchId }, data: { tour1_order: i } });
+                    }
+                } else {
+                    const groupId = parseInt(key);
+                    if (!isNaN(groupId)) {
+                        await tx.group.update({ where: { id: groupId }, data: { tour1_order: i } });
+                    }
                 }
             }
 
             // Update Tour 2 orders
             if (Array.isArray(tour2Keys)) {
                 for (let i = 0; i < tour2Keys.length; i++) {
-                    const groupId = parseInt(tour2Keys[i]);
-                    if (!isNaN(groupId)) {
-                        await tx.group.update({
-                            where: { id: groupId },
-                            data: { tour2_order: i }
-                        });
+                    const key = tour2Keys[i];
+                    if (key.startsWith('batch_')) {
+                        const batchId = parseInt(key.replace('batch_', ''));
+                        if (!isNaN(batchId)) {
+                            await tx.mixBatch.update({ where: { id: batchId }, data: { tour2_order: i } });
+                        }
+                    } else {
+                        const groupId = parseInt(key);
+                        if (!isNaN(groupId)) {
+                            await tx.group.update({ where: { id: groupId }, data: { tour2_order: i } });
+                        }
                     }
                 }
             }

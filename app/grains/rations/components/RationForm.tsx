@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCarrot, faPlus, faTrash, faSun, faSnowflake, faGripVertical, faCloudShowersHeavy, faExclamationTriangle, faTractor } from '@fortawesome/free-solid-svg-icons';
+import { faCarrot, faPlus, faTrash, faSun, faSnowflake, faGripVertical, faCloudShowersHeavy, faExclamationTriangle, faTractor, faListOl } from '@fortawesome/free-solid-svg-icons';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { GroupsState, GroupKey, Saison, PluieMode, GroupPluieMode } from '../types';
 import toast from 'react-hot-toast';
@@ -25,6 +26,7 @@ interface RationFormProps {
   handleUpdateAliment: (groupKey: GroupKey, id: string, field: 'name' | 'v1' | 'v2' | 'change_food', value: string) => void;
   handleRemoveAliment: (groupKey: GroupKey, id: string) => void;
   handleReorderAliments: (groupKey: GroupKey, startIndex: number, endIndex: number) => void;
+  handleSaveAlimentOrder: (groupKey: GroupKey) => void;
   handleResetGroup: (groupKey: GroupKey) => void;
   handleResetAll: () => void;
   onGenerate: () => void;
@@ -33,7 +35,7 @@ interface RationFormProps {
 export default function RationForm({ 
   groups, saison, tour1Keys, tour2Keys, availableAliments, handleReorderGroups, handleSaisonToggle, globalPluie, setGlobalPluie, handleGroupPluieChange,
   notes, setNotes, handleGroupChange, handleNoteChange, handleSystemNoteChange,
-  handleAddAliment, handleUpdateAliment, handleRemoveAliment, handleReorderAliments,
+  handleAddAliment, handleUpdateAliment, handleRemoveAliment, handleReorderAliments, handleSaveAlimentOrder,
   handleResetGroup, handleResetAll, onGenerate 
 }: RationFormProps) {
   
@@ -102,11 +104,7 @@ export default function RationForm({
     const { source, destination, type } = result;
     if (!destination) return;
     
-    if (type === 'group') {
-      const sourceTour = source.droppableId === 'tour-1' ? 1 : 2;
-      const destTour = destination.droppableId === 'tour-1' ? 1 : 2;
-      handleReorderGroups(sourceTour, destTour, source.index, destination.index);
-    } else if (type === 'aliment') {
+    if (type === 'aliment') {
       const parts = source.droppableId.split('-');
       const key = parts[1] as GroupKey;
       
@@ -125,12 +123,13 @@ export default function RationForm({
          }
       }
       
-      if (crossedDump) {
+      if (crossedDump && !draggedAliment.isInstruction) {
           toast.error("Interdit: Vous ne pouvez pas déplacer un ingrédient par-dessus une étape de vidange (DUMP).");
           return;
       }
       
       handleReorderAliments(key, source.index, destination.index);
+      handleSaveAlimentOrder(key);
     }
   };
 
@@ -141,36 +140,29 @@ export default function RationForm({
     const indiceField = isRound2 ? 'indiceTour2' : 'indice';
 
     return (
-      <Draggable key={`${key}-tour${tour}`} draggableId={`group-${key}-${tour}`} index={index}>
-        {(provided, snapshot) => (
-          <div 
-            ref={provided.innerRef}
-            {...provided.draggableProps}
-            style={provided.draggableProps.style}
-            className={`bg-zinc-50 p-6 rounded-xl border-2 ${snapshot.isDragging ? 'border-blue-500 shadow-xl ring-4 ring-blue-500/20' : 'border-zinc-300 shadow-sm'} relative flex flex-col transition-all`}
-          >
-            <div className="flex justify-between items-center mb-4 border-b-2 border-zinc-200 pb-2">
-              <h3 className="text-xl font-black text-black flex items-center gap-4">
-                <div 
-                  {...provided.dragHandleProps} 
-                  className="text-zinc-400 hover:text-zinc-600 hover:bg-zinc-300 cursor-grab active:cursor-grabbing w-11 h-11 flex items-center justify-center bg-zinc-200/80 rounded-xl transition-colors shadow-inner"
-                >
-                  <FontAwesomeIcon icon={faGripVertical} className="text-xl" />
-                </div>
-                {group.name} {saison === 'ete' && <span className="text-blue-600 text-base ml-2">({isRound2 ? '2ème' : '1ère'} tournée)</span>}
-              </h3>
-              <button
-                onClick={() => {
-                  if (confirm("Voulez-vous réinitialiser les ingrédients de ce groupe à leur configuration initiale ?")) {
-                    handleResetGroup(key);
-                  }
-                }}
-                title="Réinitialiser les aliments"
-                className="text-zinc-400 hover:text-amber-600 transition-colors bg-white px-3 py-1 rounded-lg border-2 border-zinc-200 hover:border-amber-400 shadow-sm text-sm font-bold flex items-center gap-2"
-              >
-                Réinitialiser la ration
-              </button>
+      <div 
+        key={`${key}-tour${tour}`}
+        className={`bg-zinc-50 p-6 rounded-xl border-2 border-zinc-300 shadow-sm relative flex flex-col transition-all`}
+      >
+        <div className="flex justify-between items-center mb-4 border-b-2 border-zinc-200 pb-2">
+          <h3 className="text-xl font-black text-black flex items-center gap-4">
+            <div className="w-11 h-11 flex items-center justify-center bg-zinc-200 rounded-xl text-zinc-500 font-bold text-lg border-2 border-zinc-300 shadow-sm">
+              {index + 1}
             </div>
+            {group.name} {saison === 'ete' && <span className="text-blue-600 text-base ml-2">({isRound2 ? '2ème' : '1ère'} tournée)</span>}
+          </h3>
+          <button
+            onClick={() => {
+              if (confirm("Voulez-vous réinitialiser les ingrédients de ce groupe à leur configuration initiale ?")) {
+                handleResetGroup(key);
+              }
+            }}
+            title="Réinitialiser les aliments"
+            className="text-zinc-400 hover:text-amber-600 transition-colors bg-white px-3 py-1 rounded-lg border-2 border-zinc-200 hover:border-amber-400 shadow-sm text-sm font-bold flex items-center gap-2"
+          >
+            Réinitialiser la ration
+          </button>
+        </div>
         
         {/* Global Settings */}
         <div className="space-y-4 mb-6">
@@ -274,7 +266,8 @@ export default function RationForm({
                 >
                   {(group.aliments || []).map((aliment, index) => {
                     const uniqueId = aliment.rowId || aliment.id;
-                    const isReadOnly = aliment.isDump || !aliment.isInstruction;
+                    // Allow dragging for all items EXCEPT dumps
+                    const isReadOnly = aliment.isDump;
                     
                     const indiceNum = parseFloat(isRound2 ? (group.indiceTour2 || "1") : (group.indice || "1")) || 1;
                     const v1Num = parseFloat(aliment.v1);
@@ -293,7 +286,11 @@ export default function RationForm({
                           className={`flex gap-3 items-center p-2.5 rounded-xl border shadow-sm transition-all duration-200 ${snapshot.isDragging ? 'border-blue-500 shadow-lg ring-4 ring-blue-500/20 scale-[1.02] z-50' : 'border-zinc-200'} ${aliment.isInstruction ? 'bg-red-50 border-red-300' : 'bg-zinc-100'}`}
                         >
                           {!isReadOnly && (
-                            <div {...provided.dragHandleProps} className="text-zinc-300 hover:text-zinc-500 w-10 h-10 flex items-center justify-center rounded-lg cursor-grab active:cursor-grabbing transition-colors bg-red-100 hover:bg-red-200 text-red-400 hover:text-red-600">
+                            <div 
+                              {...provided.dragHandleProps} 
+                              title="Glisser pour réorganiser"
+                              className={`text-zinc-400 hover:text-zinc-600 w-10 h-10 flex items-center justify-center rounded-lg cursor-grab active:cursor-grabbing transition-colors ${aliment.isInstruction ? 'bg-red-100 hover:bg-red-200 text-red-500' : 'bg-white border-2 border-zinc-200 shadow-sm hover:bg-zinc-100 hover:border-zinc-300'}`}
+                            >
                               <FontAwesomeIcon icon={faGripVertical} className="text-lg" />
                             </div>
                           )}
@@ -307,6 +304,7 @@ export default function RationForm({
                             <input
                               type="text"
                               value={aliment.name}
+                              onBlur={() => handleSaveAlimentOrder(key)}
                               onChange={(e) => handleUpdateAliment(key, uniqueId, 'name', e.target.value)}
                               placeholder="Texte de l'instruction..."
                               className="flex-1 px-3 py-2 text-base font-black text-red-800 border-2 border-red-300 hover:border-red-400 focus:border-red-600 rounded-lg focus:outline-none bg-white shadow-sm"
@@ -328,7 +326,10 @@ export default function RationForm({
                           
                           {!aliment.isDump && (
                             <button 
-                              onClick={() => handleRemoveAliment(key, uniqueId)}
+                              onClick={() => {
+                                handleRemoveAliment(key, uniqueId);
+                                handleSaveAlimentOrder(key);
+                              }}
                               className="w-8 h-8 flex-shrink-0 flex items-center justify-center text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                             >
                               <FontAwesomeIcon icon={faTrash} />
@@ -346,8 +347,6 @@ export default function RationForm({
           </div>
         )}
       </div>
-      )}
-      </Draggable>
     );
   };
 
@@ -381,6 +380,13 @@ export default function RationForm({
           </div>
           
           <div className="flex items-center gap-4 bg-zinc-100 p-2 rounded-2xl border-2 border-zinc-200 h-fit">
+            <Link 
+              href="/laitier/groupements"
+              className="px-4 py-3 rounded-xl font-bold bg-blue-100 text-blue-700 hover:bg-blue-200 transition-all shadow-sm border border-blue-200 mr-2 flex items-center gap-2"
+            >
+              <FontAwesomeIcon icon={faListOl} /> Gérer l'ordre
+            </Link>
+            <div className="h-8 w-px bg-zinc-300"></div>
             <button
               onClick={() => {
                 if(confirm("Êtes-vous sûr de vouloir tout réinitialiser ? L'ordre et les aliments de TOUS les groupes seront remis à zéro.")) {
@@ -417,18 +423,9 @@ export default function RationForm({
                   Première tournée
                 </h2>
               )}
-              <Droppable droppableId="tour-1" type="group">
-                {(provided) => (
-                  <div 
-                    ref={provided.innerRef} 
-                    {...provided.droppableProps}
-                    className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start min-h-[200px]"
-                  >
-                    {tour1Keys.filter(key => groups[key]?.fed > 0).map((key, index) => renderGroupCard(key, 1, index))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start min-h-[200px]">
+                {tour1Keys.filter(key => groups[key]?.fed > 0).map((key, index) => renderGroupCard(key, 1, index))}
+              </div>
             </div>
 
             {saison === 'ete' && (
@@ -437,18 +434,9 @@ export default function RationForm({
                   <span className="w-10 h-10 bg-yellow-100 text-yellow-700 rounded-full flex items-center justify-center text-xl">2</span>
                   Deuxième tournée <span className="text-xl text-zinc-500 font-medium">(Groupes en lactation)</span>
                 </h2>
-                <Droppable droppableId="tour-2" type="group">
-                  {(provided) => (
-                    <div 
-                      ref={provided.innerRef} 
-                      {...provided.droppableProps}
-                      className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start min-h-[200px]"
-                    >
-                      {tour2Keys.filter(key => groups[key]?.fed > 0).map((key, index) => renderGroupCard(key, 2, index))}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start min-h-[200px]">
+                  {tour2Keys.filter(key => groups[key]?.fed > 0).map((key, index) => renderGroupCard(key, 2, index))}
+                </div>
               </div>
             )}
 

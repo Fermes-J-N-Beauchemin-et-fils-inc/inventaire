@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { GroupData } from '../types';
 import ComptabiliteOverview from './ComptabiliteOverview';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faArrowUp, faArrowDown, faMinus } from '@fortawesome/free-solid-svg-icons';
 
 interface GroupsDataViewProps {
   groups: GroupData[];
@@ -29,6 +31,17 @@ export default function GroupsDataView({ groups, totalGroup }: GroupsDataViewPro
 
   const formatMoney = (val: number) => new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD' }).format(val);
   const formatNum = (val: number) => new Intl.NumberFormat('fr-CA', { maximumFractionDigits: 2 }).format(val);
+
+  const DiffBadge = ({ value, label }: { value?: number, label: string }) => {
+    if (value === undefined || value === 0) return null;
+    const isIncrease = value > 0;
+    return (
+      <div className={`flex items-center gap-1 text-[0.65rem] font-bold px-1.5 py-0.5 rounded-md ${isIncrease ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`} title={label}>
+        <FontAwesomeIcon icon={isIncrease ? faArrowUp : faArrowDown} className="w-2 h-2" />
+        <span>{Math.abs(value).toFixed(1)}% {label}</span>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -99,9 +112,27 @@ export default function GroupsDataView({ groups, totalGroup }: GroupsDataViewPro
                       <td className="p-4 font-medium text-zinc-600">{formatMoney(aliment.priceTqs)}</td>
                       <td className="p-4 font-black text-zinc-800 bg-blue-50/20">{formatNum(aliment.kgMs)}</td>
                       <td className="p-4 font-black text-zinc-800 bg-blue-50/20">{formatNum(activeGroup.cows > 0 ? aliment.kgMs / activeGroup.cows : 0)}</td>
-                      <td className="p-4 font-black text-zinc-800 bg-blue-50/20">{formatNum(aliment.kgTqs)}</td>
+                      <td className="p-4 font-black text-zinc-800 bg-blue-50/20">
+                        <div className="flex flex-col gap-1">
+                          <span>{formatNum(aliment.kgTqs)}</span>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            <DiffBadge value={aliment.diffYesterday} label="1j" />
+                            <DiffBadge value={aliment.diff7Days} label="7j" />
+                            <DiffBadge value={aliment.diff30Days} label="30j" />
+                          </div>
+                        </div>
+                      </td>
                       <td className="p-4 font-black text-zinc-800 bg-blue-50/20">{formatNum(activeGroup.cows > 0 ? aliment.kgTqs / activeGroup.cows : 0)}</td>
-                      <td className="p-4 font-black text-blue-600 bg-green-50/20">{formatMoney(aliment.costDay)}</td>
+                      <td className="p-4 font-black text-blue-600 bg-green-50/20">
+                        <div className="flex flex-col gap-1">
+                          <span>{formatMoney(aliment.costDay)}</span>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            <DiffBadge value={aliment.diffCostYesterday} label="1j" />
+                            <DiffBadge value={aliment.diffCost7Days} label="7j" />
+                            <DiffBadge value={aliment.diffCost30Days} label="30j" />
+                          </div>
+                        </div>
+                      </td>
                       <td className="p-4 font-black text-blue-600 bg-green-50/20">{formatMoney(activeGroup.cows > 0 ? aliment.costDay / activeGroup.cows : 0)}</td>
                       <td className="p-4 font-black text-green-600 bg-green-50/20">{formatMoney(aliment.costYear)}</td>
                     </tr>

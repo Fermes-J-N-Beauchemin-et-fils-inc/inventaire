@@ -139,6 +139,122 @@ export async function GET(request: Request) {
             return currentFood;
         };
 
+        const thirtyDaysAgoForHistory = new Date(startOfDay);
+        thirtyDaysAgoForHistory.setDate(thirtyDaysAgoForHistory.getDate() - 30);
+        
+        const historicalRations = await prisma.pushedRation.findMany({
+            where: {
+                date: {
+                    gte: thirtyDaysAgoForHistory,
+                    lt: startOfDay
+                }
+            },
+            orderBy: {
+                date: 'desc'
+            }
+        });
+
+        const thirtyDaysSnapshots = await prisma.foodSnapshot.findMany({
+            where: {
+                recorded_at: {
+                    gte: thirtyDaysAgoForHistory,
+                    lte: startOfDay
+                }
+            }
+        });
+
+        const getHistoricalPrice = (foodId: number, dateStr: string) => {
+            const snapshot = thirtyDaysSnapshots.find(s => s.food_id === foodId && s.recorded_at.toISOString().split('T')[0] === dateStr);
+            if (snapshot && snapshot.price_per_tqs !== null) return snapshot.price_per_tqs;
+            const currentFood = allFoods.find(f => f.id === foodId);
+            return currentFood ? (currentFood.price_per_tqs || 0) : 0;
+        };
+        
+        const rationsByDay: Record<string, any> = {};
+        historicalRations.forEach(r => {
+            const dStr = r.date.toISOString().split('T')[0];
+            if (!rationsByDay[dStr]) {
+                rationsByDay[dStr] = r;
+            }
+        });
+        
+        const historyAgg = {
+            yesterdayGroup: {} as Record<string, number>,
+            yesterdayAliment: {} as Record<string, number>,
+            sevenDaysGroup: {} as Record<string, number>,
+            sevenDaysAliment: {} as Record<string, number>,
+            thirtyDaysGroup: {} as Record<string, number>,
+            thirtyDaysAliment: {} as Record<string, number>,
+            yesterdayGroupCost: {} as Record<string, number>,
+            yesterdayAlimentCost: {} as Record<string, number>,
+            sevenDaysGroupCost: {} as Record<string, number>,
+            sevenDaysAlimentCost: {} as Record<string, number>,
+            thirtyDaysGroupCost: {} as Record<string, number>,
+            thirtyDaysAlimentCost: {} as Record<string, number>,
+            sevenDaysCount: 0,
+            thirtyDaysCount: 0,
+        };
+
+        const yesterdayStr = new Date(startOfDay.getTime() - 86400000).toISOString().split('T')[0];
+        
+        for (let i = 1; i <= 30; i++) {
+            const d = new Date(startOfDay);
+            d.setDate(d.getDate() - i);
+            const dStr = d.toISOString().split('T')[0];
+            
+            const r = rationsByDay[dStr];
+            if (r && (r.payload as any)?.groups) {
+                historyAgg.thirtyDaysCount++;
+                if (i <= 7) historyAgg.sevenDaysCount++;
+                
+                const payloadGroups = (r.payload as any).groups;
+                Object.entries(payloadGroups).forEach(([gKey, gData]: [string, any]) => {
+                    let groupTqs = 0;
+                    let groupCost = 0;
+                    if (gData.aliments && Array.isArray(gData.aliments)) {
+                        gData.aliments.forEach((al: any) => {
+                            const tqs = parseFloat(al.v1) || 0;
+                            if (tqs > 0) {
+                                groupTqs += tqs;
+                                const fId = parseInt(al.food?.id || al.id, 10);
+                                const alId = `${gKey}_${fId}`;
+                                const priceTqs = getHistoricalPrice(fId, dStr);
+                                const costDay = tqs * (priceTqs / 1000);
+                                groupCost += costDay;
+                                
+                                historyAgg.thirtyDaysAliment[alId] = (historyAgg.thirtyDaysAliment[alId] || 0) + tqs;
+                                historyAgg.thirtyDaysAlimentCost[alId] = (historyAgg.thirtyDaysAlimentCost[alId] || 0) + costDay;
+                                if (i <= 7) {
+                                    historyAgg.sevenDaysAliment[alId] = (historyAgg.sevenDaysAliment[alId] || 0) + tqs;
+                                    historyAgg.sevenDaysAlimentCost[alId] = (historyAgg.sevenDaysAlimentCost[alId] || 0) + costDay;
+                                }
+                                if (dStr === yesterdayStr) {
+                                    historyAgg.yesterdayAliment[alId] = (historyAgg.yesterdayAliment[alId] || 0) + tqs;
+                                    historyAgg.yesterdayAlimentCost[alId] = (historyAgg.yesterdayAlimentCost[alId] || 0) + costDay;
+                                }
+                            }
+                        });
+                    }
+                    historyAgg.thirtyDaysGroup[gKey] = (historyAgg.thirtyDaysGroup[gKey] || 0) + groupTqs;
+                    historyAgg.thirtyDaysGroupCost[gKey] = (historyAgg.thirtyDaysGroupCost[gKey] || 0) + groupCost;
+                    if (i <= 7) {
+                        historyAgg.sevenDaysGroup[gKey] = (historyAgg.sevenDaysGroup[gKey] || 0) + groupTqs;
+                        historyAgg.sevenDaysGroupCost[gKey] = (historyAgg.sevenDaysGroupCost[gKey] || 0) + groupCost;
+                    }
+                    if (dStr === yesterdayStr) {
+                        historyAgg.yesterdayGroup[gKey] = (historyAgg.yesterdayGroup[gKey] || 0) + groupTqs;
+                        historyAgg.yesterdayGroupCost[gKey] = (historyAgg.yesterdayGroupCost[gKey] || 0) + groupCost;
+                    }
+                });
+            }
+        }
+        
+        const getDiff = (current: number, histTotal: number, count: number) => {
+            if (count === 0 || histTotal === 0) return 0;
+            const avg = histTotal / count;
+            return ((current - avg) / avg) * 100;
+        };
+
         const groups: any[] = [];
         let totalGroupCost = 0;
 
@@ -170,6 +286,15 @@ export async function GET(request: Request) {
                         const ms = tqs * (msPercentage / 100);
                         const costDay = tqs * (priceTqs / 1000);
 
+                        const alId = `${key}_${foodRecord.id}`;
+                        const diffYesterday = getDiff(tqs, historyAgg.yesterdayAliment[alId] || 0, 1);
+                        const diff7Days = getDiff(tqs, historyAgg.sevenDaysAliment[alId] || 0, historyAgg.sevenDaysCount);
+                        const diff30Days = getDiff(tqs, historyAgg.thirtyDaysAliment[alId] || 0, historyAgg.thirtyDaysCount);
+
+                        const diffCostYesterday = getDiff(costDay, historyAgg.yesterdayAlimentCost[alId] || 0, 1);
+                        const diffCost7Days = getDiff(costDay, historyAgg.sevenDaysAlimentCost[alId] || 0, historyAgg.sevenDaysCount);
+                        const diffCost30Days = getDiff(costDay, historyAgg.thirtyDaysAlimentCost[alId] || 0, historyAgg.thirtyDaysCount);
+
                         alimentData.push({
                             id: foodRecord.id,
                             name: foodRecord.name,
@@ -180,7 +305,13 @@ export async function GET(request: Request) {
                             kgMs: ms,
                             kgTqs: tqs,
                             costDay: costDay,
-                            costYear: costDay * 365
+                            costYear: costDay * 365,
+                            diffYesterday,
+                            diff7Days,
+                            diff30Days,
+                            diffCostYesterday,
+                            diffCost7Days,
+                            diffCost30Days
                         });
                         
                         groupCost += costDay;
@@ -197,17 +328,29 @@ export async function GET(request: Request) {
                     totalKgMs: groupMs,
                     totalCostDay: groupCost,
                     totalCostYear: groupCost * 365,
-                    aliments: alimentData
+                    aliments: alimentData,
+                    diffYesterday: getDiff(groupVolume, historyAgg.yesterdayGroup[key] || 0, 1),
+                    diff7Days: getDiff(groupVolume, historyAgg.sevenDaysGroup[key] || 0, historyAgg.sevenDaysCount),
+                    diff30Days: getDiff(groupVolume, historyAgg.thirtyDaysGroup[key] || 0, historyAgg.thirtyDaysCount),
+                    diffCostYesterday: getDiff(groupCost, historyAgg.yesterdayGroupCost[key] || 0, 1),
+                    diffCost7Days: getDiff(groupCost, historyAgg.sevenDaysGroupCost[key] || 0, historyAgg.sevenDaysCount),
+                    diffCost30Days: getDiff(groupCost, historyAgg.thirtyDaysGroupCost[key] || 0, historyAgg.thirtyDaysCount)
                 });
                 totalGroupCost += groupCost;
             });
         } else {
-            // FALLBACK: Use current DB groups if no pushedRation is found
-            const dbGroups = await prisma.group.findMany({
-                include: {
-                    daily_servings: true
-                }
-            });
+            // FALLBACK: Use current DB groups if no pushedRation is found, 
+            // BUT ONLY if the requested date is today or in the future.
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+            const isPast = startOfDay.getTime() < todayStart.getTime();
+
+            if (!isPast) {
+                const dbGroups = await prisma.group.findMany({
+                    include: {
+                        daily_servings: true
+                    }
+                });
 
             dbGroups.forEach(g => {
                 let groupCost = 0;
@@ -232,6 +375,16 @@ export async function GET(request: Request) {
                     
                     const costDay = tqs * (priceTqs / 1000);
 
+                    const gKey = `group_${g.id}`;
+                    const alId = `${gKey}_${foodRecord.id}`;
+                    const diffYesterday = getDiff(tqs, historyAgg.yesterdayAliment[alId] || 0, 1);
+                    const diff7Days = getDiff(tqs, historyAgg.sevenDaysAliment[alId] || 0, historyAgg.sevenDaysCount);
+                    const diff30Days = getDiff(tqs, historyAgg.thirtyDaysAliment[alId] || 0, historyAgg.thirtyDaysCount);
+
+                    const diffCostYesterday = getDiff(costDay, historyAgg.yesterdayAlimentCost[alId] || 0, 1);
+                    const diffCost7Days = getDiff(costDay, historyAgg.sevenDaysAlimentCost[alId] || 0, historyAgg.sevenDaysCount);
+                    const diffCost30Days = getDiff(costDay, historyAgg.thirtyDaysAlimentCost[alId] || 0, historyAgg.thirtyDaysCount);
+
                     alimentData.push({
                         id: foodRecord.id,
                         name: foodRecord.name,
@@ -242,7 +395,13 @@ export async function GET(request: Request) {
                         kgMs: ms,
                         kgTqs: tqs,
                         costDay: costDay,
-                        costYear: costDay * 365
+                        costYear: costDay * 365,
+                        diffYesterday,
+                        diff7Days,
+                        diff30Days,
+                        diffCostYesterday,
+                        diffCost7Days,
+                        diffCost30Days
                     });
                     
                     groupCost += costDay;
@@ -250,18 +409,26 @@ export async function GET(request: Request) {
                     groupMs += ms;
                 });
 
+                const gKeyOut = `group_${g.id}`;
                 groups.push({
-                    id: `group_${g.id}`,
+                    id: gKeyOut,
                     name: g.name,
                     cows: g.real_animal_count,
                     totalKgTqs: groupVolume,
                     totalKgMs: groupMs,
                     totalCostDay: groupCost,
                     totalCostYear: groupCost * 365,
-                    aliments: alimentData
+                    aliments: alimentData,
+                    diffYesterday: getDiff(groupVolume, historyAgg.yesterdayGroup[gKeyOut] || 0, 1),
+                    diff7Days: getDiff(groupVolume, historyAgg.sevenDaysGroup[gKeyOut] || 0, historyAgg.sevenDaysCount),
+                    diff30Days: getDiff(groupVolume, historyAgg.thirtyDaysGroup[gKeyOut] || 0, historyAgg.thirtyDaysCount),
+                    diffCostYesterday: getDiff(groupCost, historyAgg.yesterdayGroupCost[gKeyOut] || 0, 1),
+                    diffCost7Days: getDiff(groupCost, historyAgg.sevenDaysGroupCost[gKeyOut] || 0, historyAgg.sevenDaysCount),
+                    diffCost30Days: getDiff(groupCost, historyAgg.thirtyDaysGroupCost[gKeyOut] || 0, historyAgg.thirtyDaysCount)
                 });
                 totalGroupCost += groupCost;
             });
+            }
         }
 
         const totalGroup = {

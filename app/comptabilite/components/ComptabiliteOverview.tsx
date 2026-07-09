@@ -3,7 +3,7 @@
 import React from 'react';
 import { GroupData } from '../types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCoins, faWeightHanging } from '@fortawesome/free-solid-svg-icons';
+import { faCoins, faWeightHanging, faArrowUp, faArrowDown } from '@fortawesome/free-solid-svg-icons';
 
 interface ComptabiliteOverviewProps {
   groups: GroupData[];
@@ -13,6 +13,17 @@ interface ComptabiliteOverviewProps {
 export default function ComptabiliteOverview({ groups, totalGroup }: ComptabiliteOverviewProps) {
   const formatMoney = (val: number) => new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD' }).format(val);
   const formatNum = (val: number) => new Intl.NumberFormat('fr-CA', { maximumFractionDigits: 0 }).format(val);
+
+  const DiffBadge = ({ value, label }: { value?: number, label: string }) => {
+    if (value === undefined || value === 0) return null;
+    const isIncrease = value > 0;
+    return (
+      <div className={`flex items-center gap-1 text-[0.70rem] font-bold px-2 py-0.5 rounded-md ${isIncrease ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`} title={label}>
+        <FontAwesomeIcon icon={isIncrease ? faArrowUp : faArrowDown} className="w-2 h-2" />
+        <span>{Math.abs(value).toFixed(1)}% {label}</span>
+      </div>
+    );
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -45,18 +56,32 @@ export default function ComptabiliteOverview({ groups, totalGroup }: Comptabilit
           <div className="space-y-4 relative z-10">
             <div className="flex justify-between items-center pb-4 border-b border-zinc-100">
               <div className="flex items-center gap-2 text-zinc-500 font-medium">
-                <FontAwesomeIcon icon={faCoins} className="text-blue-500" />
+                <FontAwesomeIcon icon={faCoins} className="text-amber-500" />
                 Coût / Jour
               </div>
-              <span className="font-black text-lg text-zinc-900">{formatMoney(group.totalCostDay)}</span>
+              <div className="flex flex-col items-end gap-1">
+                <span className="font-black text-lg text-blue-600">{formatMoney(group.totalCostDay)}</span>
+                <div className="flex flex-wrap justify-end gap-1 mt-1">
+                  <DiffBadge value={group.diffCostYesterday} label="1j" />
+                  <DiffBadge value={group.diffCost7Days} label="7j" />
+                  <DiffBadge value={group.diffCost30Days} label="30j" />
+                </div>
+              </div>
             </div>
             
-            <div className="flex justify-between items-center pb-4 border-b border-zinc-100">
+            <div className="flex justify-between items-center pt-2 pb-4 border-b border-zinc-100">
               <div className="flex items-center gap-2 text-zinc-500 font-medium">
                 <FontAwesomeIcon icon={faWeightHanging} className="text-green-500" />
                 Poids (TQS)
               </div>
-              <span className="font-black text-lg text-zinc-900">{formatNum(group.totalKgTqs)} kg</span>
+              <div className="flex flex-col items-end gap-1">
+                <span className="font-black text-lg text-zinc-900">{formatNum(group.totalKgTqs)} kg</span>
+                <div className="flex flex-wrap justify-end gap-1 mt-1">
+                  <DiffBadge value={group.diffYesterday} label="1j" />
+                  <DiffBadge value={group.diff7Days} label="7j" />
+                  <DiffBadge value={group.diff30Days} label="30j" />
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-between items-center pt-2">

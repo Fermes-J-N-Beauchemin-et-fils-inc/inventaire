@@ -137,6 +137,7 @@ model Group {
   tour1_order  Int? // Persist UI order for tour 1
   tour2_order  Int? // Persist UI order for tour 2
   aliments_order Json? // Persist UI order for ingredients
+  saved_instructions Json? // Persist custom instructions
 
   daily_servings            DailyServing[]
   referenced_by_servings    DailyServing[]            @relation("GroupReference")
@@ -155,6 +156,9 @@ model MixBatch {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   aliments_order   Json? // Persist UI order for ingredients
+  saved_instructions Json? // Persist custom instructions
+  tour1_order      Int? // Persist UI order for tour 1
+  tour2_order      Int? // Persist UI order for tour 2
 
   groups Group[]
 

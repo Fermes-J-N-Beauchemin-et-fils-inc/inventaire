@@ -4,7 +4,7 @@ import { prisma } from '@/app/lib/db';
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const { groupKey, orderedIds } = body;
+        const { groupKey, orderedIds, instructions } = body;
 
         if (!groupKey || !orderedIds || !Array.isArray(orderedIds)) {
             return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
@@ -14,13 +14,13 @@ export async function POST(req: Request) {
             const batchId = parseInt(groupKey.replace('batch_', ''));
             await prisma.mixBatch.update({
                 where: { id: batchId },
-                data: { aliments_order: orderedIds }
+                data: { aliments_order: orderedIds, saved_instructions: instructions || null }
             });
         } else {
             const groupId = parseInt(groupKey);
             await prisma.group.update({
                 where: { id: groupId },
-                data: { aliments_order: orderedIds }
+                data: { aliments_order: orderedIds, saved_instructions: instructions || null }
             });
         }
 

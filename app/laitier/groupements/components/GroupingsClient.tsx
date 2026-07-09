@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import React, { useState, useEffect, useTransition } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faTrash, faGripVertical, faSave, faSun } from '@fortawesome/free-solid-svg-icons';
 import { DndContext, DragOverlay, closestCorners, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -144,11 +144,68 @@ function BatchContainer({ batch, items, onNameChange, onSummerChange, onDelete }
   );
 }
 
+function SortableSequenceItem({ id, item }: { id: string, item: MixBatch | Group }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, data: { type: 'SequenceItem', item } });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : 1,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const isBatch = id.startsWith('b-');
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`bg-white rounded-xl p-4 shadow-sm border ${isDragging ? 'border-blue-400 shadow-md' : 'border-zinc-200'} flex items-center gap-4 mb-2`}
+    >
+      <div {...attributes} {...listeners} className="cursor-grab hover:text-blue-500 text-zinc-300 p-1">
+        <FontAwesomeIcon icon={faGripVertical} />
+      </div>
+      <div>
+        <h4 className="font-bold text-zinc-800">{item.name}</h4>
+        <p className="text-xs font-bold text-zinc-500">
+          {isBatch ? 'LOT DE MÉLANGE' : 'GROUPE NON-ASSIGNÉ'}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function GroupingsClient({ initialBatches, initialUnassigned }: GroupingsClientProps) {
   const [batches, setBatches] = useState<MixBatch[]>(initialBatches);
   const [unassigned, setUnassigned] = useState<Group[]>(initialUnassigned);
   const [activeGroup, setActiveGroup] = useState<Group | null>(null);
+  const [activeSequenceItem, setActiveSequenceItem] = useState<any | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const [sequence, setSequence] = useState<string[]>(() => {
+     const ordered: {id: string, order: number}[] = [];
+     initialBatches.forEach(b => ordered.push({ id: `b-${b.id}`, order: (b as any).tour1_order ?? 999 }));
+     initialUnassigned.forEach(g => ordered.push({ id: `g-${g.id}`, order: (g as any).tour1_order ?? 999 }));
+     ordered.sort((a, b) => {
+        if (a.order !== b.order) return a.order - b.order;
+        return a.id.localeCompare(b.id);
+     });
+     return ordered.map(o => o.id);
+  });
+
+  useEffect(() => {
+     const validIds = new Set([
+        ...batches.map(b => `b-${b.id}`),
+        ...unassigned.map(g => `g-${g.id}`)
+     ]);
+     setSequence(prev => {
+        const filtered = prev.filter(id => validIds.has(id));
+        validIds.forEach(id => {
+           if (!filtered.includes(id)) filtered.push(id);
+        });
+        return filtered;
+     });
+  }, [batches, unassigned]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -176,7 +233,7 @@ export default function GroupingsClient({ initialBatches, initialUnassigned }: G
         }));
         const unassignedIds = unassigned.map(g => g.id);
         
-        await saveGroupingsState(batchesData, unassignedIds);
+        await saveGroupingsState(batchesData, unassignedIds, sequence);
         toast.success("Modifications sauvegardées avec succès ! Le calcul des rations est à jour.");
       } catch (e) {
         toast.error("Erreur lors de la sauvegarde.");
@@ -227,6 +284,8 @@ export default function GroupingsClient({ initialBatches, initialUnassigned }: G
     const { active } = event;
     if (active.data.current?.type === 'Group') {
       setActiveGroup(active.data.current.group);
+    } else if (active.data.current?.type === 'SequenceItem') {
+      setActiveSequenceItem(active.data.current.item);
     }
   };
 
@@ -240,11 +299,27 @@ export default function GroupingsClient({ initialBatches, initialUnassigned }: G
   const handleDragEnd = async (event: any) => {
     const { active, over } = event;
     setActiveGroup(null);
+    setActiveSequenceItem(null);
     
     if (!over) return;
 
-    const activeId = active.id.toString().replace('group-', '');
-    const overId = over.id.toString();
+    const activeIdStr = active.id.toString();
+    const overIdStr = over.id.toString();
+
+    // Gestion du drag and drop pour l'ordre global (Séquence)
+    if (activeIdStr.startsWith('b-') || activeIdStr.startsWith('g-')) {
+        if (overIdStr.startsWith('b-') || overIdStr.startsWith('g-')) {
+            setSequence((items) => {
+                const oldIndex = items.indexOf(activeIdStr);
+                const newIndex = items.indexOf(overIdStr);
+                return arrayMove(items, oldIndex, newIndex);
+            });
+        }
+        return;
+    }
+
+    const activeId = activeIdStr.replace('group-', '');
+    const overId = overIdStr;
     const groupId = parseInt(activeId);
 
     // Find where the group came from
@@ -356,7 +431,25 @@ export default function GroupingsClient({ initialBatches, initialUnassigned }: G
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-zinc-200 sticky top-8">
+            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-zinc-200 sticky top-8 mb-8">
+              <h3 className="text-xl font-black text-zinc-800 mb-4">Ordre de Distribution (Séquence)</h3>
+              <p className="text-xs text-zinc-500 mb-4">Glissez pour réorganiser l'ordre de préparation du camion.</p>
+              <SortableContext id="global-sequence" items={sequence} strategy={verticalListSortingStrategy}>
+                <div className="space-y-2 min-h-[200px]">
+                  {sequence.map(id => {
+                    let item = undefined;
+                    if (id.startsWith('b-')) {
+                        item = batches.find(b => b.id === parseInt(id.replace('b-', '')));
+                    } else if (id.startsWith('g-')) {
+                        item = unassigned.find(g => g.id === parseInt(id.replace('g-', '')));
+                    }
+                    if (!item) return null;
+                    return <SortableSequenceItem key={id} id={id} item={item} />;
+                  })}
+                </div>
+              </SortableContext>
+            </div>
+            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-zinc-200 sticky top-8 mt-8">
               <h3 className="text-xl font-black text-zinc-800 mb-4">Non assignés</h3>
               <SortableContext id="unassigned" items={unassigned.map(g => `group-${g.id}`)} strategy={verticalListSortingStrategy}>
                 <div className="space-y-2 min-h-[200px]">
@@ -395,6 +488,7 @@ export default function GroupingsClient({ initialBatches, initialUnassigned }: G
 
         <DragOverlay>
           {activeGroup ? <SortableGroupItem group={activeGroup} /> : null}
+          {activeSequenceItem ? <SortableSequenceItem id="overlay-seq" item={activeSequenceItem} /> : null}
         </DragOverlay>
       </DndContext>
     </div>

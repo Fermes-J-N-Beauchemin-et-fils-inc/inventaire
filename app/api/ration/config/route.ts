@@ -24,7 +24,10 @@ export async function GET() {
                     }
                 }
             },
-            orderBy: { id: 'asc' }
+            orderBy: [
+                { tour1_order: 'asc' },
+                { id: 'asc' }
+            ]
         });
         
         const unassignedGroups = await prisma.group.findMany({
@@ -48,7 +51,7 @@ export async function GET() {
         const virtualGroups: any[] = [];
 
         // Helper to process a list of groups into a single batch sequence
-        const processBatch = (batchId: string, batchName: string, groups: any[], summer_two_meals: boolean, aliments_order: any) => {
+        const processBatch = (batchId: string, batchName: string, groups: any[], summer_two_meals: boolean, aliments_order: any, saved_instructions: any) => {
             if (groups.length === 0) return;
 
             // 1. Calculate the exact needs for each group
@@ -282,7 +285,7 @@ export async function GET() {
 
                 const targetRtm = Math.max(0, currentRtm);
                 
-                const dumpInstruction = targetRtm <= 2 ? `Vider au ${group.name}` : `Vider au ${group.name} jusqu'à ${targetRtm} RTM`;
+                const dumpInstruction = targetRtm < 10 ? `Vider tout au ${group.name}` : `DUMP au ${group.name} jusqu'à ${targetRtm} RTM`;
 
                 sequence.push({
                     id: `dump_${group.id}`,
@@ -298,6 +301,24 @@ export async function GET() {
                     targetGroupName: group.name
                 });
             });
+
+            if (saved_instructions && Array.isArray(saved_instructions)) {
+                saved_instructions.forEach(inst => {
+                    sequence.push({
+                        id: inst.id,
+                        name: inst.name,
+                        v1: inst.v1 || "0",
+                        v2: inst.v2 || "0",
+                        base_tqs_per_cow: inst.base_tqs_per_cow || 0,
+                        price_per_tqs: 0,
+                        price_per_ms: 0,
+                        is_manual: true,
+                        highlight: inst.highlight || 'text-red-700 font-bold bg-red-50',
+                        isInstruction: true,
+                        isDump: false
+                    });
+                });
+            }
 
             if (aliments_order && Array.isArray(aliments_order)) {
                 sequence.sort((a, b) => {
@@ -325,19 +346,23 @@ export async function GET() {
                 season: summer_two_meals ? 'ete' : 'hiver', // Enforce summer UI if two meals checked
                 summer_two_meals: summer_two_meals,
                 tour1_order: groups[0]?.tour1_order || 999,
-                tour2_order: groups[0]?.tour2_order || 999
+                tour2_order: groups[0]?.tour2_order || 999,
+                aliments_order: aliments_order
             });
         };
 
         // Process actual batches
         batches.forEach(batch => {
-            processBatch(`batch_${batch.id}`, batch.name, batch.groups, batch.summer_two_meals, batch.aliments_order);
+            processBatch(`batch_${batch.id}`, batch.name, batch.groups, batch.summer_two_meals, batch.aliments_order, batch.saved_instructions);
         });
 
         // Process unassigned groups as individual batches
         unassignedGroups.forEach(group => {
-            processBatch(group.id.toString(), group.name, [group], group.summer_two_meals, group.aliments_order);
+            processBatch(group.id.toString(), group.name, [group], group.summer_two_meals, group.aliments_order, group.saved_instructions);
         });
+
+        // Finally, sort ALL virtual groups by tour1_order so that MixBatches and Unassigned groups are correctly interleaved
+        virtualGroups.sort((a, b) => (a.tour1_order || 999) - (b.tour1_order || 999));
 
         // Also fetch all active foods for the "Add ingredient" modal
         const allFoods = await prisma.food.findMany({

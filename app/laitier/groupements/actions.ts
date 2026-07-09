@@ -12,9 +12,10 @@ export async function getMixBatches() {
         }
       }
     },
-    orderBy: {
-      id: 'asc'
-    }
+    orderBy: [
+      { tour1_order: 'asc' },
+      { id: 'asc' }
+    ]
   });
 }
 
@@ -23,9 +24,10 @@ export async function getUnassignedGroups() {
     where: {
       mix_batch_id: null
     },
-    orderBy: {
-      id: 'asc'
-    }
+    orderBy: [
+      { tour1_order: 'asc' },
+      { id: 'asc' }
+    ]
   });
 }
 
@@ -110,7 +112,11 @@ export async function updateBatchOrder(batchId: number, groupIds: number[]) {
   }
 }
 
-export async function saveGroupingsState(batches: {id: number, groupIds: number[]}[], unassignedIds: number[]) {
+export async function saveGroupingsState(
+  batches: {id: number, groupIds: number[]}[], 
+  unassignedIds: number[],
+  sequenceOrder: string[]
+) {
   try {
     // Transaction pour tout mettre à jour en même temps
     const transactions = [];
@@ -136,6 +142,27 @@ export async function saveGroupingsState(batches: {id: number, groupIds: number[
         );
       });
     }
+
+    // Mettre à jour l'ordre de distribution global
+    sequenceOrder.forEach((item, index) => {
+      if (item.startsWith('b-')) {
+        const id = parseInt(item.replace('b-', ''));
+        transactions.push(
+          prisma.mixBatch.update({
+            where: { id },
+            data: { tour1_order: index }
+          })
+        );
+      } else if (item.startsWith('g-')) {
+        const id = parseInt(item.replace('g-', ''));
+        transactions.push(
+          prisma.group.update({
+            where: { id },
+            data: { tour1_order: index }
+          })
+        );
+      }
+    });
 
     await prisma.$transaction(transactions);
 

@@ -23,7 +23,9 @@ export async function GET(request: Request) {
                 date: {
                     gte: today
                 },
-                status: 'EN_COURS'
+                status: {
+                    in: ['EN_COURS', 'TERMINEE']
+                }
             },
             orderBy: {
                 date: 'desc'

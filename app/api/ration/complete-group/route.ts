@@ -14,7 +14,7 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { id, group_key, consumed } = body;
+        const { id, group_key, consumed, updatedGroupData, globalPluie } = body;
 
         if (!id || !group_key) {
             return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
@@ -41,6 +41,15 @@ export async function POST(request: Request) {
         const newStatus = newGroupsDone >= pushedRation.groups_total ? "TERMINEE" : "EN_COURS";
         const groupId = parseInt(group_key.split('-')[0]);
 
+        const payload = pushedRation.payload as any;
+        if (updatedGroupData && payload && payload.groups) {
+            const baseGroupKey = group_key.split('-')[0];
+            payload.groups[baseGroupKey] = updatedGroupData;
+        }
+        if (globalPluie && payload) {
+            payload.globalPluie = globalPluie;
+        }
+
         // Handle inventory deduction and status update in a transaction
         const updated = await prisma.$transaction(async (tx) => {
             const updatedRation = await tx.pushedRation.update({
@@ -48,7 +57,8 @@ export async function POST(request: Request) {
                 data: {
                     completed_keys: completedKeys,
                     groups_done: newGroupsDone,
-                    status: newStatus
+                    status: newStatus,
+                    payload: payload
                 }
             });
 
@@ -128,7 +138,6 @@ export async function POST(request: Request) {
             }
 
             let cowsFed = 0;
-            const payload = pushedRation.payload as any;
             if (payload && payload.groups && payload.groups[group_key]) {
                 cowsFed = parseInt(payload.groups[group_key].fed) || parseInt(payload.groups[group_key].real) || 0;
             } else if (payload && payload.groups && payload.groups[groupId]) {
