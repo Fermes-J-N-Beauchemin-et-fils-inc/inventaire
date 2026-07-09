@@ -372,7 +372,7 @@ export async function GET() {
         });
 
         // Finally, sort ALL virtual groups by tour1_order so that MixBatches and Unassigned groups are correctly interleaved
-        virtualGroups.sort((a, b) => (a.tour1_order || 999) - (b.tour1_order || 999));
+        virtualGroups.sort((a, b) => (a.tour1_order ?? 999) - (b.tour1_order ?? 999));
 
         // Also fetch all active foods for the "Add ingredient" modal
         const allFoods = await prisma.food.findMany({
