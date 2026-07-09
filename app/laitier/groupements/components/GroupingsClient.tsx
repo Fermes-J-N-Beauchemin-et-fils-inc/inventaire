@@ -431,35 +431,37 @@ export default function GroupingsClient({ initialBatches, initialUnassigned }: G
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-zinc-200 sticky top-8 mb-8">
-              <h3 className="text-xl font-black text-zinc-800 mb-4">Ordre de Distribution (Séquence)</h3>
-              <p className="text-xs text-zinc-500 mb-4">Glissez pour réorganiser l'ordre de préparation du camion.</p>
-              <SortableContext id="global-sequence" items={sequence} strategy={verticalListSortingStrategy}>
-                <div className="space-y-2 min-h-[200px]">
-                  {sequence.map(id => {
-                    let item = undefined;
-                    if (id.startsWith('b-')) {
-                        item = batches.find(b => b.id === parseInt(id.replace('b-', '')));
-                    } else if (id.startsWith('g-')) {
-                        item = unassigned.find(g => g.id === parseInt(id.replace('g-', '')));
-                    }
-                    if (!item) return null;
-                    return <SortableSequenceItem key={id} id={id} item={item} />;
-                  })}
-                </div>
-              </SortableContext>
-            </div>
-            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-zinc-200 sticky top-8 mt-8">
-              <h3 className="text-xl font-black text-zinc-800 mb-4">Non assignés</h3>
-              <SortableContext id="unassigned" items={unassigned.map(g => `group-${g.id}`)} strategy={verticalListSortingStrategy}>
-                <div className="space-y-2 min-h-[200px]">
-                  {unassigned.length === 0 ? (
-                    <p className="text-sm text-zinc-400 italic">Tous les groupes sont assignés.</p>
-                  ) : (
-                    unassigned.map(g => <SortableGroupItem key={g.id} group={{...g, onSummerChange: handleGroupSummerChange} as any} />)
-                  )}
-                </div>
-              </SortableContext>
+            <div className="sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto flex flex-col gap-8 pb-4 pr-2 custom-scrollbar">
+              <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-zinc-200">
+                <h3 className="text-xl font-black text-zinc-800 mb-4">Ordre de Distribution (Séquence)</h3>
+                <p className="text-xs text-zinc-500 mb-4">Glissez pour réorganiser l'ordre de préparation du camion.</p>
+                <SortableContext id="global-sequence" items={sequence} strategy={verticalListSortingStrategy}>
+                  <div className="space-y-2 min-h-[200px]">
+                    {sequence.map(id => {
+                      let item = undefined;
+                      if (id.startsWith('b-')) {
+                          item = batches.find(b => b.id === parseInt(id.replace('b-', '')));
+                      } else if (id.startsWith('g-')) {
+                          item = unassigned.find(g => g.id === parseInt(id.replace('g-', '')));
+                      }
+                      if (!item) return null;
+                      return <SortableSequenceItem key={id} id={id} item={item} />;
+                    })}
+                  </div>
+                </SortableContext>
+              </div>
+              <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-zinc-200">
+                <h3 className="text-xl font-black text-zinc-800 mb-4">Non assignés</h3>
+                <SortableContext id="unassigned" items={unassigned.map(g => `group-${g.id}`)} strategy={verticalListSortingStrategy}>
+                  <div className="space-y-2 min-h-[200px]">
+                    {unassigned.length === 0 ? (
+                      <p className="text-sm text-zinc-400 italic">Tous les groupes sont assignés.</p>
+                    ) : (
+                      unassigned.map(g => <SortableGroupItem key={g.id} group={{...g, onSummerChange: handleGroupSummerChange} as any} />)
+                    )}
+                  </div>
+                </SortableContext>
+              </div>
             </div>
           </div>
 
