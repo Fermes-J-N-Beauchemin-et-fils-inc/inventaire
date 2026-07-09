@@ -362,34 +362,45 @@ export default function GroupingsClient({ initialBatches, initialUnassigned }: G
     let newUnassigned = [...unassigned];
     let newBatches = [...batches];
 
-    // Remove from source
-    if (sourceContainer === 'unassigned') {
-      newUnassigned.splice(sourceIndex, 1);
-    } else {
-      const bIdx = newBatches.findIndex(b => `batch-${b.id}` === sourceContainer);
-      newBatches[bIdx].groups.splice(sourceIndex, 1);
-    }
-
-    // Add to dest
-    let destIndex = -1;
-    if (overId.startsWith('group-')) {
-      const overGroupId = parseInt(overId.replace('group-', ''));
-      if (destContainer === 'unassigned') {
-        destIndex = newUnassigned.findIndex(g => g.id === overGroupId);
-        if (destIndex !== -1) newUnassigned.splice(destIndex, 0, groupToMove);
-        else newUnassigned.push(groupToMove);
+    if (sourceContainer === destContainer) {
+      if (sourceContainer === 'unassigned') {
+        const newIndex = overId.startsWith('group-') ? newUnassigned.findIndex(g => g.id === parseInt(overId.replace('group-', ''))) : newUnassigned.length - 1;
+        newUnassigned = arrayMove(newUnassigned, sourceIndex, newIndex);
       } else {
-        const bIdx = newBatches.findIndex(b => `batch-${b.id}` === destContainer);
-        destIndex = newBatches[bIdx].groups.findIndex(g => g.id === overGroupId);
-        if (destIndex !== -1) newBatches[bIdx].groups.splice(destIndex, 0, groupToMove);
-        else newBatches[bIdx].groups.push(groupToMove);
+        const bIdx = newBatches.findIndex(b => `batch-${b.id}` === sourceContainer);
+        const newIndex = overId.startsWith('group-') ? newBatches[bIdx].groups.findIndex(g => g.id === parseInt(overId.replace('group-', ''))) : newBatches[bIdx].groups.length - 1;
+        newBatches[bIdx] = { ...newBatches[bIdx], groups: arrayMove(newBatches[bIdx].groups, sourceIndex, newIndex) };
       }
     } else {
-      // dropped on container directly
-      if (destContainer === 'unassigned') newUnassigned.push(groupToMove);
-      else {
-        const bIdx = newBatches.findIndex(b => `batch-${b.id}` === destContainer);
-        newBatches[bIdx].groups.push(groupToMove);
+      // Remove from source
+      if (sourceContainer === 'unassigned') {
+        newUnassigned.splice(sourceIndex, 1);
+      } else {
+        const bIdx = newBatches.findIndex(b => `batch-${b.id}` === sourceContainer);
+        newBatches[bIdx].groups.splice(sourceIndex, 1);
+      }
+
+      // Add to dest
+      let destIndex = -1;
+      if (overId.startsWith('group-')) {
+        const overGroupId = parseInt(overId.replace('group-', ''));
+        if (destContainer === 'unassigned') {
+          destIndex = newUnassigned.findIndex(g => g.id === overGroupId);
+          if (destIndex !== -1) newUnassigned.splice(destIndex, 0, groupToMove);
+          else newUnassigned.push(groupToMove);
+        } else {
+          const bIdx = newBatches.findIndex(b => `batch-${b.id}` === destContainer);
+          destIndex = newBatches[bIdx].groups.findIndex(g => g.id === overGroupId);
+          if (destIndex !== -1) newBatches[bIdx].groups.splice(destIndex, 0, groupToMove);
+          else newBatches[bIdx].groups.push(groupToMove);
+        }
+      } else {
+        // dropped on container directly
+        if (destContainer === 'unassigned') newUnassigned.push(groupToMove);
+        else {
+          const bIdx = newBatches.findIndex(b => `batch-${b.id}` === destContainer);
+          newBatches[bIdx].groups.push(groupToMove);
+        }
       }
     }
 

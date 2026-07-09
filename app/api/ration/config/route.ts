@@ -321,9 +321,19 @@ export async function GET() {
             }
 
             if (aliments_order && Array.isArray(aliments_order)) {
+                // Ensure dumps are sorted according to their current mix_order, not the historical aliments_order
+                const generatedDumps = sequence.filter(s => s.isDump).map(s => s.id);
+                let dumpIdx = 0;
+                const correctedAlimentsOrder = aliments_order.map(id => {
+                    if (id.startsWith('dump_')) {
+                        return generatedDumps[dumpIdx++] || id;
+                    }
+                    return id;
+                });
+
                 sequence.sort((a, b) => {
-                    const indexA = aliments_order.indexOf(a.id);
-                    const indexB = aliments_order.indexOf(b.id);
+                    const indexA = correctedAlimentsOrder.indexOf(a.id);
+                    const indexB = correctedAlimentsOrder.indexOf(b.id);
                     if (indexA === -1 && indexB === -1) return 0;
                     if (indexA === -1) return 1;
                     if (indexB === -1) return -1;
