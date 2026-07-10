@@ -1029,7 +1029,7 @@ export async function createQuickSpotDelivery(formData: FormData) {
     // 1. Create Spot Contract
     const contract = await tx.contract.create({
       data: {
-        name: `Spot ${food.name} ${now.toLocaleDateString('fr-CA')}`,
+        name: `Spot ${food.name} ${now.toLocaleDateString('fr-CA', { timeZone: 'America/Toronto' })}`,
         supplier_id,
         food_id,
         total_kg: quantity,
@@ -1159,7 +1159,7 @@ export async function createQuickSpotSale(formData: FormData) {
     // 1. Create Spot Contract
     const contract = await tx.saleContract.create({
       data: {
-        name: `Spot ${food.name} ${now.toLocaleDateString('fr-CA')}`,
+        name: `Spot ${food.name} ${now.toLocaleDateString('fr-CA', { timeZone: 'America/Toronto' })}`,
         client_id,
         food_id,
         total_kg: quantity,

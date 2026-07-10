@@ -1,5 +1,6 @@
 import { prisma } from "@/app/lib/db";
 import { NextResponse } from "next/server";
+import { QUEBEC_TIMEZONE } from "@/app/lib/dateUtils";
 
 export async function GET() {
     try {
@@ -40,7 +41,7 @@ export async function GET() {
             const rsaTrend = 2280 + (i * 6);
             
             return {
-                date: date.toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }),
+                date: date.toLocaleDateString('fr-CA', { timeZone: QUEBEC_TIMEZONE, day: 'numeric', month: 'short' }),
                 revenu: Math.round(baseRev),
                 rsa: Math.round(baseRsa),
                 revenuTrend: Math.round(revTrend),
@@ -77,7 +78,7 @@ export async function GET() {
                     const date = new Date();
                     date.setDate(date.getDate() - (29 - i));
                     return {
-                        date: date.toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }),
+                        date: date.toLocaleDateString('fr-CA', { timeZone: QUEBEC_TIMEZONE, day: 'numeric', month: 'short' }),
                         total: 750 + Math.floor(i / 2),
                         enLait: 515 + Math.floor(i / 3),
                     };

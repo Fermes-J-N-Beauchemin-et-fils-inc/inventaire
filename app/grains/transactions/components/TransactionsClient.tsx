@@ -393,7 +393,7 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
                             <li key={`${m.type}-${m.id}-${idx}`} className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-white transition-colors gap-4">
                               <div className="flex items-center gap-5">
                                 <div className={`w-16 h-16 rounded-2xl flex flex-col items-center justify-center border shrink-0 transition-colors ${isPast ? 'bg-zinc-100 border-zinc-200 text-zinc-400' : (activeAction === 'reception' ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm' : 'bg-orange-50 border-orange-200 text-orange-700 shadow-sm')}`}>
-                                  <span className="text-xs font-black uppercase tracking-wider">{dateObj.toLocaleDateString('fr-CA', { month: 'short' }).replace('.', '')}</span>
+                                  <span className="text-xs font-black uppercase tracking-wider">{dateObj.toLocaleDateString('fr-CA', { timeZone: 'America/Toronto', month: 'short' }).replace('.', '')}</span>
                                   <span className="text-2xl font-black leading-none mt-0.5">{dateObj.getDate()}</span>
                                 </div>
                                 <div>

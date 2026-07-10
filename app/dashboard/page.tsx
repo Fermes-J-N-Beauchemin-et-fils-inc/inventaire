@@ -39,7 +39,7 @@ export default async function DashboardPage() {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-4">
                     <div>
                         <div className="mb-2 inline-block px-4 py-1.5 bg-zinc-100 text-zinc-600 rounded-full text-sm font-black tracking-widest uppercase shadow-sm">
-                            {new Date().toLocaleDateString('fr-CA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                            {new Date().toLocaleDateString('fr-CA', { timeZone: 'America/Toronto', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                         </div>
                         <h1 className="text-4xl sm:text-5xl font-black text-zinc-900 tracking-tight flex items-center gap-4 mt-2">
                             Hello, {userName}

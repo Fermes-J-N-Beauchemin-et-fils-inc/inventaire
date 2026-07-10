@@ -48,7 +48,9 @@ export default function RationsComptabilitePage() {
   const todayISO = new Date().toISOString().split('T')[0];
   const isToday = selectedDate === todayISO;
   const formattedDate = new Date(selectedDate + 'T12:00:00').toLocaleDateString('fr-CA', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    timeZone: 'America/Toronto',
+    weekday: 'long',
+    year: 'numeric', month: 'long', day: 'numeric'
   });
   const displayTitle = isToday ? "Aujourd'hui" : formattedDate;
 

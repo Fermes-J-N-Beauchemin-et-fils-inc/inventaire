@@ -2,6 +2,7 @@ import { prisma } from "@/app/lib/db";
 import { NextResponse } from "next/server";
 import { auth } from "@/app/lib/auth";
 import { headers } from "next/headers";
+import { getQuebecMidnight } from "@/app/lib/dateUtils";
 
 export async function GET(request: Request) {
     try {
@@ -13,9 +14,8 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // Get today's beginning
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // Get today's beginning in Quebec time
+        const today = getQuebecMidnight();
 
         // Fetch the latest pushed ration for today
         const activeRation = await prisma.pushedRation.findFirst({

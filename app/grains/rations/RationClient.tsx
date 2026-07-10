@@ -761,7 +761,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
             ...prev,
             [key]: {
               ...prev[key],
-              completedAt: isCompleted ? undefined : new Date().toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' })
+              completedAt: isCompleted ? undefined : new Date().toLocaleTimeString('fr-CA', { timeZone: 'America/Toronto', hour: '2-digit', minute: '2-digit' })
             }
           };
         } else {
@@ -770,7 +770,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
             ...prev,
             [key]: {
               ...prev[key],
-              completedAtTour2: isCompleted ? undefined : new Date().toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' })
+              completedAtTour2: isCompleted ? undefined : new Date().toLocaleTimeString('fr-CA', { timeZone: 'America/Toronto', hour: '2-digit', minute: '2-digit' })
             }
           };
         }

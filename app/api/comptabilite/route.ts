@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
+import { getQuebecMidnight, QUEBEC_TIMEZONE } from '@/app/lib/dateUtils';
 
 export async function GET(request: Request) {
     try {
@@ -341,8 +342,7 @@ export async function GET(request: Request) {
         } else {
             // FALLBACK: Use current DB groups if no pushedRation is found, 
             // BUT ONLY if the requested date is today or in the future.
-            const todayStart = new Date();
-            todayStart.setHours(0, 0, 0, 0);
+            const todayStart = getQuebecMidnight();
             const isPast = startOfDay.getTime() < todayStart.getTime();
 
             if (!isPast) {
@@ -532,7 +532,7 @@ export async function GET(request: Request) {
         const dailyGraphData = Object.keys(dailyCostsMap).sort().map(dateStr => {
             const d = new Date(dateStr + 'T12:00:00'); // avoid timezone offset issues
             return {
-                date: d.toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }),
+                date: d.toLocaleDateString('fr-CA', { timeZone: QUEBEC_TIMEZONE, day: 'numeric', month: 'short' }),
                 value: dailyCostsMap[dateStr]
             };
         });

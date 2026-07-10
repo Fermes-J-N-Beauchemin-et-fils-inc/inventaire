@@ -414,7 +414,7 @@ export default async function AlimentDetailPage({ params }: { params: Promise<{ 
                             {formattedQty.toLocaleString('fr-CA', { maximumFractionDigits: 2 })} {aliment.unit} prévu pour vente
                           </p>
                           <p className="text-xs font-bold text-indigo-500 mt-0.5">
-                            {new Date(sale.date_expected).toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })} ({dayStr})
+                            {new Date(sale.date_expected).toLocaleDateString('fr-CA', { timeZone: 'America/Toronto', year: 'numeric', month: 'long', day: 'numeric' })} ({dayStr})
                           </p>
                         </div>
                       </div>

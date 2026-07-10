@@ -355,7 +355,7 @@ export default function AccountSettings({ user, currentSessionId }: { user: User
                                             <div className="text-sm font-medium text-zinc-500 space-y-0.5">
                                                 <p>Navigateur : {session.browser}</p>
                                                 <p>Lieu : {session.location}</p>
-                                                <p>Créée le : {new Date(session.createdAt).toLocaleDateString()} à {new Date(session.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                                                <p>Créée le : {new Date(session.createdAt).toLocaleDateString('fr-CA', { timeZone: 'America/Toronto' })} à {new Date(session.createdAt).toLocaleTimeString('fr-CA', {timeZone: 'America/Toronto', hour: '2-digit', minute:'2-digit'})}</p>
                                             </div>
                                         </div>
                                     </div>

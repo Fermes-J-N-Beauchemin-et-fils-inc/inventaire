@@ -94,7 +94,7 @@ export default function RationReport({ groups, notes, tour1Keys, tour2Keys, onMo
                 )}
                 <div className="grid grid-cols-[1fr_60px_60px] sm:grid-cols-[1fr_80px_80px] print:grid-cols-[1fr_60px_60px] text-center border-b-[3px] border-black text-xs sm:text-sm">
                   <div className="border-r-[3px] border-black flex flex-col justify-end p-1">
-                    <span className="text-left font-bold text-black">{new Date().toLocaleDateString('en-CA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                    <span className="text-left font-bold text-black">{new Date().toLocaleDateString('fr-CA', { timeZone: 'America/Toronto', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
                   </div>
                   <div className="border-r-[3px] border-black font-black flex flex-col justify-end pb-1 border-b">
                     <div className="text-base sm:text-xl text-blue-700">{group.fed}</div>

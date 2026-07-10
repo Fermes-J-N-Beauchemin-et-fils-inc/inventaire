@@ -45,7 +45,7 @@ export const generateHistory = (baseValue: number, volatility: number, trend: nu
     current = Math.max(0, current + change);
     
     history.push({
-      date: d.toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' }),
+      date: d.toLocaleDateString('fr-CA', { timeZone: 'America/Toronto', day: 'numeric', month: 'short' }),
       value: Number(current.toFixed(2))
     });
   }
@@ -67,7 +67,7 @@ export const generatePriceHistory = (baseMs: number, baseTqs: number, days: numb
     curTqs = curTqs + (change * (baseTqs / baseMs));
     
     history.push({
-      date: d.toLocaleDateString('fr-CA', { month: 'short', year: '2-digit' }),
+      date: d.toLocaleDateString('fr-CA', { timeZone: 'America/Toronto', month: 'short', year: '2-digit' }),
       priceMs: Number(curMs.toFixed(2)),
       priceTqs: Number(curTqs.toFixed(2))
     });

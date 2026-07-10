@@ -185,7 +185,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
                   <option value="">-- Mouvement Spontané (Spot) --</option>
                   {deliveries.map(d => (
                     <option key={d.id} value={d.id}>
-                      {d.date_expected ? new Date(d.date_expected).toLocaleDateString('fr-CA') + ' - ' : ''}Prévue : {d.quantity} {d.unit} de {d.food_name} ({d.partner_name})
+                      {d.date_expected ? new Date(d.date_expected).toLocaleDateString('fr-CA', { timeZone: 'America/Toronto' }) + ' - ' : ''}Prévue : {d.quantity} {d.unit} de {d.food_name} ({d.partner_name})
                     </option>
                   ))}
                 </select>

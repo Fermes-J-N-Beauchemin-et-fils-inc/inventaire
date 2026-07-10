@@ -46,6 +46,7 @@ export default function DateNavigator({
   const isMaxReached = maxDate ? selectedDate >= maxDate : false;
 
   const formattedDate = currentDateObj.toLocaleDateString('fr-CA', {
+    timeZone: 'America/Toronto',
     weekday: 'long',
     day: 'numeric',
     month: 'long',

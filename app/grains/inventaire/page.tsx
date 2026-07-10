@@ -17,6 +17,7 @@ export default async function InventairePage() {
   ]);
 
   const todayDate = new Date().toLocaleDateString('fr-CA', {
+    timeZone: 'America/Toronto',
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
   });
 
