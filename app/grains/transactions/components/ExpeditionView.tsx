@@ -99,6 +99,18 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
 
 
 
+  const handleAutoFillContracts = () => {
+    let remaining = totalKg;
+    const newAllocations: { [id: number]: number } = {};
+    for (const sc of activeSubContracts) {
+      if (remaining <= 0) break;
+      const toAllocate = Math.min(sc.kg_left_to_deliver, remaining);
+      newAllocations[sc.id] = toAllocate;
+      remaining -= toAllocate;
+    }
+    setContractAllocations(newAllocations);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValid) {
