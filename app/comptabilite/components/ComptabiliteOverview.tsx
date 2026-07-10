@@ -76,11 +76,6 @@ export default function ComptabiliteOverview({ groups, totalGroup }: Comptabilit
               </div>
               <div className="flex flex-col items-end gap-1">
                 <span className="font-black text-lg text-zinc-900">{formatNum(group.totalKgTqs)} kg</span>
-                <div className="flex flex-wrap justify-end gap-1 mt-1">
-                  <DiffBadge value={group.diffYesterday} label="1j" />
-                  <DiffBadge value={group.diff7Days} label="7j" />
-                  <DiffBadge value={group.diff30Days} label="30j" />
-                </div>
               </div>
             </div>
 

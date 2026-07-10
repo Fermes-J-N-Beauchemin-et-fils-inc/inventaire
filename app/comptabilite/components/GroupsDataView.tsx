@@ -112,16 +112,7 @@ export default function GroupsDataView({ groups, totalGroup }: GroupsDataViewPro
                       <td className="p-4 font-medium text-zinc-600">{formatMoney(aliment.priceTqs)}</td>
                       <td className="p-4 font-black text-zinc-800 bg-blue-50/20">{formatNum(aliment.kgMs)}</td>
                       <td className="p-4 font-black text-zinc-800 bg-blue-50/20">{formatNum(activeGroup.cows > 0 ? aliment.kgMs / activeGroup.cows : 0)}</td>
-                      <td className="p-4 font-black text-zinc-800 bg-blue-50/20">
-                        <div className="flex flex-col gap-1">
-                          <span>{formatNum(aliment.kgTqs)}</span>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            <DiffBadge value={aliment.diffYesterday} label="1j" />
-                            <DiffBadge value={aliment.diff7Days} label="7j" />
-                            <DiffBadge value={aliment.diff30Days} label="30j" />
-                          </div>
-                        </div>
-                      </td>
+                      <td className="p-4 font-black text-zinc-800 bg-blue-50/20">{formatNum(aliment.kgTqs)}</td>
                       <td className="p-4 font-black text-zinc-800 bg-blue-50/20">{formatNum(activeGroup.cows > 0 ? aliment.kgTqs / activeGroup.cows : 0)}</td>
                       <td className="p-4 font-black text-blue-600 bg-green-50/20">
                         <div className="flex flex-col gap-1">

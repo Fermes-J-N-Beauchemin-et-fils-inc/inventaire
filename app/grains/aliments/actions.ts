@@ -167,3 +167,15 @@ export async function deleteAliment(id: number) {
   revalidatePath('/aliments');
   redirect('/aliments');
 }
+
+export async function createUnitTypeAction(name: string, ration_to_kg: number) {
+  if (!name || isNaN(ration_to_kg) || ration_to_kg <= 0) {
+    throw new Error("Nom ou équivalence invalide.");
+  }
+  const unit = await prisma.unit_type.create({
+    data: { name, ration_to_kg }
+  });
+  revalidatePath('/grains/aliments/ajouter');
+  revalidatePath('/grains/aliments/[id]/modifier');
+  return unit;
+}

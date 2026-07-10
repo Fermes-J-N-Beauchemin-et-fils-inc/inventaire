@@ -350,12 +350,12 @@ export default async function AlimentDetailPage({ params }: { params: Promise<{ 
             <div className="flex gap-4">
               <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-5 flex flex-col justify-center items-center min-w-[120px]">
                 <FontAwesomeIcon icon={faWeightHanging} className="text-2xl text-amber-600 mb-2" />
-                <span className="text-3xl font-black text-zinc-900">{aliment.msPercentage}%</span>
+                <span className="text-3xl font-black text-zinc-900">{aliment.msPercentage.toLocaleString('fr-CA', { maximumFractionDigits: 1 })}%</span>
                 <span className="text-sm font-bold text-zinc-500 uppercase tracking-widest">MS</span>
               </div>
               <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-5 flex flex-col justify-center items-center min-w-[120px]">
                 <FontAwesomeIcon icon={faDroplet} className="text-2xl text-blue-500 mb-2" />
-                <span className="text-3xl font-black text-zinc-900">{aliment.humidityPercentage}%</span>
+                <span className="text-3xl font-black text-zinc-900">{aliment.humidityPercentage.toLocaleString('fr-CA', { maximumFractionDigits: 1 })}%</span>
                 <span className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Humidité</span>
               </div>
               {aliment.storageLocation && (
@@ -381,8 +381,8 @@ export default async function AlimentDetailPage({ params }: { params: Promise<{ 
 
             <div className="mb-8">
               <div className="flex justify-between items-end mb-2">
-                <span className="text-5xl font-black text-zinc-900">{aliment.currentStock}</span>
-                <span className="text-xl font-bold text-zinc-500 mb-1">/ {aliment.maxStock} {aliment.unit}</span>
+                <span className="text-5xl font-black text-zinc-900">{aliment.currentStock.toLocaleString('fr-CA', { maximumFractionDigits: 2 })}</span>
+                <span className="text-xl font-bold text-zinc-500 mb-1">/ {aliment.maxStock.toLocaleString('fr-CA', { maximumFractionDigits: 2 })} {aliment.unit}</span>
               </div>
 
               <div className="w-full h-4 bg-zinc-100 rounded-full overflow-hidden mb-2">

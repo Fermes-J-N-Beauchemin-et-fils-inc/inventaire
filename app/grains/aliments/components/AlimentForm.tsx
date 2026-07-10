@@ -3,10 +3,10 @@
 import React, { useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSave, faArrowLeft, faPowerOff } from '@fortawesome/free-solid-svg-icons';
+import { faSave, faArrowLeft, faPowerOff, faPlus, faTimes } from '@fortawesome/free-solid-svg-icons';
 import Link from 'next/link';
 import DeleteFoodButton from './DeleteFoodButton';
-import { toggleFoodStatus } from '../actions';
+import { toggleFoodStatus, createUnitTypeAction } from '../actions';
 import toast from 'react-hot-toast';
 
 interface AlimentFormProps {
@@ -45,6 +45,37 @@ function SubmitButton({ isEditing }: { isEditing: boolean }) {
 export default function AlimentForm({ units, storages, initialData, action }: AlimentFormProps) {
   const isEditing = !!initialData;
   const [isActive, setIsActive] = useState(initialData?.is_active ?? true);
+  
+  const [unitList, setUnitList] = useState(units);
+  const [isUnitModalOpen, setIsUnitModalOpen] = useState(false);
+  const [newUnitName, setNewUnitName] = useState("");
+  const [newUnitKg, setNewUnitKg] = useState("");
+  const [isSavingUnit, setIsSavingUnit] = useState(false);
+
+  const handleAddUnit = async () => {
+    if (!newUnitName || !newUnitKg) {
+      toast.error("Veuillez remplir le nom et l'équivalence.");
+      return;
+    }
+    const kgVal = parseFloat(newUnitKg);
+    if (isNaN(kgVal) || kgVal <= 0) {
+      toast.error("L'équivalence doit être un nombre positif.");
+      return;
+    }
+    setIsSavingUnit(true);
+    try {
+      const newUnit = await createUnitTypeAction(newUnitName, kgVal);
+      setUnitList(prev => [...prev, newUnit]);
+      setIsUnitModalOpen(false);
+      setNewUnitName("");
+      setNewUnitKg("");
+      toast.success("Unité ajoutée !");
+    } catch (err: any) {
+      toast.error(err.message || "Erreur lors de l'ajout.");
+    } finally {
+      setIsSavingUnit(false);
+    }
+  };
 
   const handleToggleActive = async () => {
     if (!initialData) return;
@@ -120,18 +151,27 @@ export default function AlimentForm({ units, storages, initialData, action }: Al
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label htmlFor="unit_type_id" className="block text-sm font-bold text-zinc-700 mb-2">Unité de mesure *</label>
-                <select
-                  id="unit_type_id"
-                  name="unit_type_id"
-                  defaultValue={initialData?.unit_type_id || ""}
-                  required
-                  className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm appearance-none"
-                >
-                  <option value="" disabled>Sélectionner une unité</option>
-                  {units.map((u) => (
-                    <option key={u.id} value={u.id}>{u.name}</option>
-                  ))}
-                </select>
+                <div className="flex gap-2">
+                  <select
+                    id="unit_type_id"
+                    name="unit_type_id"
+                    defaultValue={initialData?.unit_type_id || ""}
+                    required
+                    className="w-full px-5 py-4 bg-white border-2 border-zinc-200 rounded-[1.5rem] text-lg font-bold text-zinc-900 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm appearance-none"
+                  >
+                    <option value="" disabled>Sélectionner une unité</option>
+                    {unitList.map((u) => (
+                      <option key={u.id} value={u.id}>{u.name}</option>
+                    ))}
+                  </select>
+                  <button 
+                    type="button" 
+                    onClick={() => setIsUnitModalOpen(true)}
+                    className="px-4 py-4 bg-blue-50 text-blue-600 rounded-[1.5rem] border-2 border-blue-200 hover:bg-blue-100 font-bold flex items-center justify-center transition-colors"
+                  >
+                    <FontAwesomeIcon icon={faPlus} />
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -201,6 +241,54 @@ export default function AlimentForm({ units, storages, initialData, action }: Al
             <SubmitButton isEditing={isEditing} />
           </div>
         </form>
+
+        {isUnitModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/40 backdrop-blur-sm">
+            <div className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl relative">
+              <button 
+                onClick={() => setIsUnitModalOpen(false)}
+                className="absolute top-6 right-6 text-zinc-400 hover:text-zinc-600"
+              >
+                <FontAwesomeIcon icon={faTimes} className="text-xl" />
+              </button>
+              
+              <h3 className="text-2xl font-black text-zinc-900 mb-6">Ajouter une unité</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-zinc-700 mb-2">Nom de l'unité</label>
+                  <input
+                    type="text"
+                    value={newUnitName}
+                    onChange={(e) => setNewUnitName(e.target.value)}
+                    placeholder="ex: Poche de 25kg"
+                    className="w-full px-4 py-3 bg-white border-2 border-zinc-200 rounded-xl font-bold text-zinc-900 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-zinc-700 mb-2">Équivalence en KG</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={newUnitKg}
+                    onChange={(e) => setNewUnitKg(e.target.value)}
+                    placeholder="ex: 25"
+                    className="w-full px-4 py-3 bg-white border-2 border-zinc-200 rounded-xl font-bold text-zinc-900 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                
+                <button
+                  type="button"
+                  onClick={handleAddUnit}
+                  disabled={isSavingUnit}
+                  className="w-full bg-blue-600 text-white font-black py-4 rounded-xl mt-4 disabled:opacity-50"
+                >
+                  {isSavingUnit ? "Enregistrement..." : "Ajouter"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
