@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { InventoryFoodData, StorageData, ClientWithContractsData } from '../data/fetchInventaire';
 import { createComplexSale } from '../actions';
 import toast from 'react-hot-toast';
+import { getQuebecDateString } from '@/app/lib/dateUtils';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTruckFast, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 
@@ -17,7 +18,7 @@ export default function ExpeditionView({ inventory, clients, storages }: Expedit
   const [clientId, setClientId] = useState<number | ''>('');
   const [foodId, setFoodId] = useState<number | ''>('');
   const [totalKg, setTotalKg] = useState<number>(0);
-  const [dateSold, setDateSold] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [dateSold, setDateSold] = useState<string>(getQuebecDateString());
 
   // State for allocations
   const [contractAllocations, setContractAllocations] = useState<{ [id: number]: number }>({});

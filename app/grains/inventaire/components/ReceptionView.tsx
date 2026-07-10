@@ -5,7 +5,8 @@ import { DeliveryData, InventoryFoodData, StorageData, SupplierWithContractsData
 import { receiveComplexDelivery } from '../actions';
 import toast from 'react-hot-toast';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTruck, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faTrash, faTruck, faBox, faFileInvoice, faSeedling } from '@fortawesome/free-solid-svg-icons';
+import { getQuebecDateString } from '@/app/lib/dateUtils';
 
 interface ReceptionViewProps {
   deliveries: DeliveryData[];
@@ -18,7 +19,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
   const [supplierId, setSupplierId] = useState<number | ''>('');
   const [foodId, setFoodId] = useState<number | ''>('');
   const [totalKg, setTotalKg] = useState<number>(0);
-  const [dateDelivered, setDateDelivered] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [dateDelivered, setDateDelivered] = useState<string>(getQuebecDateString());
 
   // State for allocations
   const [contractAllocations, setContractAllocations] = useState<{ [id: number]: number }>({});

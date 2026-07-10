@@ -22,6 +22,19 @@ export function getQuebecMidnight(): Date {
 }
 
 /**
+ * Returns a YYYY-MM-DD string for the given Date based on Quebec time.
+ * Replaces .toISOString().split('T')[0] which yields incorrect dates around midnight.
+ */
+export function getQuebecDateString(date: Date = new Date()): string {
+  return date.toLocaleDateString('fr-CA', { 
+    timeZone: QUEBEC_TIMEZONE, 
+    year: 'numeric', 
+    month: '2-digit', 
+    day: '2-digit' 
+  });
+}
+
+/**
  * Helper to get a string formatted date specifically for Quebec
  */
 export function formatToQuebecDate(date: Date | string, options?: Intl.DateTimeFormatOptions): string {

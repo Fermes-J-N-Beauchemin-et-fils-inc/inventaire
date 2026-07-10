@@ -5,6 +5,7 @@ import { InventoryFoodData, StorageData, SupplierWithContractsData } from '../..
 import { receiveComplexDelivery } from '../../inventaire/actions';
 import toast from 'react-hot-toast';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { getQuebecDateString } from '@/app/lib/dateUtils';
 import { faTruckLoading, faWeightScale, faFileInvoiceDollar, faCheckCircle, faInfoCircle, faFileContract, faScaleBalanced } from '@fortawesome/free-solid-svg-icons';
 
 interface DeliveryData {
@@ -126,7 +127,7 @@ export default function ReceptionView({ deliveries, inventory, suppliers, storag
     formData.append("supplier_id", supplierId.toString());
     formData.append("food_id", foodId.toString());
     formData.append("total_kg", totalKg.toString());
-    formData.append("date_delivered", new Date().toISOString().split('T')[0]);
+    formData.append("date_delivered", getQuebecDateString());
     if (selectedMode !== 'spot' && selectedMode !== '') {
       formData.append("existing_delivery_id", selectedMode);
     }

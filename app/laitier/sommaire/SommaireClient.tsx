@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChartPie, faCow, faBabyCarriage, faBed, faCalendarAlt, faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
+import { getQuebecDateString } from '@/app/lib/dateUtils';
 import DashboardTab from './components/DashboardTab';
 import LactationTab from './components/LactationTab';
 import ReleveTab from './components/ReleveTab';
@@ -38,9 +39,9 @@ export default function SommaireClient({ isAdmin = false }: { isAdmin?: boolean 
         <h1 className="text-4xl font-black text-zinc-900">Sommaire du Troupeau</h1>
         
         <DateNavigator 
-          selectedDate={currentDate.toISOString().split('T')[0]}
+          selectedDate={getQuebecDateString(currentDate)}
           onChange={(dateStr) => setCurrentDate(new Date(dateStr + 'T12:00:00'))}
-          maxDate={new Date().toISOString().split('T')[0]}
+          maxDate={getQuebecDateString()}
         />
       </div>
 

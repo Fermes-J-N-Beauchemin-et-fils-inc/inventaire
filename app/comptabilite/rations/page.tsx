@@ -8,12 +8,13 @@ import { faBuildingColumns, faCalendarDays } from '@fortawesome/free-solid-svg-i
 import BilanCards from '../components/BilanCards';
 import ComptabiliteGraph from '../components/ComptabiliteGraph';
 import GroupsDataView from '../components/GroupsDataView';
+import { getQuebecDateString } from '@/app/lib/dateUtils';
 import { SingleLineChart } from '@/app/grains/aliments/components/AlimentCharts';
 import { faChartLine } from '@fortawesome/free-solid-svg-icons';
 import DateNavigator from '@/app/components/ui/DateNavigator';
 
 export default function RationsComptabilitePage() {
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState<string>(getQuebecDateString());
   const [data, setData] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -45,7 +46,7 @@ export default function RationsComptabilitePage() {
     );
   }
 
-  const todayISO = new Date().toISOString().split('T')[0];
+  const todayISO = getQuebecDateString();
   const isToday = selectedDate === todayISO;
   const formattedDate = new Date(selectedDate + 'T12:00:00').toLocaleDateString('fr-CA', {
     timeZone: 'America/Toronto',
@@ -75,7 +76,7 @@ export default function RationsComptabilitePage() {
           <DateNavigator 
             selectedDate={selectedDate}
             onChange={(dateStr) => setSelectedDate(dateStr)}
-            maxDate={new Date().toISOString().split('T')[0]}
+            maxDate={getQuebecDateString()}
           />
         </div>
 

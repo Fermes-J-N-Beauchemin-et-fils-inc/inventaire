@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
-import { getQuebecMidnight, QUEBEC_TIMEZONE } from '@/app/lib/dateUtils';
+import { getQuebecMidnight, QUEBEC_TIMEZONE, getQuebecDateString } from '@/app/lib/dateUtils';
 
 export async function GET(request: Request) {
     try {
@@ -165,7 +165,7 @@ export async function GET(request: Request) {
         });
 
         const getHistoricalPrice = (foodId: number, dateStr: string) => {
-            const snapshot = thirtyDaysSnapshots.find(s => s.food_id === foodId && s.recorded_at.toISOString().split('T')[0] === dateStr);
+            const snapshot = thirtyDaysSnapshots.find(s => s.food_id === foodId && getQuebecDateString(s.recorded_at) === dateStr);
             if (snapshot && snapshot.price_per_tqs !== null) return snapshot.price_per_tqs;
             const currentFood = allFoods.find(f => f.id === foodId);
             return currentFood ? (currentFood.price_per_tqs || 0) : 0;
@@ -173,7 +173,7 @@ export async function GET(request: Request) {
         
         const rationsByDay: Record<string, any> = {};
         historicalRations.forEach(r => {
-            const dStr = r.date.toISOString().split('T')[0];
+            const dStr = getQuebecDateString(r.date);
             if (!rationsByDay[dStr]) {
                 rationsByDay[dStr] = r;
             }
@@ -196,12 +196,12 @@ export async function GET(request: Request) {
             thirtyDaysCount: 0,
         };
 
-        const yesterdayStr = new Date(startOfDay.getTime() - 86400000).toISOString().split('T')[0];
+        const yesterdayStr = getQuebecDateString(new Date(startOfDay.getTime() - 86400000));
         
         for (let i = 1; i <= 30; i++) {
             const d = new Date(startOfDay);
             d.setDate(d.getDate() - i);
-            const dStr = d.toISOString().split('T')[0];
+            const dStr = getQuebecDateString(d);
             
             const r = rationsByDay[dStr];
             if (r && (r.payload as any)?.groups) {
@@ -514,12 +514,12 @@ export async function GET(request: Request) {
         for (let i = 0; i < 30; i++) {
             const d = new Date(thirtyDaysAgo);
             d.setDate(d.getDate() + i);
-            const dateStr = d.toISOString().split('T')[0];
+            const dateStr = getQuebecDateString(d);
             dailyCostsMap[dateStr] = 0;
         }
 
         thirtyDaysTransactions.forEach(t => {
-            const dateStr = t.recorded_at.toISOString().split('T')[0];
+            const dateStr = getQuebecDateString(t.recorded_at);
             if (dailyCostsMap[dateStr] !== undefined) {
                 const consumedKg = Math.abs(t.quantity);
                 const cost = t.financial_cost !== null 

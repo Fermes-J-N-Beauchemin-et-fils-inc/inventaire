@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { TransactionSupplier, TransactionClient } from '../data/fetchTransactions';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faStore, faTruck, faHandshake, faPlus, faTimes, faArrowRightArrowLeft, faCheck, faTrash, faBuilding, faFileContract, faTractor, faArrowRightFromBracket, faPen } from '@fortawesome/free-solid-svg-icons';
+import { getQuebecDateString } from '@/app/lib/dateUtils';
 import toast from 'react-hot-toast';
 import ReceptionView from './ReceptionView';
 import ExpeditionView from './ExpeditionView';
@@ -534,7 +535,7 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
 
                     {spotFoodId && spotQuantity && spotPricePerKg && renderProfitLossEstimation(spotFoodId, spotQuantity, spotPricePerKg, activeAction === 'reception')}
 
-                    <input type="hidden" name="date_delivered" value={new Date().toISOString().split('T')[0]} />
+                    <input type="hidden" name="date_delivered" value={getQuebecDateString()} />
                     <button
                       disabled={isPending}
                       type="submit"

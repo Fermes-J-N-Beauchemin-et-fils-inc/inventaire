@@ -5,6 +5,7 @@ import { InventoryFoodData, StorageData, ClientWithContractsData } from '../../i
 import { createComplexSale } from '../../inventaire/actions';
 import toast from 'react-hot-toast';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { getQuebecDateString } from '@/app/lib/dateUtils';
 import { faTruckFast, faBoxOpen, faInfoCircle, faCheckCircle, faFileInvoiceDollar, faFileContract, faScaleBalanced } from '@fortawesome/free-solid-svg-icons';
 
 interface SaleData {
@@ -148,7 +149,7 @@ export default function ExpeditionView({ sales, inventory, clients, storages }: 
     formData.append("client_id", clientId.toString());
     formData.append("food_id", foodId.toString());
     formData.append("total_kg", totalKg.toString());
-    formData.append("date_sold", new Date().toISOString().split('T')[0]); // Force today's date
+    formData.append("date_sold", getQuebecDateString()); // Force today's date
     if (selectedMode !== 'spot' && selectedMode !== '') {
       formData.append("existing_sale_id", selectedMode);
     }

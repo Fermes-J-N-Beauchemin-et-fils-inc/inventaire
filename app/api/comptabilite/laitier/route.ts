@@ -1,6 +1,6 @@
 import { prisma } from "@/app/lib/db";
 import { NextResponse } from "next/server";
-import { QUEBEC_TIMEZONE } from "@/app/lib/dateUtils";
+import { QUEBEC_TIMEZONE, getQuebecDateString } from "@/app/lib/dateUtils";
 
 export async function GET() {
     try {
@@ -19,7 +19,7 @@ export async function GET() {
 
         // Group expenses by day
         const expensesByDay = expenses.reduce((acc, t) => {
-            const dateStr = t.date.toISOString().split('T')[0];
+            const dateStr = getQuebecDateString(t.date);
             acc[dateStr] = (acc[dateStr] || 0) + t.amount;
             return acc;
         }, {} as Record<string, number>);
@@ -29,7 +29,7 @@ export async function GET() {
         const revenueRsaData = Array.from({ length: 30 }).map((_, i) => {
             const date = new Date();
             date.setDate(date.getDate() - (29 - i));
-            const dateStr = date.toISOString().split('T')[0];
+            const dateStr = getQuebecDateString(date);
             
             const baseRev = 3800 + Math.sin(i / 3) * 300 + Math.random() * 200;
             const revTrend = 3800 + (i * 10);
