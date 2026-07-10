@@ -265,7 +265,7 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
             initialGroups[key] = {
               name: g.name,
               real: g.real_animal_count,
-              fed: lastGroup?.fed ?? g.animals_fed,
+              fed: g.real_animal_count,
               summer_two_meals: g.summer_two_meals,
               indice: lastGroup?.indice ?? (currentSaison === 'ete' ? (g.summer_two_meals ? "0.5" : "1") : "1"),
               indiceTour2: lastGroup?.indiceTour2 ?? (currentSaison === 'ete' ? (g.summer_two_meals ? "0.5" : "0.25") : "0.25"),
