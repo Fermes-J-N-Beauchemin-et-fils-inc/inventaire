@@ -47,6 +47,7 @@
     "@types/react-dom": "^19",
     "@types/ua-parser-js": "^0.7.39",
     "@vitejs/plugin-react": "^6.0.3",
+    "checkly": "^8.14.1",
     "dotenv-cli": "^11.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
