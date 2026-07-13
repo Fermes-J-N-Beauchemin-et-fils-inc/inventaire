@@ -53,6 +53,37 @@ export async function GET(request: Request) {
                 const groupCopy = { ...groupsPayload[key] };
                 groupCopy.fed = gData.real_animal_count;
                 groupCopy.real = gData.real_animal_count;
+
+                // Recalculate aliments based on the new fed amount
+                if (Array.isArray(groupCopy.aliments)) {
+                    let currentRtm = 0;
+                    groupCopy.aliments = groupCopy.aliments.map((a: any) => {
+                        let v1Num = parseFloat(a.v1) || 0;
+                        if (a.base_tqs_per_cow) {
+                            v1Num = Math.ceil(a.base_tqs_per_cow * groupCopy.fed);
+                        }
+                        
+                        let newName = a.name;
+                        if (a.isDump) {
+                            currentRtm -= v1Num;
+                            const targetGroupName = a.targetGroupName || groupCopy.name;
+                            const targetRtm = Math.max(0, currentRtm);
+                            newName = targetRtm < 10
+                                ? `Vider tout au ${targetGroupName}`
+                                : `DUMP au ${targetGroupName} jusqu'à ${targetRtm} RTM`;
+                        } else {
+                            currentRtm += v1Num;
+                        }
+                        
+                        return {
+                            ...a,
+                            name: newName,
+                            v1: v1Num.toString(),
+                            v2: Math.max(0, currentRtm).toString()
+                        };
+                    });
+                }
+
                 newGroupsPayload[key] = groupCopy;
                 newGroupsTotal += gData.real_animal_count;
             }
