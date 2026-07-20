@@ -40,21 +40,28 @@ export async function GET(request: Request) {
         }
 
         const groupsPayload = payload.groups;
-        const groupsData = await prisma.group.findMany();
         const foods = await prisma.food.findMany();
+        const groupsData = await prisma.group.findMany(); // Still need this for snapshot
+
+        // Fetch config to know current batches and groups
+        const { GET: getConfig } = await import("../../ration/config/route");
+        const configResponse = await getConfig();
+        const configData = await configResponse.json();
+        const { rationConfig, groups: virtualGroups } = configData;
 
         let newGroupsTotal = 0;
         const newGroupsPayload: any = {};
+        const currentSaison = payload.saison || 'hiver';
 
-        // 3. Update fed cows with real_animal_count and filter out deleted groups
-        for (const gData of groupsData) {
-            const key = gData.id.toString();
+        // 3. Rebuild groups using virtualGroups from config
+        for (const vg of virtualGroups) {
+            const key = vg.id.toString();
+            
             if (groupsPayload[key]) {
                 const groupCopy = { ...groupsPayload[key] };
-                groupCopy.fed = gData.real_animal_count;
-                groupCopy.real = gData.real_animal_count;
+                groupCopy.fed = vg.real_animal_count;
+                groupCopy.real = vg.real_animal_count;
 
-                // Recalculate aliments based on the new fed amount
                 if (Array.isArray(groupCopy.aliments)) {
                     let currentRtm = 0;
                     groupCopy.aliments = groupCopy.aliments.map((a: any) => {
@@ -68,9 +75,9 @@ export async function GET(request: Request) {
                             currentRtm -= v1Num;
                             const targetGroupName = a.targetGroupName || groupCopy.name;
                             const targetRtm = Math.max(0, currentRtm);
-                            newName = targetRtm < 10
-                                ? `Vider tout au ${targetGroupName}`
-                                : `DUMP au ${targetGroupName} jusqu'à ${targetRtm} RTM`;
+                            newName = targetRtm <= 2
+                                ? `Vider au ${targetGroupName}`
+                                : `Vider au ${targetGroupName} jusqu'à ${targetRtm} RTM`;
                         } else {
                             currentRtm += v1Num;
                         }
@@ -83,20 +90,65 @@ export async function GET(request: Request) {
                         };
                     });
                 }
-
                 newGroupsPayload[key] = groupCopy;
-                newGroupsTotal += gData.real_animal_count;
+                newGroupsTotal += vg.real_animal_count;
+            } else {
+                // Group is missing! Generate it from configData
+                const baseAliments = rationConfig[key] || [];
+                const mergedAliments = baseAliments
+                    .filter((a: any) => parseFloat(a.v1) > 0 || a.isInstruction || a.isDump)
+                    .map((a: any) => ({
+                        ...a,
+                        rowId: Math.random().toString(36).substring(2, 11)
+                    }));
+                
+                let currentRtm = 0;
+                mergedAliments.forEach((a: any) => {
+                    let v1Num = parseFloat(a.v1) || 0;
+                    if (a.base_tqs_per_cow) {
+                        v1Num = Math.ceil(a.base_tqs_per_cow * vg.real_animal_count);
+                    }
+                    a.v1 = v1Num.toString();
+                    
+                    if (a.isDump) {
+                        currentRtm -= v1Num;
+                        a.v2 = Math.max(0, currentRtm).toString();
+                        const targetGroupName = a.targetGroupName || vg.name;
+                        const targetRtm = Math.max(0, currentRtm);
+                        a.name = targetRtm <= 2
+                            ? `Vider au ${targetGroupName}`
+                            : `Vider au ${targetGroupName} jusqu'à ${targetRtm} RTM`;
+                    } else {
+                        currentRtm += v1Num;
+                        a.v2 = Math.max(0, currentRtm).toString();
+                    }
+                });
+
+                newGroupsPayload[key] = {
+                    name: vg.name,
+                    real: vg.real_animal_count,
+                    fed: vg.real_animal_count,
+                    summer_two_meals: vg.summer_two_meals,
+                    indice: currentSaison === 'ete' ? (vg.summer_two_meals ? "0.50" : "1.00") : "1.00",
+                    indiceTour2: currentSaison === 'ete' ? (vg.summer_two_meals ? "0.50" : "0.25") : "0.25",
+                    time: "",
+                    note: "",
+                    systemNote: "",
+                    foinSec: "0",
+                    aliments: mergedAliments
+                };
+                newGroupsTotal += vg.real_animal_count;
             }
         }
+        
         payload.groups = newGroupsPayload;
 
-        // Clean up tour keys just in case a group was deleted
-        if (payload.tour1Keys) {
-            payload.tour1Keys = payload.tour1Keys.filter((key: string) => newGroupsPayload[key]);
-        }
-        if (payload.tour2Keys) {
-            payload.tour2Keys = payload.tour2Keys.filter((key: string) => newGroupsPayload[key]);
-        }
+        // Rebuild tour keys using current config order
+        payload.tour1Keys = virtualGroups.map((vg: any) => vg.id.toString());
+        payload.tour2Keys = virtualGroups
+            .filter((vg: any) => vg.summer_two_meals)
+            .sort((a: any, b: any) => (a.tour2_order ?? 999) - (b.tour2_order ?? 999))
+            .map((vg: any) => vg.id.toString());
 
         const transactions: any[] = [
             prisma.pushedRation.create({
