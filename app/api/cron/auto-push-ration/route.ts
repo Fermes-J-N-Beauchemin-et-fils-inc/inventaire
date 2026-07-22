@@ -49,7 +49,6 @@ export async function GET(request: Request) {
         const configData = await configResponse.json();
         const { rationConfig, groups: virtualGroups } = configData;
 
-        let newGroupsTotal = 0;
         const newGroupsPayload: any = {};
         const currentSaison = payload.saison || 'hiver';
 
@@ -91,7 +90,6 @@ export async function GET(request: Request) {
                     });
                 }
                 newGroupsPayload[key] = groupCopy;
-                newGroupsTotal += vg.real_animal_count;
             } else {
                 // Group is missing! Generate it from configData
                 const baseAliments = rationConfig[key] || [];
@@ -137,7 +135,6 @@ export async function GET(request: Request) {
                     foinSec: "0",
                     aliments: mergedAliments
                 };
-                newGroupsTotal += vg.real_animal_count;
             }
         }
         
@@ -145,10 +142,15 @@ export async function GET(request: Request) {
 
         // Rebuild tour keys using current config order
         payload.tour1Keys = virtualGroups.map((vg: any) => vg.id.toString());
-        payload.tour2Keys = virtualGroups
+        payload.tour2Keys = currentSaison === 'ete' ? virtualGroups
             .filter((vg: any) => vg.summer_two_meals)
             .sort((a: any, b: any) => (a.tour2_order ?? 999) - (b.tour2_order ?? 999))
-            .map((vg: any) => vg.id.toString());
+            .map((vg: any) => vg.id.toString()) : [];
+            
+        // Calculate groups total
+        const activeTour1 = payload.tour1Keys.filter((k: string) => payload.groups[k] && payload.groups[k].fed > 0);
+        const activeTour2 = payload.tour2Keys.filter((k: string) => payload.groups[k] && payload.groups[k].fed > 0);
+        const newGroupsTotal = activeTour1.length + activeTour2.length;
 
         const transactions: any[] = [
             prisma.pushedRation.create({
