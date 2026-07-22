@@ -47,18 +47,26 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
+        <link rel="manifest" href="/manifest.json" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              if (window.navigator.standalone === true) {
-                document.addEventListener('click', function(event) {
-                  let target = event.target;
-                  while (target && target.tagName !== 'A') {
-                    target = target.parentNode;
+              if (("standalone" in window.navigator) && window.navigator.standalone) {
+                document.addEventListener("click", function(e) {
+                  let node = e.target;
+                  while (node && node.nodeName !== "A" && node.nodeName !== "HTML") {
+                    node = node.parentNode;
                   }
-                  if (target && target.href && target.origin === window.location.origin && !target.hasAttribute('data-external')) {
-                    event.preventDefault();
-                    window.location.href = target.href;
+                  if (
+                    node && 
+                    node.nodeName === "A" && 
+                    node.href && 
+                    node.href.indexOf("http") !== -1 && 
+                    node.href.indexOf(document.location.host) !== -1 &&
+                    node.target !== "_blank"
+                  ) {
+                    e.preventDefault();
+                    window.location.href = node.href;
                   }
                 }, false);
               }
