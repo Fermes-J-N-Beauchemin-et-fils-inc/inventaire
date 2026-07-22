@@ -751,7 +751,7 @@ export default function TransactionsClient({ initialFournisseurs, initialClients
             </div>
           </div>
 
-          <div className="bg-white rounded-[2rem] border border-zinc-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-[2rem] border border-zinc-200 shadow-sm overflow-x-auto w-full">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-zinc-50 text-zinc-500 text-sm uppercase tracking-widest border-b border-zinc-200">

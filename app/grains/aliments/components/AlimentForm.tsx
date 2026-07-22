@@ -89,7 +89,7 @@ export default function AlimentForm({ units, storages, initialData, action }: Al
   };
 
   return (
-    <div className="bg-white rounded-[2.5rem] p-8 sm:p-12 border-2 border-zinc-200/60 shadow-sm relative overflow-hidden max-w-4xl mx-auto">
+    <div className="bg-white rounded-[2.5rem] p-5 sm:p-12 border-2 border-zinc-200/60 shadow-sm relative overflow-hidden max-w-4xl mx-auto">
       <div className="absolute top-0 right-0 w-[30rem] h-[30rem] bg-blue-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
 
       <div className="relative z-10">
@@ -120,7 +120,7 @@ export default function AlimentForm({ units, storages, initialData, action }: Al
 
         <form action={action} className="space-y-8">
           {/* Informations principales */}
-          <div className="bg-zinc-50 p-6 rounded-[2rem] border border-zinc-100 space-y-6">
+          <div className="bg-zinc-50 p-4 sm:p-6 rounded-[2rem] border border-zinc-100 space-y-6">
             <h2 className="text-xl font-black text-zinc-800 uppercase tracking-widest mb-4">Informations Principales</h2>
             
             <div>
@@ -205,7 +205,7 @@ export default function AlimentForm({ units, storages, initialData, action }: Al
           </div>
 
           {/* Propriétés nutritionnelles & Prix */}
-          <div className="bg-zinc-50 p-6 rounded-[2rem] border border-zinc-100 space-y-6">
+          <div className="bg-zinc-50 p-4 sm:p-6 rounded-[2rem] border border-zinc-100 space-y-6">
             <h2 className="text-xl font-black text-zinc-800 uppercase tracking-widest mb-4">Valeurs Supplémentaires</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -273,7 +273,7 @@ export default async function AlimentDetailPage({ params }: { params: Promise<{ 
 
   return (
     <Sidenav>
-      <div className="min-h-screen bg-[#FAF8F5] py-8 px-4 sm:px-8 font-sans pb-20">
+      <div className="min-h-screen bg-[#FAF8F5] py-8 px-4 sm:px-8 font-sans pb-20 overflow-x-hidden">
 
         {/* Navigation & Status Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
@@ -338,7 +338,7 @@ export default async function AlimentDetailPage({ params }: { params: Promise<{ 
                 <span className="text-zinc-400 font-bold">|</span>
                 <span className="text-zinc-600 font-bold uppercase tracking-wider">{aliment.unit}</span>
               </div>
-              <h1 className="text-4xl sm:text-5xl font-black text-zinc-900 tracking-tight mb-2">
+              <h1 className="text-4xl sm:text-5xl font-black text-zinc-900 tracking-tight mb-2 break-words break-all sm:break-normal">
                 {aliment.fullName}
               </h1>
               <p className="text-2xl font-bold text-zinc-500">
@@ -347,7 +347,7 @@ export default async function AlimentDetailPage({ params }: { params: Promise<{ 
             </div>
 
             {/* Quick Metrics */}
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-4">
               <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-5 flex flex-col justify-center items-center min-w-[120px]">
                 <FontAwesomeIcon icon={faWeightHanging} className="text-2xl text-amber-600 mb-2" />
                 <span className="text-3xl font-black text-zinc-900">{aliment.msPercentage.toLocaleString('fr-CA', { maximumFractionDigits: 1 })}%</span>

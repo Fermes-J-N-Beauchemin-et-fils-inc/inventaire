@@ -66,7 +66,7 @@ export default function Sidenav({ children, initials = "JN" }: SidenavProps) {
     return (
         <div className="min-h-screen bg-[#FAF8F5]">
             {/* Navbar supérieure */}
-            <nav className="fixed top-0 z-50 w-full bg-white border-b border-zinc-200 shadow-sm print:hidden">
+            <nav className="fixed top-0 z-[60] w-full bg-white border-b border-zinc-200 shadow-sm print:hidden">
                 <div className="px-6 py-6 lg:px-5 lg:pl-3">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center justify-start rtl:justify-end">
@@ -110,14 +110,14 @@ export default function Sidenav({ children, initials = "JN" }: SidenavProps) {
             {/* Overlay pour fermer le menu sur mobile (uniquement visible quand ouvert et ecran petit) */}
             {isSidebarOpen && (
                 <div 
-                    className="fixed inset-0 z-30 bg-zinc-900/50 backdrop-blur-sm lg:hidden transition-opacity print:hidden"
+                    className="fixed inset-0 z-[50] bg-zinc-900/50 backdrop-blur-sm lg:hidden transition-opacity print:hidden"
                     onClick={closeSidebar}
                 />
             )}
 
             {/* Sidebar latérale */}
             <aside
-                className={`fixed top-0 left-0 z-40 w-80 h-full pt-[7.5rem] transition-transform duration-300 ease-in-out bg-white border-r border-zinc-200 shadow-sm print:hidden ${
+                className={`fixed top-0 left-0 z-[55] w-80 h-full pt-[7.5rem] transition-transform duration-300 ease-in-out bg-white border-r border-zinc-200 shadow-sm print:hidden ${
                     isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
                 }`}
                 aria-label="Sidebar"
