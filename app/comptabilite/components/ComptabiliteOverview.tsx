@@ -33,12 +33,12 @@ export default function ComptabiliteOverview({ groups, totalGroup }: Comptabilit
           <h2 className="text-3xl font-black mb-2">Aperçu Global</h2>
           <p className="text-blue-200 font-medium text-lg">Résumé des coûts de ration pour la date sélectionnée.</p>
         </div>
-        <div className="flex gap-6">
-          <div className="bg-blue-700/50 p-6 rounded-2xl border border-blue-500/50">
+        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+          <div className="bg-blue-700/50 p-6 rounded-2xl border border-blue-500/50 flex-1">
             <p className="text-sm font-bold text-blue-200 uppercase tracking-wide mb-1">Coût par jour</p>
             <p className="text-3xl font-black">{formatMoney(totalGroup.totalCostDay)}</p>
           </div>
-          <div className="bg-blue-700/50 p-6 rounded-2xl border border-blue-500/50">
+          <div className="bg-blue-700/50 p-6 rounded-2xl border border-blue-500/50 flex-1">
             <p className="text-sm font-bold text-blue-200 uppercase tracking-wide mb-1">Volume nourri</p>
             <p className="text-3xl font-black">{formatNum(totalGroup.totalKgTqs)} <span className="text-xl">kg</span></p>
           </div>
