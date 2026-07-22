@@ -23,7 +23,7 @@ export function getQuebecMidnight(): Date {
 
 /**
  * Returns a YYYY-MM-DD string for the given Date based on Quebec time.
- * Replaces .toISOString().split('T')[0] which yields incorrect dates around midnight.
+ * Replaces .toISOString().split('T')[0] which yields incorrect dates around the .
  */
 export function getQuebecDateString(date: Date = new Date()): string {
   return date.toLocaleDateString('fr-CA', { 

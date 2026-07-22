@@ -99,6 +99,7 @@ export default async function DashboardPage() {
 
                     <div className="space-y-12">
                         {/* Grains Section */}
+                        
                         <div>
                             <h3 className="text-lg font-black text-amber-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                                 <FontAwesomeIcon icon={faWheatAwn} /> Grains
@@ -155,6 +156,7 @@ export default async function DashboardPage() {
                                     description="Laitières"
                                     color="blue"
                                 />
+                                
                                 <DashboardRedirectCard
                                     href="/laitier/sommaire"
                                     icon={<FontAwesomeIcon icon={faChartLine} className="w-6 h-6" />}
@@ -164,6 +166,7 @@ export default async function DashboardPage() {
                                 />
                             </div>
                         </div>
+                        
 
                         {/* Comptabilite Section */}
                         <div>
