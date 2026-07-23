@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faDatabase, faCarrot, faHouse, faBuildingColumns, faWheatAwn, faBars, faXmark, faTruck, faFlask, faStore, faArrowRightArrowLeft, faLayerGroup } from "@fortawesome/free-solid-svg-icons";
+import { motion } from 'framer-motion';
 
 interface NavItemProps {
     href: string;
@@ -227,9 +228,14 @@ export default function Sidenav({ children, initials = "JN" }: SidenavProps) {
 
             {/* Contenu principal de la page */}
             <div className={`p-6 pt-[8.5rem] pb-8 min-h-screen flex flex-col justify-between transition-all duration-300 print:p-0 print:m-0 print:min-h-0 print:w-full ml-0 lg:ml-80`}>
-                <div className="w-full">
+                <motion.div 
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
+                    className="w-full"
+                >
                     {children}
-                </div>
+                </motion.div>
                 
                 {/* Petit footer */}
                 <footer className="mt-auto pt-10 pb-4 text-center text-zinc-500 text-sm font-medium print:hidden">
