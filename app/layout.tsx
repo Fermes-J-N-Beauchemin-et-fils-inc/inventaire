@@ -19,11 +19,13 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: "#FAF8F5",
 };
 
 export const metadata: Metadata = {
   title: "Ferme JN Beauchemin",
   description: "logiciel de gestion agricole",
+  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -31,7 +33,7 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: "/images/logo.png",
-    apple: "/images/logo.png",
+    apple: "/apple-touch-icon.png",
   },
 };
 
@@ -48,7 +50,6 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
-        <link rel="manifest" href="/manifest.json?v=2" />
       </head>
       <body className="min-h-full flex flex-col">
         <DbHealthProvider>
