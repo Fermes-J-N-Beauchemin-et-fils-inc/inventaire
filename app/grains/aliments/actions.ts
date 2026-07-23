@@ -72,6 +72,8 @@ export async function updateAliment(id: number, formData: FormData) {
 
     if (existingStorage) {
       if (existingStorage.storage_id !== storage_id || existingStorage.current_stock !== current_stock) {
+        const diff = current_stock - existingStorage.current_stock;
+        
         await tx.foodStorage.update({
           where: {
             food_id_storage_id: {
@@ -81,6 +83,18 @@ export async function updateAliment(id: number, formData: FormData) {
           },
           data: { storage_id, current_stock }
         });
+
+        if (diff !== 0) {
+          await tx.stockTransaction.create({
+            data: {
+              food_id: id,
+              storage_id: storage_id,
+              quantity: diff,
+              transaction_type: "ADJUSTMENT",
+              recorded_at: new Date()
+            }
+          });
+        }
       }
     } else {
       await tx.foodStorage.create({

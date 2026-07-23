@@ -28,7 +28,7 @@ export default async function AlimentDetailPage({ params }: { params: Promise<{ 
         include: { storage: true }
       },
       deliveries: {
-        where: { date_expected: { gte: new Date() } }
+        where: { date_delivered: null }
       },
       sales: {
         where: { date_sold: null },

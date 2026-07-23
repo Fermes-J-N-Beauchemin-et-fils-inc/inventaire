@@ -375,7 +375,7 @@ export async function GET(request: Request) {
                     
                     const costDay = tqs * (priceTqs / 1000);
 
-                    const gKey = `group_${g.id}`;
+                    const gKey = g.id.toString();
                     const alId = `${gKey}_${foodRecord.id}`;
                     const diffYesterday = getDiff(tqs, historyAgg.yesterdayAliment[alId] || 0, 1);
                     const diff7Days = getDiff(tqs, historyAgg.sevenDaysAliment[alId] || 0, historyAgg.sevenDaysCount);
@@ -409,7 +409,7 @@ export async function GET(request: Request) {
                     groupMs += ms;
                 });
 
-                const gKeyOut = `group_${g.id}`;
+                const gKeyOut = g.id.toString();
                 groups.push({
                     id: gKeyOut,
                     name: g.name,

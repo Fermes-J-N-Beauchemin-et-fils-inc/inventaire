@@ -53,7 +53,7 @@ interface SidenavProps {
 }
 
 export default function Sidenav({ children, initials = "JN" }: SidenavProps) {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const toggleSidebar = () => {
         setIsSidebarOpen(!isSidebarOpen);
@@ -66,14 +66,17 @@ export default function Sidenav({ children, initials = "JN" }: SidenavProps) {
     return (
         <div className="min-h-screen bg-[#FAF8F5]">
             {/* Navbar supérieure */}
-            <nav className="fixed top-0 z-[60] w-full bg-white border-b border-zinc-200 shadow-sm print:hidden">
+            <nav 
+                className="fixed top-0 z-[60] w-full bg-white border-b border-zinc-200 shadow-sm print:hidden"
+                style={{ paddingTop: 'env(safe-area-inset-top)' }}
+            >
                 <div className="px-6 py-6 lg:px-5 lg:pl-3">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center justify-start rtl:justify-end">
                             <button
                                 onClick={toggleSidebar}
                                 type="button"
-                                className="inline-flex items-center justify-center p-3 w-12 h-12 text-zinc-600 rounded-xl hover:bg-zinc-100 hover:text-black focus:outline-none focus:ring-4 focus:ring-zinc-200 transition-all"
+                                className="inline-flex items-center justify-center p-3 w-12 h-12 text-zinc-600 rounded-xl hover:bg-zinc-100 hover:text-black focus:outline-none focus:ring-4 focus:ring-zinc-200 transition-all lg:hidden"
                             >
                                 <span className="sr-only">Ouvrir le menu</span>
                                 <FontAwesomeIcon icon={isSidebarOpen ? faXmark : faBars} className="w-8 h-8" />
@@ -117,7 +120,7 @@ export default function Sidenav({ children, initials = "JN" }: SidenavProps) {
 
             {/* Sidebar latérale */}
             <aside
-                className={`fixed top-0 left-0 z-[55] w-80 h-full pt-[7.5rem] transition-transform duration-300 ease-in-out bg-white border-r border-zinc-200 shadow-sm print:hidden ${
+                className={`fixed top-0 left-0 z-[55] w-80 h-full pt-[7.5rem] transition-transform duration-300 ease-in-out bg-white border-r border-zinc-200 shadow-sm print:hidden lg:translate-x-0 ${
                     isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
                 }`}
                 aria-label="Sidebar"
@@ -223,7 +226,7 @@ export default function Sidenav({ children, initials = "JN" }: SidenavProps) {
             </aside>
 
             {/* Contenu principal de la page */}
-            <div className={`p-6 pt-[8.5rem] pb-8 min-h-screen flex flex-col justify-between transition-all duration-300 print:p-0 print:m-0 print:min-h-0 print:w-full ${isSidebarOpen ? 'lg:ml-80' : 'ml-0'}`}>
+            <div className={`p-6 pt-[8.5rem] pb-8 min-h-screen flex flex-col justify-between transition-all duration-300 print:p-0 print:m-0 print:min-h-0 print:w-full ml-0 lg:ml-80`}>
                 <div className="w-full">
                     {children}
                 </div>
