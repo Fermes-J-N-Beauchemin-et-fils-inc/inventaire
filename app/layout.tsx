@@ -30,7 +30,8 @@ export const metadata: Metadata = {
     title: "JN Beauchemin",
   },
   icons: {
-    apple: "/apple-touch-icon.png",
+    icon: "/images/logo.png",
+    apple: "/images/logo.png",
   },
 };
 

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "@/app/lib/client-auth";
-import logo from '@/public/images/logo.png';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -39,7 +38,7 @@ export default function LoginPage() {
         {/* Conteneur du Logo */}
         <div className="w-full h-44 flex items-center justify-center mb-10">
           <img
-            src={logo.src}
+            src="/images/logo.png"
             alt="Logo Fermes J.N. Beauchemin"
             className="max-h-full object-contain"
           />

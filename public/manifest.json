@@ -1,6 +1,6 @@
 {
   "name": "Ferme JN Beauchemin",
-  "short_name": "JN Beauchemin",
+  "short_name": "Inventaire JN",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -8,8 +8,13 @@
   "theme_color": "#FAF8F5",
   "icons": [
     {
-      "src": "/apple-touch-icon.png",
-      "sizes": "180x180",
+      "src": "/images/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/logo.png",
+      "sizes": "512x512",
       "type": "image/png"
     }
   ]
