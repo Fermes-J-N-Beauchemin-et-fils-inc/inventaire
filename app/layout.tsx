@@ -48,32 +48,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
-        <link rel="manifest" href="/manifest.json" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if (("standalone" in window.navigator) && window.navigator.standalone) {
-                document.addEventListener("click", function(e) {
-                  let node = e.target;
-                  while (node && node.nodeName !== "A" && node.nodeName !== "HTML") {
-                    node = node.parentNode;
-                  }
-                  if (
-                    node && 
-                    node.nodeName === "A" && 
-                    node.href && 
-                    node.href.indexOf("http") !== -1 && 
-                    node.href.indexOf(document.location.host) !== -1 &&
-                    node.target !== "_blank"
-                  ) {
-                    e.preventDefault();
-                    window.location.href = node.href;
-                  }
-                }, false);
-              }
-            `
-          }}
-        />
+        <link rel="manifest" href="/manifest.json?v=2" />
       </head>
       <body className="min-h-full flex flex-col">
         <DbHealthProvider>
