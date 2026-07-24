@@ -217,13 +217,16 @@ export async function GET() {
                     if (currentMsPercent > targetMsPercent) {
                         const waterToAdd = (totalMs * 100 / targetMsPercent) - totalTqs;
                         if (waterToAdd > 0) {
-                            needs['auto_water'] = {
-                                food: { id: 'auto_water', name: 'Eau (Ajustement)', price_per_tqs: 0, price_per_ms: 0 },
-                                tqs: waterToAdd,
-                                ms: 0,
-                                isManual: true,
-                                isTopDress: false
-                            };
+                            if (!needs['auto_water']) {
+                                needs['auto_water'] = {
+                                    food: { id: 'auto_water', name: 'Eau (Ajustement)', price_per_tqs: 0, price_per_ms: 0 },
+                                    tqs: 0,
+                                    ms: 0,
+                                    isManual: true,
+                                    isTopDress: false
+                                };
+                            }
+                            needs['auto_water'].tqs += waterToAdd;
                         }
                     }
                 }
