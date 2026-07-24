@@ -334,6 +334,21 @@ export async function GET() {
                     return id;
                 });
 
+                // Add any missing ingredients/instructions BEFORE the first dump, 
+                // so they don't end up stranded at the end of the batch.
+                const missingItemIds = sequence
+                    .filter(s => !correctedAlimentsOrder.includes(s.id) && !s.isDump)
+                    .map(s => s.id);
+
+                if (missingItemIds.length > 0) {
+                    const firstDumpIndex = correctedAlimentsOrder.findIndex(id => id.startsWith('dump_'));
+                    if (firstDumpIndex !== -1) {
+                        correctedAlimentsOrder.splice(firstDumpIndex, 0, ...missingItemIds);
+                    } else {
+                        correctedAlimentsOrder.push(...missingItemIds);
+                    }
+                }
+
                 sequence.sort((a, b) => {
                     const indexA = correctedAlimentsOrder.indexOf(a.id);
                     const indexB = correctedAlimentsOrder.indexOf(b.id);
