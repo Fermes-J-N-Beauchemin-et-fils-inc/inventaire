@@ -349,6 +349,22 @@ export async function GET() {
                     }
                 }
 
+                // --- HEAL STRANDED ITEMS ---
+                // If any items are placed AFTER the very last dump (either due to a corrupted 
+                // saved state or historical bug), rescue them and move them BEFORE the last dump.
+                let lastDumpIndex = -1;
+                for (let i = correctedAlimentsOrder.length - 1; i >= 0; i--) {
+                    if (typeof correctedAlimentsOrder[i] === 'string' && correctedAlimentsOrder[i].startsWith('dump_')) {
+                        lastDumpIndex = i;
+                        break;
+                    }
+                }
+
+                if (lastDumpIndex !== -1 && lastDumpIndex < correctedAlimentsOrder.length - 1) {
+                    const strandedItems = correctedAlimentsOrder.splice(lastDumpIndex + 1);
+                    correctedAlimentsOrder.splice(lastDumpIndex, 0, ...strandedItems);
+                }
+
                 sequence.sort((a, b) => {
                     const indexA = correctedAlimentsOrder.indexOf(a.id);
                     const indexB = correctedAlimentsOrder.indexOf(b.id);
