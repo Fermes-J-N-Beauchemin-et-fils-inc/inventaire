@@ -244,9 +244,23 @@ export default function RationClient({ isDistributor, availableAliments }: Ratio
                 mergedAliments = Array.from(itemsMap.values()).filter((a: any) => parseFloat(a.v1) > 0 || a.isInstruction || a.isDump);
                 
                 if (g.aliments_order && Array.isArray(g.aliments_order)) {
+                    const correctedAlimentsOrder = [...g.aliments_order];
+                    const missingItemIds = mergedAliments
+                        .filter((a: any) => correctedAlimentsOrder.indexOf(a.id) === -1 && !a.isDump)
+                        .map((a: any) => a.id);
+
+                    if (missingItemIds.length > 0) {
+                        const firstDumpIndex = correctedAlimentsOrder.findIndex((id: string) => id.startsWith('dump_'));
+                        if (firstDumpIndex !== -1) {
+                            correctedAlimentsOrder.splice(firstDumpIndex, 0, ...missingItemIds);
+                        } else {
+                            correctedAlimentsOrder.push(...missingItemIds);
+                        }
+                    }
+
                     mergedAliments.sort((a, b) => {
-                        const indexA = g.aliments_order.indexOf(a.id);
-                        const indexB = g.aliments_order.indexOf(b.id);
+                        const indexA = correctedAlimentsOrder.indexOf(a.id);
+                        const indexB = correctedAlimentsOrder.indexOf(b.id);
                         if (indexA === -1 && indexB === -1) return 0;
                         if (indexA === -1) return 1;
                         if (indexB === -1) return -1;
